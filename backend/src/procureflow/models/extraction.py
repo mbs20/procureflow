@@ -35,6 +35,7 @@ class ExtractedQuotation(Base):
         DateTime(timezone=True), default=datetime.utcnow, nullable=False
     )
     overall_confidence: Mapped[float] = mapped_column(Numeric(5, 4), default=1.0, nullable=False)
+    is_current: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     raw_llm_output: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 

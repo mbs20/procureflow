@@ -4,6 +4,7 @@ import { Layout } from "./components/layout/Layout";
 import { DashboardPage } from "./pages/DashboardPage";
 import { RFQListPage } from "./pages/RFQListPage";
 import { RFQDetailPage } from "./pages/RFQDetailPage";
+import { QuotationsPage } from "./pages/QuotationsPage";
 
 export const App: React.FC = () => {
   return (
@@ -13,28 +14,8 @@ export const App: React.FC = () => {
           <Route index element={<DashboardPage />} />
           <Route path="rfqs" element={<RFQListPage />} />
           <Route path="rfqs/:id" element={<RFQDetailPage />} />
-          <Route
-            path="quotations"
-            element={
-              <div className="glass-card rounded-xl p-8 text-center space-y-3">
-                <h2 className="text-xl font-bold text-white">Document Ingestion Pipeline</h2>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  Multi-supplier document uploads (PDF, XLSX, CSV) and asynchronous Celery processing.
-                </p>
-              </div>
-            }
-          />
-          <Route
-            path="review"
-            element={
-              <div className="glass-card rounded-xl p-8 text-center space-y-3">
-                <h2 className="text-xl font-bold text-white">Human-in-the-Loop Review</h2>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  Side-by-side original document viewer with editable extracted fields and confidence indicators.
-                </p>
-              </div>
-            }
-          />
+          <Route path="quotations" element={<QuotationsPage />} />
+          <Route path="review" element={<QuotationsPage />} />
           <Route
             path="matrix"
             element={

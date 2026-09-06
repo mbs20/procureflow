@@ -60,7 +60,9 @@ class ExtractedQuotationRead(BaseModel):
     extraction_version: str
     extracted_at: datetime
     overall_confidence: Decimal
+    is_current: bool = True
     notes: str | None = None
+    raw_llm_output: dict[str, Any] | None = None
     line_items: list[ExtractedLineItemRead] = Field(default_factory=list)
     fields: list[ExtractedFieldRead] = Field(default_factory=list)
 

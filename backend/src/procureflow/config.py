@@ -59,6 +59,11 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1:8b"
 
+    # Extraction & Ingestion Settings
+    rfq_match_threshold: float = 0.80
+    min_native_text_chars: int = 50
+    ocr_enabled: bool = True
+
     # External APIs
     exchange_rate_api_url: str = "https://open.er-api.com/v6/latest"
 

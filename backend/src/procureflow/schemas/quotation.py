@@ -45,3 +45,8 @@ class JobStatusResponse(BaseModel):
     failure_reason: str | None = None
     progress_percent: int = Field(default=0, ge=0, le=100)
     message: str | None = None
+
+
+class QuotationStatusUpdate(BaseModel):
+    status: QuotationStatus = Field(..., description="Target status (approved or rejected)")
+    failure_reason: str | None = None

@@ -47,7 +47,8 @@ dist-ssr/
 *.key
 
 # Application runtime data & storage
-data/storage/
+data/
+backend/data/
 *.db
 *.sqlite3
 procureflow.db

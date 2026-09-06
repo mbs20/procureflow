@@ -1,11 +1,12 @@
 from collections.abc import AsyncGenerator
 
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from procureflow.config import get_settings
 
@@ -31,6 +32,27 @@ async_session_maker = async_sessionmaker(
     autoflush=False,
 )
 
+is_sync_sqlite = settings.database_url_sync.startswith("sqlite")
+sync_connect_args = {"check_same_thread": False} if is_sync_sqlite else {}
+
+sync_engine = create_engine(
+    settings.database_url_sync,
+    echo=False,
+    connect_args=sync_connect_args,
+)
+
+SyncSessionLocal = sessionmaker(
+    bind=sync_engine,
+    autocommit=False,
+    autoflush=False,
+    expire_on_commit=False,
+)
+
+
+def get_session_factory() -> sessionmaker[Session]:
+    """Provides synchronous sessionmaker for background Celery worker tasks."""
+    return SyncSessionLocal
+
 
 class Base(DeclarativeBase):
     pass
@@ -48,3 +70,11 @@ async def init_db() -> None:
     """Create database tables directly if needed (e.g. in tests or initial setup)."""
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        if not is_sqlite:
+            from sqlalchemy import text
+
+            await conn.execute(
+                text(
+                    "ALTER TABLE extracted_quotations ADD COLUMN IF NOT EXISTS is_current BOOLEAN DEFAULT TRUE NOT NULL"
+                )
+            )
