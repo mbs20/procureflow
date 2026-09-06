@@ -1,0 +1,60 @@
+{
+  "title": "Industrial High-Pressure Valves & Actuators",
+  "description": "Supply of standard ISO-5211 flanged butterfly and high-performance ball valves for water processing facility upgrade.",
+  "category": "Industrial Valves & Piping",
+  "reference_currency": "USD",
+  "line_items": [
+    {
+      "position": 1,
+      "description": "3-inch Stainless Steel Lug Butterfly Valve, Class 150, EPDM Liner",
+      "quantity": 25,
+      "unit": "pcs"
+    },
+    {
+      "position": 2,
+      "description": "2-inch Flanged 2-Piece Stainless Steel Ball Valve, Full Port, 1000 WOG",
+      "quantity": 40,
+      "unit": "pcs"
+    },
+    {
+      "position": 3,
+      "description": "Pneumatic Double-Acting Quarter-Turn Actuator with Limit Switch Box",
+      "quantity": 15,
+      "unit": "units"
+    }
+  ],
+  "criteria": [
+    {
+      "name": "Total Cost of Procurement",
+      "description": "Total evaluated commercial bid price normalized to reference currency USD.",
+      "weight": 0.40,
+      "direction": "lower_is_better",
+      "is_knockout": false,
+      "data_type": "price"
+    },
+    {
+      "name": "Delivery Lead Time",
+      "description": "Lead time in days until ex-works dispatch.",
+      "weight": 0.30,
+      "direction": "lower_is_better",
+      "is_knockout": false,
+      "data_type": "days"
+    },
+    {
+      "name": "Warranty Period",
+      "description": "Manufacturer warranty period in months.",
+      "weight": 0.20,
+      "direction": "higher_is_better",
+      "is_knockout": false,
+      "data_type": "days"
+    },
+    {
+      "name": "Payment Flexibility",
+      "description": "Evaluated score of payment terms (Net-60/Net-30 vs Upfront).",
+      "weight": 0.10,
+      "direction": "higher_is_better",
+      "is_knockout": false,
+      "data_type": "enum"
+    }
+  ]
+}

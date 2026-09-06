@@ -1,0 +1,32 @@
+services:
+  test-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: procureflow_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+    ports:
+      - "5433:5432"
+
+  test-redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+
+  test-runner:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - PROCUREFLOW_ENV=test
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgrespassword@test-postgres:5432/procureflow_test
+      - DATABASE_URL_SYNC=postgresql+psycopg2://postgres:postgrespassword@test-postgres:5432/procureflow_test
+      - REDIS_URL=redis://test-redis:6379/0
+      - CELERY_ALWAYS_EAGER=true
+      - STORAGE_BACKEND=local
+      - STORAGE_LOCAL_DIR=/tmp/procureflow_test_storage
+      - PROCUREFLOW_LLM_PROVIDER=mock
+    depends_on:
+      - test-postgres
+      - test-redis
+    command: pytest --cov=procureflow tests/

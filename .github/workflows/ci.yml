@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-lint-and-test:
+    name: Backend Lint & Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: procureflow_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: |
+          uv sync --dev
+
+      - name: Lint with ruff
+        working-directory: ./backend
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Typecheck with mypy
+        working-directory: ./backend
+        run: |
+          uv run mypy src/
+
+      - name: Run Pytest suite
+        working-directory: ./backend
+        env:
+          PROCUREFLOW_ENV: test
+          DATABASE_URL: postgresql+asyncpg://postgres:postgrespassword@localhost:5432/procureflow_test
+          DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgrespassword@localhost:5432/procureflow_test
+          REDIS_URL: redis://localhost:6379/0
+          CELERY_ALWAYS_EAGER: "true"
+          PROCUREFLOW_LLM_PROVIDER: mock
+          STORAGE_BACKEND: local
+          STORAGE_LOCAL_DIR: /tmp/procureflow_test_storage
+        run: |
+          uv run pytest --cov=procureflow tests/
+
+  frontend-lint-and-build:
+    name: Frontend Lint & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package.json
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Lint and typecheck
+        working-directory: ./frontend
+        run: |
+          npm run typecheck
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build

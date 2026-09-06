@@ -1,0 +1,112 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: procureflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: procureflow
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d procureflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: procureflow-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: procureflow-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PROCUREFLOW_ENV=development
+      - PROCUREFLOW_DEBUG=true
+      - PROCUREFLOW_API_KEY=procureflow_dev_api_key_12345
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgrespassword@postgres:5432/procureflow
+      - DATABASE_URL_SYNC=postgresql+psycopg2://postgres:postgrespassword@postgres:5432/procureflow
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - STORAGE_BACKEND=local
+      - STORAGE_LOCAL_DIR=/app/data/storage
+      - PROCUREFLOW_LLM_PROVIDER=${PROCUREFLOW_LLM_PROVIDER:-openai}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      - ./backend:/app
+      - backend_storage:/app/data/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head && uvicorn procureflow.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: procureflow-worker
+    restart: unless-stopped
+    environment:
+      - PROCUREFLOW_ENV=development
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgrespassword@postgres:5432/procureflow
+      - DATABASE_URL_SYNC=postgresql+psycopg2://postgres:postgrespassword@postgres:5432/procureflow
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - STORAGE_BACKEND=local
+      - STORAGE_LOCAL_DIR=/app/data/storage
+      - PROCUREFLOW_LLM_PROVIDER=${PROCUREFLOW_LLM_PROVIDER:-openai}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      - ./backend:/app
+      - backend_storage:/app/data/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A procureflow.tasks.celery_app worker --loglevel=info
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: procureflow-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  backend_storage:
