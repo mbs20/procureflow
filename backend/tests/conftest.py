@@ -12,6 +12,7 @@ os.environ["CELERY_ALWAYS_EAGER"] = "true"
 os.environ["PROCUREFLOW_LLM_PROVIDER"] = "mock"
 os.environ["STORAGE_LOCAL_DIR"] = "./data/test_storage"
 
+from procureflow.api.deps import verify_api_key
 from procureflow.database import Base, get_db
 from procureflow.main import app
 
@@ -47,7 +48,11 @@ async def async_client(db_session: AsyncSession) -> AsyncClient:
     async def override_get_db():
         yield db_session
 
+    async def override_verify_api_key():
+        return "test-user"
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[verify_api_key] = override_verify_api_key
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client

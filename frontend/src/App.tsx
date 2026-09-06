@@ -2,6 +2,8 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import { DashboardPage } from "./pages/DashboardPage";
+import { RFQListPage } from "./pages/RFQListPage";
+import { RFQDetailPage } from "./pages/RFQDetailPage";
 
 export const App: React.FC = () => {
   return (
@@ -9,17 +11,8 @@ export const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<DashboardPage />} />
-          <Route
-            path="rfqs"
-            element={
-              <div className="glass-card rounded-xl p-8 text-center space-y-3">
-                <h2 className="text-xl font-bold text-white">RFQ Management</h2>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  Phase 1 will provide interactive RFQ creation, line item definitions, and weighted criteria builders.
-                </p>
-              </div>
-            }
-          />
+          <Route path="rfqs" element={<RFQListPage />} />
+          <Route path="rfqs/:id" element={<RFQDetailPage />} />
           <Route
             path="quotations"
             element={
