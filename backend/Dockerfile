@@ -17,11 +17,12 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 WORKDIR /app
 
-# Copy project specifications and install dependencies
-COPY pyproject.toml .
+# Copy project specifications, README, and source code for package installation
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
 RUN uv pip install --system --no-cache -e ".[dev]"
 
-# Copy application source and migrations
+# Copy application migrations, scripts, and remaining files
 COPY . /app
 
 EXPOSE 8000

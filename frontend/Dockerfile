@@ -14,8 +14,9 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
 COPY package*.json ./
-RUN npm install --omit=dev vite
+COPY vite.config.ts ./
 
 EXPOSE 5173
 

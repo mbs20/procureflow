@@ -1,0 +1,36 @@
+# Python virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache & bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.cache/
+
+# Local databases & storage
+*.db
+*.sqlite3
+procureflow.db
+data/
+storage/
+
+# Git & IDE
+.git/
+.gitignore
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs & temp
+*.log
+.DS_Store
+Thumbs.db
