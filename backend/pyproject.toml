@@ -46,6 +46,7 @@ build-backend = "hatchling.build"
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+extend-exclude = [".venv", "venv", ".pytest_cache", ".ruff_cache"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]

@@ -44,9 +44,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "latest"
+        uses: astral-sh/setup-uv@v5
 
       - name: Install backend dependencies
         working-directory: ./backend
@@ -56,8 +54,8 @@ jobs:
       - name: Lint with ruff
         working-directory: ./backend
         run: |
-          uv run ruff check .
-          uv run ruff format --check .
+          uv run ruff check src tests
+          uv run ruff format --check src tests
 
       - name: Typecheck with mypy
         working-directory: ./backend
