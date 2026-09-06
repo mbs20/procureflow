@@ -58,11 +58,19 @@ class PDFExtractor(BaseExtractor):
                 page_text = ocr_result.get("text", "")
                 all_text += f"\n{page_text}"
 
+                rect = page.rect
+                page_bbox = [
+                    round(rect.x0, 2),
+                    round(rect.y0, 2),
+                    round(rect.x1, 2),
+                    round(rect.y1, 2),
+                ]
                 ev_id = f"p{page_num}_ocr"
                 evidence = SourceEvidence(
                     evidence_id=ev_id,
                     type="ocr_pdf",
                     page=page_num,
+                    bbox=page_bbox,
                     ocr_confidence=ocr_result.get("ocr_confidence", 0.85),
                     text_snippet=page_text[:120].strip() if page_text else None,
                 )

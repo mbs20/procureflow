@@ -162,10 +162,12 @@ class QuotationService:
         for key, val in update_dict.items():
             setattr(item, key, val)
 
-        # Recalculate total if unit_price or quantity changed
+        # Update calculated_total_price if unit_price or quantity changed.
+        # Preserve item.total_price (the supplier-quoted value) unless explicitly provided in update_dict.
         if "unit_price" in update_dict or "quantity" in update_dict:
-            if "total_price" not in update_dict:
-                item.total_price = item.quantity * item.unit_price
+            item.calculated_total_price = Decimal(str(item.quantity)) * Decimal(
+                str(item.unit_price)
+            )
 
         item.human_corrected = True
         await session.commit()
@@ -240,11 +242,28 @@ class QuotationService:
         prior_extractions = list(session.execute(prior_stmt).scalars().all())
         for prev in prior_extractions:
             prev.is_current = False
+        session.flush()
 
         version_num = len(prior_extractions) + 1
         extraction_version = f"{version_num}.0"
 
-        # 2. Create new authoritative current extraction
+        # 2. Check for discrepancies between quoted and calculated totals
+        for item in extracted_data.line_items:
+            calc_total = (
+                Decimal(str(item.quantity)) * Decimal(str(item.unit_price))
+                if item.quantity is not None and item.unit_price is not None
+                else None
+            )
+            if calc_total is not None and item.total_price is not None:
+                if abs(Decimal(str(item.total_price)) - calc_total) > Decimal("0.01"):
+                    warning_msg = (
+                        f"Discrepancy detected for '{item.description_raw}': "
+                        f"quoted total is {item.total_price}, but calculated total is {calc_total}"
+                    )
+                    if warning_msg not in extracted_data.validation_warnings:
+                        extracted_data.validation_warnings.append(warning_msg)
+
+        # 3. Create new authoritative current extraction
         extraction = ExtractedQuotation(
             quotation_id=quotation_id,
             extraction_model=extracted_data.extraction_model,
@@ -257,9 +276,14 @@ class QuotationService:
         session.add(extraction)
         session.flush()
 
-        # 3. Insert line items with authoritative parser/OCR coordinates
+        # 4. Insert line items with authoritative parser/OCR coordinates
         for item in extracted_data.line_items:
             ev_dict = item.evidence.to_dict() if item.evidence else {}
+            calc_total = (
+                Decimal(str(item.quantity)) * Decimal(str(item.unit_price))
+                if item.quantity is not None and item.unit_price is not None
+                else None
+            )
             line_item = ExtractedLineItem(
                 extracted_quotation_id=extraction.id,
                 rfq_line_item_id=item.rfq_line_item_id,
@@ -269,15 +293,17 @@ class QuotationService:
                 unit_price=item.unit_price,
                 currency=item.currency,
                 total_price=item.total_price,
+                calculated_total_price=calc_total,
                 lead_time_days=item.lead_time_days,
                 confidence=item.confidence,
                 source_page=item.evidence.page if item.evidence else None,
+                source_evidence=ev_dict if ev_dict else None,
                 source_bbox=ev_dict if ev_dict else None,
                 human_corrected=False,
             )
             session.add(line_item)
 
-        # 4. Insert quotation fields
+        # 5. Insert quotation fields
         for field in extracted_data.fields:
             ev_dict = field.evidence.to_dict() if field.evidence else {}
             quotation_field = ExtractedQuotationField(
@@ -287,6 +313,7 @@ class QuotationService:
                 normalised_value=field.normalised_value,
                 confidence=field.confidence,
                 source_page=field.evidence.page if field.evidence else None,
+                source_evidence=ev_dict if ev_dict else None,
                 source_bbox=ev_dict if ev_dict else None,
                 human_corrected=False,
             )

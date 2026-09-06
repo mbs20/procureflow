@@ -12,10 +12,12 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
     Text,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,6 +26,15 @@ from procureflow.database import Base
 
 class ExtractedQuotation(Base):
     __tablename__ = "extracted_quotations"
+    __table_args__ = (
+        Index(
+            "uq_current_extraction_per_quotation",
+            "quotation_id",
+            unique=True,
+            postgresql_where=text("is_current = true"),
+            sqlite_where=text("is_current = 1"),
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     quotation_id: Mapped[str] = mapped_column(
@@ -68,11 +79,17 @@ class ExtractedLineItem(Base):
     unit: Mapped[str] = mapped_column(String(50), default="units", nullable=False)
     unit_price: Mapped[float] = mapped_column(Numeric(14, 4), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), default="USD", nullable=False)
-    total_price: Mapped[float] = mapped_column(Numeric(14, 4), nullable=False)
+    total_price: Mapped[float] = mapped_column(
+        Numeric(14, 4), nullable=False
+    )  # Supplier quoted total
+    calculated_total_price: Mapped[float | None] = mapped_column(
+        Numeric(14, 4), nullable=True
+    )  # ProcureFlow calculated
     lead_time_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     confidence: Mapped[float] = mapped_column(Numeric(5, 4), default=1.0, nullable=False)
     source_page: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    source_bbox: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    source_evidence: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    source_bbox: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # Backward compatibility
     human_corrected: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     extracted_quotation: Mapped[ExtractedQuotation] = relationship(
@@ -94,7 +111,8 @@ class ExtractedQuotationField(Base):
     normalised_value: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     confidence: Mapped[float] = mapped_column(Numeric(5, 4), default=1.0, nullable=False)
     source_page: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    source_bbox: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    source_evidence: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    source_bbox: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # Backward compatibility
     human_corrected: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     extracted_quotation: Mapped[ExtractedQuotation] = relationship(

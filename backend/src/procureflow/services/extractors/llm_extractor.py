@@ -99,8 +99,52 @@ class LLMExtractor:
                     elif "terms" in k or "payment" in k:
                         payment_terms = v
 
-                # Detect line items: Look for a description followed by numbers
-                # e.g. "Bearing 6204 100 25.00" or tabular row
+                # 1. First check for labeled invoice lines (common in OCR output)
+                # e.g. "Heavy Duty Hydraulic Cylinder 50mm bore - Qty: 4 - Price: $320.00"
+                qty_match = re.search(
+                    r"(?:qty|quantity)[:\s]+(\d+(?:\.\d+)?)", line_clean, re.IGNORECASE
+                )
+                price_match = re.search(
+                    r"(?:price|unit price|rate|\$)[:\s]*(\d+(?:\.\d+)?)", line_clean, re.IGNORECASE
+                )
+                if qty_match and price_match:
+                    desc_part = re.split(
+                        r"[-|;]|\bqty\b|\bquantity\b", line_clean, flags=re.IGNORECASE
+                    )[0].strip()
+                    if desc_part and not any(
+                        h in desc_part.lower() for h in ["total", "subtotal", "terms"]
+                    ):
+                        try:
+                            qty = float(qty_match.group(1))
+                            price = float(price_match.group(1))
+                            curr = reference_currency
+                            if "€" in line_clean or "EUR" in line_clean:
+                                curr = "EUR"
+                            elif "£" in line_clean or "GBP" in line_clean:
+                                curr = "GBP"
+                            elif "$" in line_clean or "USD" in line_clean:
+                                curr = "USD"
+
+                            line_items.append(
+                                LLMExtractedLineItem(
+                                    description_raw=desc_part,
+                                    quantity=qty,
+                                    unit="pcs" if "pcs" in line_clean.lower() else "units",
+                                    unit_price=price,
+                                    total_price=qty * price,
+                                    currency=curr,
+                                    lead_time_days=14
+                                    if any(w in line_clean.lower() for w in ["lead", "day"])
+                                    else None,
+                                    evidence_id=ev_id,
+                                )
+                            )
+                            continue
+                        except (ValueError, IndexError):
+                            pass
+
+                # 2. Otherwise check for delimiter-separated line items with numbers
+                # e.g. "Bearing 6204 | 100 | 25.00" or tabular row
                 numbers = re.findall(r"[-+]?\d*\.?\d+", line_clean)
                 if len(numbers) >= 2:
                     # Clean words for description

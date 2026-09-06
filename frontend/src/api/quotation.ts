@@ -38,9 +38,12 @@ export interface ExtractedLineItem {
   unit_price: number;
   currency: string;
   total_price: number;
+  calculated_total_price?: number | null;
+  has_discrepancy?: boolean;
   lead_time_days?: number | null;
   confidence: number;
   source_page?: number | null;
+  source_evidence?: Record<string, any> | null;
   source_bbox?: Record<string, any> | null;
   human_corrected: boolean;
 }
@@ -52,6 +55,7 @@ export interface ExtractedField {
   normalised_value?: Record<string, any> | null;
   confidence: number;
   source_page?: number | null;
+  source_evidence?: Record<string, any> | null;
   source_bbox?: Record<string, any> | null;
   human_corrected: boolean;
 }

@@ -2,6 +2,12 @@ from pathlib import Path
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+
+from procureflow.database import async_session_maker
+from procureflow.models.extraction import ExtractedQuotation
+from procureflow.tasks.extraction import extract_quotation_task
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "quotations"
 
@@ -124,6 +130,7 @@ async def test_complete_quotation_ingestion_and_human_review(async_client: Async
     line_item_id = first_item["id"]
 
     # 10. Human-in-the-loop correction of extracted line item
+    # Editing unit_price updates calculated_total_price without overwriting supplier quoted total_price
     correction_payload = {
         "unit_price": 11.95,
         "quantity": 100,
@@ -136,8 +143,25 @@ async def test_complete_quotation_ingestion_and_human_review(async_client: Async
     assert patch_resp.status_code == 200
     corrected_item = patch_resp.json()
     assert float(corrected_item["unit_price"]) == 11.95
-    assert float(corrected_item["total_price"]) == 1195.00
+    # Preserves supplier quoted value (1250.00) rather than silently replacing it:
+    assert float(corrected_item["total_price"]) == 1250.00
+    # Calculates ProcureFlow total (100 * 11.95 = 1195.00):
+    assert float(corrected_item["calculated_total_price"]) == 1195.00
+    # Flags discrepancy between quoted and calculated:
+    assert corrected_item["has_discrepancy"] is True
     assert corrected_item["human_corrected"] is True
+
+    # When human explicitly supplies total_price, both are updated and discrepancy is resolved
+    explicit_total_resp = await async_client.patch(
+        f"/api/v1/quotations/{quotation_id}/line-items/{line_item_id}",
+        json={"total_price": 1195.00},
+        headers=headers,
+    )
+    assert explicit_total_resp.status_code == 200
+    explicit_item = explicit_total_resp.json()
+    assert float(explicit_item["total_price"]) == 1195.00
+    assert float(explicit_item["calculated_total_price"]) == 1195.00
+    assert explicit_item["has_discrepancy"] is False
 
     # 11. Human review decision (Approve quotation)
     approval_resp = await async_client.patch(
@@ -148,3 +172,211 @@ async def test_complete_quotation_ingestion_and_human_review(async_client: Async
     assert approval_resp.status_code == 200
     approved_quote = approval_resp.json()
     assert approved_quote["status"] == "approved"
+
+
+@pytest.mark.asyncio
+async def test_scanned_pdf_ocr_end_to_end(async_client: AsyncClient):
+    """
+    Prove scanned-PDF OCR end-to-end with genuine image-only PDF fixture:
+    scanned PDF -> OCR triggered -> actual text recovered -> structured quotation fields produced -> OCR source evidence persisted.
+    """
+    headers = {"X-API-Key": "procureflow_dev_api_key_12345"}
+
+    # 1. Create RFQ
+    rfq_payload = {
+        "title": "Hydraulic System Maintenance",
+        "description": "Cylinder replacements",
+        "category": "Hydraulics",
+        "reference_currency": "USD",
+        "line_items": [
+            {
+                "position": 1,
+                "description": "Heavy Duty Hydraulic Cylinder 50mm bore",
+                "quantity": 4,
+                "unit": "units",
+            }
+        ],
+        "criteria": [
+            {"name": "Price", "weight": 1.0, "criterion_type": "price", "is_mandatory": True},
+        ],
+    }
+    rfq_resp = await async_client.post("/api/v1/rfqs", json=rfq_payload, headers=headers)
+    assert rfq_resp.status_code == 201
+    rfq_id = rfq_resp.json()["id"]
+
+    # 2. Create Quotation
+    quote_resp = await async_client.post(
+        "/api/v1/quotations",
+        json={"rfq_id": rfq_id, "supplier_name": "Hydraulics Express"},
+        headers=headers,
+    )
+    assert quote_resp.status_code == 201
+    quotation_id = quote_resp.json()["id"]
+
+    # 3. Upload genuinely scanned/image-only PDF fixture
+    scanned_pdf_path = FIXTURES_DIR / "scanned_quote_image.pdf"
+    with open(scanned_pdf_path, "rb") as f:
+        pdf_bytes = f.read()
+        upload_resp = await async_client.post(
+            f"/api/v1/quotations/{quotation_id}/documents",
+            files={"file": ("scanned_quote_image.pdf", pdf_bytes, "application/pdf")},
+            headers=headers,
+        )
+    assert upload_resp.status_code == 201
+
+    # 4. Trigger extraction pipeline
+    extract_resp = await async_client.post(
+        f"/api/v1/quotations/{quotation_id}/extract",
+        headers=headers,
+    )
+    assert extract_resp.status_code == 200
+
+    # 5. Verify quotation status is needs_review
+    quote_check = await async_client.get(f"/api/v1/quotations/{quotation_id}", headers=headers)
+    assert quote_check.json()["status"] == "needs_review"
+
+    # 6. Verify extraction result, recovered text, and OCR source evidence
+    latest_resp = await async_client.get(
+        f"/api/v1/quotations/{quotation_id}/extractions/latest",
+        headers=headers,
+    )
+    assert latest_resp.status_code == 200
+    ext = latest_resp.json()
+    assert ext["extraction_model"] == "ocr-assisted-pdf"
+    assert len(ext["line_items"]) >= 1
+
+    item = ext["line_items"][0]
+    # Check text recovered from image via OCR
+    assert "Hydraulic Cylinder" in item["description_raw"]
+    assert float(item["quantity"]) == 4.0
+    assert float(item["unit_price"]) == 320.0
+    assert float(item["total_price"]) == 1280.0
+    assert float(item["calculated_total_price"]) == 1280.0
+    assert item["has_discrepancy"] is False
+
+    # Check OCR source evidence
+    evidence = item.get("source_evidence")
+    assert evidence is not None
+    assert evidence["type"] == "ocr_pdf"
+    assert evidence["page"] == 1
+    assert evidence["ocr_confidence"] >= 0.8
+    assert "bbox" in evidence
+    assert isinstance(evidence["bbox"], list)
+    assert len(evidence["bbox"]) == 4
+    # Check backward compatibility property
+    assert item.get("source_bbox") == evidence
+
+
+@pytest.mark.asyncio
+async def test_extraction_versioning_and_retry_idempotency(async_client: AsyncClient):
+    """
+    Explicitly prove that:
+    1. Extraction v1 is preserved after re-extraction;
+    2. v1 becomes is_current=False;
+    3. v2 becomes is_current=True;
+    4. Exactly one extraction may be current for a quotation;
+    5. Repeated/retried task execution cannot create uncontrolled duplicate current extraction sets.
+    """
+    headers = {"X-API-Key": "procureflow_dev_api_key_12345"}
+
+    # Setup RFQ and Quotation
+    rfq_resp = await async_client.post(
+        "/api/v1/rfqs",
+        json={
+            "title": "Fastener Procurement",
+            "category": "Fasteners",
+            "reference_currency": "USD",
+            "line_items": [
+                {"position": 1, "description": "Bolt M8x40", "quantity": 50, "unit": "pcs"}
+            ],
+            "criteria": [
+                {"name": "Price", "weight": 1.0, "criterion_type": "price", "is_mandatory": True}
+            ],
+        },
+        headers=headers,
+    )
+    rfq_id = rfq_resp.json()["id"]
+
+    quote_resp = await async_client.post(
+        "/api/v1/quotations",
+        json={"rfq_id": rfq_id, "supplier_name": "Fastener Direct"},
+        headers=headers,
+    )
+    quotation_id = quote_resp.json()["id"]
+
+    csv_path = FIXTURES_DIR / "clean_bearings.csv"
+    with open(csv_path, "rb") as f:
+        await async_client.post(
+            f"/api/v1/quotations/{quotation_id}/documents",
+            files={"file": ("clean_bearings.csv", f.read(), "text/csv")},
+            headers=headers,
+        )
+
+    # First extraction -> v1
+    v1_resp = await async_client.post(f"/api/v1/quotations/{quotation_id}/extract", headers=headers)
+    assert v1_resp.status_code == 200
+
+    # Query DB directly for all extractions of this quotation
+    async with async_session_maker() as session:
+        stmt = (
+            select(ExtractedQuotation)
+            .where(ExtractedQuotation.quotation_id == quotation_id)
+            .order_by(ExtractedQuotation.extracted_at)
+        )
+        res = await session.execute(stmt)
+        all_exts = list(res.scalars().all())
+        assert len(all_exts) == 1
+        v1 = all_exts[0]
+        assert v1.is_current is True
+        assert v1.extraction_version == "1.0"
+        v1_id = v1.id
+
+    # Second extraction (re-extraction) -> v2
+    v2_resp = await async_client.post(f"/api/v1/quotations/{quotation_id}/extract", headers=headers)
+    assert v2_resp.status_code == 200
+
+    # Query DB again: v1 must be preserved and set to is_current=False; v2 must have is_current=True
+    async with async_session_maker() as session:
+        res = await session.execute(stmt)
+        all_exts = list(res.scalars().all())
+        assert len(all_exts) == 2
+
+        # v1 preserved with is_current=False
+        v1_found = next(e for e in all_exts if e.id == v1_id)
+        assert v1_found.is_current is False
+        assert v1_found.extraction_version == "1.0"
+
+        # v2 is current
+        v2_found = next(e for e in all_exts if e.id != v1_id)
+        assert v2_found.is_current is True
+        assert v2_found.extraction_version == "2.0"
+
+        # Invariant: EXACTLY one extraction may be current for this quotation
+        current_exts = [e for e in all_exts if e.is_current is True]
+        assert len(current_exts) == 1
+
+        # Invariant: Database level partial unique index prevents duplicate current extractions
+        duplicate_current = ExtractedQuotation(
+            quotation_id=quotation_id,
+            extraction_model="test-dup",
+            extraction_version="99.0",
+            is_current=True,
+        )
+        session.add(duplicate_current)
+        with pytest.raises(IntegrityError):
+            await session.commit()
+        await session.rollback()
+
+    # Retry idempotency: run Celery task multiple times sequentially
+    res1 = extract_quotation_task(quotation_id)
+    assert res1["status"] == "needs_review"
+    res2 = extract_quotation_task(quotation_id)
+    assert res2["status"] == "needs_review"
+
+    # Invariant: At every point, exactly one extraction is current
+    async with async_session_maker() as session:
+        res = await session.execute(stmt)
+        all_exts = list(res.scalars().all())
+        current_exts = [e for e in all_exts if e.is_current is True]
+        assert len(current_exts) == 1
+        assert len(all_exts) == 4  # v1, v2, v3, v4 all preserved for audit/history

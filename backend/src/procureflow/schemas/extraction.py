@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ExtractedLineItemBase(BaseModel):
@@ -11,11 +11,14 @@ class ExtractedLineItemBase(BaseModel):
     unit: str = "units"
     unit_price: Decimal
     currency: str = "USD"
-    total_price: Decimal
+    total_price: Decimal  # Supplier quoted total
+    calculated_total_price: Decimal | None = None  # ProcureFlow calculated (qty * unit_price)
+    has_discrepancy: bool = False
     lead_time_days: int | None = None
     confidence: Decimal = Field(default=Decimal("1.0"), ge=0, le=1)
     source_page: int | None = None
-    source_bbox: dict[str, Any] | None = None
+    source_evidence: dict[str, Any] | None = None
+    source_bbox: dict[str, Any] | None = None  # Deprecated alias for backward compatibility
 
 
 class ExtractedLineItemUpdate(BaseModel):
@@ -38,6 +41,19 @@ class ExtractedLineItemRead(ExtractedLineItemBase):
     class Config:
         from_attributes = True
 
+    @model_validator(mode="after")
+    def sync_evidence_and_discrepancy(self) -> "ExtractedLineItemRead":
+        if not self.source_evidence and self.source_bbox:
+            self.source_evidence = self.source_bbox
+        elif not self.source_bbox and self.source_evidence:
+            self.source_bbox = self.source_evidence
+
+        if self.calculated_total_price is not None and self.total_price is not None:
+            self.has_discrepancy = abs(self.total_price - self.calculated_total_price) > Decimal(
+                "0.01"
+            )
+        return self
+
 
 class ExtractedFieldRead(BaseModel):
     id: str
@@ -46,11 +62,20 @@ class ExtractedFieldRead(BaseModel):
     normalised_value: dict[str, Any] | None = None
     confidence: Decimal
     source_page: int | None = None
-    source_bbox: dict[str, Any] | None = None
+    source_evidence: dict[str, Any] | None = None
+    source_bbox: dict[str, Any] | None = None  # Deprecated alias for backward compatibility
     human_corrected: bool
 
     class Config:
         from_attributes = True
+
+    @model_validator(mode="after")
+    def sync_field_evidence(self) -> "ExtractedFieldRead":
+        if not self.source_evidence and self.source_bbox:
+            self.source_evidence = self.source_bbox
+        elif not self.source_bbox and self.source_evidence:
+            self.source_bbox = self.source_evidence
+        return self
 
 
 class ExtractedQuotationRead(BaseModel):

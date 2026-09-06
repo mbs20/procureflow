@@ -741,39 +741,41 @@ export const QuotationsPage: React.FC = () => {
                               )}
                             </td>
                             <td className="p-3 font-mono font-semibold text-white">
-                              {Number(item.total_price).toFixed(2)}
-                            </td>
-                            <td className="p-3">
-                              <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                                  Number(item.confidence) >= 0.8
-                                    ? "bg-emerald-500/10 text-emerald-400"
-                                    : "bg-amber-500/10 text-amber-400"
-                                }`}
-                              >
-                                {(Number(item.confidence) * 100).toFixed(0)}%
-                              </span>
-                            </td>
-                            <td className="p-3">
-                              {item.source_bbox ? (
-                                <button
-                                  onClick={() =>
-                                    setActiveEvidence({
-                                      title: item.description_raw,
-                                      data: item.source_bbox,
-                                    })
-                                  }
-                                  className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded bg-secondary/80 hover:bg-secondary text-primary border border-white/5 transition-colors"
-                                  title="View Authoritative Parser Coordinates"
+                              <div>{Number(item.total_price).toFixed(2)}</div>
+                              {item.has_discrepancy && (
+                                <div
+                                  className="text-[10px] text-amber-400 font-sans font-normal flex items-center gap-1 mt-0.5"
+                                  title="Quoted total differs from calculated quantity × unit price"
                                 >
-                                  <MapPin className="w-3 h-3" />
-                                  {item.source_bbox.type === "spreadsheet"
-                                    ? `Row ${item.source_bbox.row_idx || item.source_bbox.row}`
-                                    : `Page ${item.source_bbox.page || 1}`}
-                                </button>
-                              ) : (
-                                <span className="text-muted-foreground text-[11px]">—</span>
+                                  <span>Calc: {item.calculated_total_price != null ? Number(item.calculated_total_price).toFixed(2) : (Number(item.quantity) * Number(item.unit_price)).toFixed(2)}</span>
+                                  <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300">discrepancy</span>
+                                </div>
                               )}
+                            </td>
+                            <td className="p-3">
+                              {(() => {
+                                const ev = item.source_evidence || item.source_bbox;
+                                if (!ev) return <span className="text-muted-foreground text-[11px]">—</span>;
+                                return (
+                                  <button
+                                    onClick={() =>
+                                      setActiveEvidence({
+                                        title: item.description_raw,
+                                        data: ev,
+                                      })
+                                    }
+                                    className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded bg-secondary/80 hover:bg-secondary text-primary border border-white/5 transition-colors"
+                                    title="View Authoritative Parser Coordinates"
+                                  >
+                                    <MapPin className="w-3 h-3" />
+                                    {ev.type === "spreadsheet"
+                                      ? `Row ${ev.row_idx || ev.row || 1}`
+                                      : ev.type === "ocr_pdf"
+                                      ? `OCR P.${ev.page || 1}`
+                                      : `Page ${ev.page || 1}`}
+                                  </button>
+                                );
+                              })()}
                             </td>
                             <td className="p-3 text-right">
                               {editingItemId === item.id ? (
@@ -828,20 +830,24 @@ export const QuotationsPage: React.FC = () => {
                             <span className="text-xs font-semibold text-white capitalize">
                               {f.field_name.replace("_", " ")}
                             </span>
-                            {f.source_bbox && (
-                              <button
-                                onClick={() =>
-                                  setActiveEvidence({
-                                    title: f.field_name,
-                                    data: f.source_bbox,
-                                  })
-                                }
-                                className="text-[10px] text-primary hover:underline flex items-center gap-1"
-                              >
-                                <MapPin className="w-2.5 h-2.5" />
-                                Evidence
-                              </button>
-                            )}
+                            {(() => {
+                              const fev = f.source_evidence || f.source_bbox;
+                              if (!fev) return null;
+                              return (
+                                <button
+                                  onClick={() =>
+                                    setActiveEvidence({
+                                      title: f.field_name,
+                                      data: fev,
+                                    })
+                                  }
+                                  className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                                >
+                                  <MapPin className="w-2.5 h-2.5" />
+                                  Evidence
+                                </button>
+                              );
+                            })()}
                           </div>
                           <p className="text-xs text-muted-foreground">{f.raw_value || "—"}</p>
                         </div>
