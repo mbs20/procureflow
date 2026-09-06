@@ -96,6 +96,18 @@ jobs:
         run: |
           npm run typecheck
 
+      - name: Run unit tests
+        working-directory: ./frontend
+        run: npm test
+
       - name: Build frontend
         working-directory: ./frontend
         run: npm run build
+
+      - name: Install Playwright browsers
+        working-directory: ./frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright E2E & WCAG 2.2 AA Accessibility tests
+        working-directory: ./frontend
+        run: npx playwright test

@@ -7,7 +7,7 @@ T = TypeVar("T")
 
 class ServiceStatus(BaseModel):
     status: str = Field(..., examples=["healthy"])
-    latency_ms: float | None = Field(None, examples=[2.5])
+    latency_ms: float | None = Field(default=None, examples=[2.5])
     details: str | None = None
 
 

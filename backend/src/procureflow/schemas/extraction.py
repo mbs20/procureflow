@@ -19,6 +19,19 @@ class ExtractedLineItemBase(BaseModel):
     source_page: int | None = None
     source_evidence: dict[str, Any] | None = None
     source_bbox: dict[str, Any] | None = None  # Deprecated alias for backward compatibility
+    is_removed: bool = False
+    removal_reason: str | None = None
+
+
+class ExtractedLineItemCreate(BaseModel):
+    description_raw: str
+    quantity: Decimal
+    unit: str = "units"
+    unit_price: Decimal
+    currency: str = "USD"
+    total_price: Decimal | None = None
+    lead_time_days: int | None = None
+    rfq_line_item_id: str | None = None
 
 
 class ExtractedLineItemUpdate(BaseModel):
@@ -30,6 +43,8 @@ class ExtractedLineItemUpdate(BaseModel):
     total_price: Decimal | None = None
     lead_time_days: int | None = None
     rfq_line_item_id: str | None = None
+    is_removed: bool | None = None
+    removal_reason: str | None = None
 
 
 class ExtractedLineItemRead(ExtractedLineItemBase):
@@ -53,6 +68,11 @@ class ExtractedLineItemRead(ExtractedLineItemBase):
                 "0.01"
             )
         return self
+
+
+class ExtractedFieldUpdate(BaseModel):
+    raw_value: str | None = None
+    normalised_value: dict[str, Any] | None = None
 
 
 class ExtractedFieldRead(BaseModel):
@@ -88,8 +108,16 @@ class ExtractedQuotationRead(BaseModel):
     is_current: bool = True
     notes: str | None = None
     raw_llm_output: dict[str, Any] | None = None
+    acknowledged_warnings: list[str] = Field(default_factory=list)
     line_items: list[ExtractedLineItemRead] = Field(default_factory=list)
     fields: list[ExtractedFieldRead] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
+
+
+class ExtractionValidationStatus(BaseModel):
+    can_approve: bool
+    critical_issues: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    acknowledged_warnings: list[str] = Field(default_factory=list)

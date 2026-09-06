@@ -38,6 +38,8 @@ pnpm-debug.log*
 dist/
 dist-ssr/
 *.local
+test-results/
+playwright-report/
 
 # Environment & local secrets
 .env

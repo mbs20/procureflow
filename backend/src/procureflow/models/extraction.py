@@ -49,6 +49,9 @@ class ExtractedQuotation(Base):
     is_current: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     raw_llm_output: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    acknowledged_warnings: Mapped[list[str] | None] = mapped_column(
+        JSON, default=list, nullable=True
+    )
 
     # Relationships
     quotation: Mapped[SupplierQuotation] = relationship(
@@ -91,6 +94,8 @@ class ExtractedLineItem(Base):
     source_evidence: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     source_bbox: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # Backward compatibility
     human_corrected: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_removed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    removal_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     extracted_quotation: Mapped[ExtractedQuotation] = relationship(
         "ExtractedQuotation", back_populates="line_items"

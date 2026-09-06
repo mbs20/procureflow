@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   FileText,
   Upload,
@@ -410,6 +411,13 @@ export const QuotationsPage: React.FC = () => {
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Link
+                          to={`/quotations/${q.id}/review`}
+                          className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors shadow-sm"
+                          title="Open Split-Pane Human Review Workspace"
+                        >
+                          Review
+                        </Link>
                         <button
                           onClick={() => handleTriggerExtract(q.id)}
                           disabled={!q.documents || q.documents.length === 0}
@@ -422,7 +430,7 @@ export const QuotationsPage: React.FC = () => {
                         <button
                           onClick={() => handleOpenDrawer(q)}
                           className="p-1.5 rounded-lg text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
-                          title="View Extraction & Evidence"
+                          title="Quick Drawer View"
                         >
                           <ChevronRight className="w-4 h-4" />
                         </button>

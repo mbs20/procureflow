@@ -6,6 +6,8 @@ export interface LineItem {
   unit: string;
 }
 
+export type RFQLineItem = LineItem;
+
 export interface Criterion {
   id?: string;
   name: string;
@@ -66,6 +68,8 @@ export async function fetchRFQById(id: string): Promise<RFQ> {
   if (!res.ok) throw new Error(`Failed to fetch RFQ ${id}: ${res.statusText}`);
   return res.json();
 }
+
+export const fetchRFQ = fetchRFQById;
 
 export async function createRFQ(payload: {
   title: string;

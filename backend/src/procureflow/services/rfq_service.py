@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
@@ -161,7 +162,7 @@ async def update_rfq(
     """Update general fields of an RFQ."""
     rfq = await get_rfq_or_404(db, rfq_id)
 
-    changes = {}
+    changes: dict[str, Any] = {}
     if update_data.title is not None and update_data.title != rfq.title:
         changes["title"] = {"old": rfq.title, "new": update_data.title}
         rfq.title = update_data.title

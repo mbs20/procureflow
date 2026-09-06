@@ -50,3 +50,4 @@ class JobStatusResponse(BaseModel):
 class QuotationStatusUpdate(BaseModel):
     status: QuotationStatus = Field(..., description="Target status (approved or rejected)")
     failure_reason: str | None = None
+    acknowledged_warnings: list[str] | None = None

@@ -244,31 +244,23 @@ class ExcelExtractor(BaseExtractor):
                 if description.lower().startswith(("total", "subtotal", "grand total", "notes")):
                     continue
 
-                qty_cell = (
-                    r[col_map["qty"]]
-                    if col_map.get("qty") is not None and col_map["qty"] < len(r)
-                    else None
-                )
+                qty_col = col_map.get("qty")
+                qty_cell = r[qty_col] if qty_col is not None and qty_col < len(r) else None
                 qty_val = clean_num(qty_cell[1]) if qty_cell else Decimal("1.0")
 
-                up_cell = (
-                    r[col_map["unit_price"]]
-                    if col_map.get("unit_price") is not None and col_map["unit_price"] < len(r)
-                    else None
-                )
+                price_col = col_map.get("unit_price")
+                up_cell = r[price_col] if price_col is not None and price_col < len(r) else None
                 unit_price_val = clean_num(up_cell[1]) if up_cell else Decimal("0.0")
 
-                unit_cell = (
-                    r[col_map["unit"]]
-                    if col_map.get("unit") is not None and col_map["unit"] < len(r)
-                    else None
-                )
+                unit_col = col_map.get("unit")
+                unit_cell = r[unit_col] if unit_col is not None and unit_col < len(r) else None
                 unit_str = str(unit_cell[1]).strip() if unit_cell and unit_cell[1] else "units"
 
                 # Currency
                 item_currency = None
-                if col_map.get("currency") is not None and col_map["currency"] < len(r):
-                    curr_cell = r[col_map["currency"]]
+                curr_col = col_map.get("currency")
+                if curr_col is not None and curr_col < len(r):
+                    curr_cell = r[curr_col]
                     if curr_cell[1]:
                         item_currency = detect_currency(str(curr_cell[1]))
                 if not item_currency and up_cell and up_cell[1]:
@@ -278,8 +270,9 @@ class ExcelExtractor(BaseExtractor):
 
                 # Total price
                 total_price_val = None
-                if col_map.get("total_price") is not None and col_map["total_price"] < len(r):
-                    tp_cell = r[col_map["total_price"]]
+                total_col = col_map.get("total_price")
+                if total_col is not None and total_col < len(r):
+                    tp_cell = r[total_col]
                     if tp_cell:
                         total_price_val = clean_num(tp_cell[1])
                 if total_price_val is None:
@@ -289,8 +282,9 @@ class ExcelExtractor(BaseExtractor):
 
                 # Lead time
                 lead_time_days = None
-                if col_map.get("lead_time") is not None and col_map["lead_time"] < len(r):
-                    lt_cell = r[col_map["lead_time"]]
+                lead_col = col_map.get("lead_time")
+                if lead_col is not None and lead_col < len(r):
+                    lt_cell = r[lead_col]
                     if lt_cell and lt_cell[1]:
                         lt_clean = clean_num(lt_cell[1])
                         if lt_clean is not None:

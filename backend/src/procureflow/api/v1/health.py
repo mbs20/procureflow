@@ -32,7 +32,7 @@ async def health_check(db: AsyncSession = Depends(get_db)) -> HealthResponse:
         t0 = time.perf_counter()
         r = aioredis.from_url(settings.redis_url, socket_timeout=2.0)
         await r.ping()
-        await r.aclose()
+        await r.close()
         latency = (time.perf_counter() - t0) * 1000
         redis_status = ServiceStatus(status="healthy", latency_ms=round(latency, 2))
     except Exception as exc:

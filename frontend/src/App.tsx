@@ -5,11 +5,14 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { RFQListPage } from "./pages/RFQListPage";
 import { RFQDetailPage } from "./pages/RFQDetailPage";
 import { QuotationsPage } from "./pages/QuotationsPage";
+import { ReviewWorkspacePage } from "./pages/ReviewWorkspacePage";
 
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="quotations/:id/review" element={<ReviewWorkspacePage />} />
+        <Route path="review/:id" element={<ReviewWorkspacePage />} />
         <Route path="/" element={<Layout />}>
           <Route index element={<DashboardPage />} />
           <Route path="rfqs" element={<RFQListPage />} />

@@ -251,49 +251,50 @@ class CSVExtractor(BaseExtractor):
             ):
                 continue
 
+            qty_col = col_map.get("qty")
             qty_val = (
-                clean_num(row[col_map["qty"]])
-                if col_map.get("qty") is not None and col_map["qty"] < len(row)
+                clean_num(row[qty_col])
+                if qty_col is not None and qty_col < len(row)
                 else Decimal("1.0")
             )
+
+            price_col = col_map.get("unit_price")
             unit_price_val = (
-                clean_num(row[col_map["unit_price"]])
-                if col_map.get("unit_price") is not None and col_map["unit_price"] < len(row)
+                clean_num(row[price_col])
+                if price_col is not None and price_col < len(row)
                 else Decimal("0.0")
             )
 
+            unit_col = col_map.get("unit")
             unit_str = (
-                row[col_map["unit"]]
-                if col_map.get("unit") is not None
-                and col_map["unit"] < len(row)
-                and row[col_map["unit"]]
+                row[unit_col]
+                if unit_col is not None and unit_col < len(row) and row[unit_col]
                 else "units"
             )
 
             # Currency
             item_currency = None
-            if col_map.get("currency") is not None and col_map["currency"] < len(row):
-                item_currency = detect_currency(row[col_map["currency"]])
-            if (
-                not item_currency
-                and col_map.get("unit_price") is not None
-                and col_map["unit_price"] < len(row)
-            ):
-                item_currency = detect_currency(row[col_map["unit_price"]])
+            curr_col = col_map.get("currency")
+            if curr_col is not None and curr_col < len(row):
+                item_currency = detect_currency(row[curr_col])
+            if not item_currency and price_col is not None and price_col < len(row):
+                item_currency = detect_currency(row[price_col])
             if not item_currency:
                 item_currency = default_currency
 
             # Total Price
             total_price_val = None
-            if col_map.get("total_price") is not None and col_map["total_price"] < len(row):
-                total_price_val = clean_num(row[col_map["total_price"]])
+            total_col = col_map.get("total_price")
+            if total_col is not None and total_col < len(row):
+                total_price_val = clean_num(row[total_col])
             if total_price_val is None:
                 total_price_val = (qty_val or Decimal("1.0")) * (unit_price_val or Decimal("0.0"))
 
             # Lead time
             lead_time_days = None
-            if col_map.get("lead_time") is not None and col_map["lead_time"] < len(row):
-                lt_clean = clean_num(row[col_map["lead_time"]])
+            lead_col = col_map.get("lead_time")
+            if lead_col is not None and lead_col < len(row):
+                lt_clean = clean_num(row[lead_col])
                 if lt_clean is not None:
                     lead_time_days = int(lt_clean)
 

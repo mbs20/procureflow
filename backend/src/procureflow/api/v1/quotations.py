@@ -8,9 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from procureflow.api.deps import get_db
 from procureflow.models.quotation import QuotationStatus
 from procureflow.schemas.extraction import (
+    ExtractedFieldRead,
+    ExtractedFieldUpdate,
+    ExtractedLineItemCreate,
     ExtractedLineItemRead,
     ExtractedLineItemUpdate,
     ExtractedQuotationRead,
+    ExtractionValidationStatus,
 )
 from procureflow.schemas.quotation import (
     DocumentRead,
@@ -215,6 +219,31 @@ async def get_latest_extraction(
     return ExtractedQuotationRead.model_validate(extraction)
 
 
+@router.post(
+    "/{quotation_id}/line-items",
+    response_model=ExtractedLineItemRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a missed line item to an extraction",
+)
+async def create_line_item(
+    quotation_id: str,
+    payload: ExtractedLineItemCreate,
+    db: AsyncSession = Depends(get_db),
+) -> ExtractedLineItemRead:
+    try:
+        new_item = await quotation_service.create_line_item(
+            session=db,
+            quotation_id=quotation_id,
+            data=payload,
+        )
+        return ExtractedLineItemRead.model_validate(new_item)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
+
+
 @router.patch(
     "/{quotation_id}/line-items/{line_item_id}",
     response_model=ExtractedLineItemRead,
@@ -241,10 +270,127 @@ async def correct_line_item(
         ) from e
 
 
+@router.delete(
+    "/{quotation_id}/line-items/{line_item_id}",
+    response_model=ExtractedLineItemRead,
+    summary="Soft-delete/exclude an extracted line item (never hard-deletes parser items)",
+)
+async def soft_delete_line_item(
+    quotation_id: str,
+    line_item_id: str,
+    reason: Annotated[str | None, Query(description="Reason for exclusion")] = None,
+    db: AsyncSession = Depends(get_db),
+) -> ExtractedLineItemRead:
+    try:
+        deleted_item = await quotation_service.soft_delete_line_item(
+            session=db,
+            quotation_id=quotation_id,
+            line_item_id=line_item_id,
+            reason=reason,
+        )
+        return ExtractedLineItemRead.model_validate(deleted_item)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
+
+
+@router.post(
+    "/{quotation_id}/line-items/{line_item_id}/restore",
+    response_model=ExtractedLineItemRead,
+    summary="Restore a previously excluded line item",
+)
+async def restore_line_item(
+    quotation_id: str,
+    line_item_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> ExtractedLineItemRead:
+    try:
+        restored_item = await quotation_service.restore_line_item(
+            session=db,
+            quotation_id=quotation_id,
+            line_item_id=line_item_id,
+        )
+        return ExtractedLineItemRead.model_validate(restored_item)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
+
+
+@router.patch(
+    "/{quotation_id}/fields/{field_id}",
+    response_model=ExtractedFieldRead,
+    summary="Human-in-the-loop correction of a quotation header field",
+)
+async def correct_quotation_field(
+    quotation_id: str,
+    field_id: str,
+    payload: ExtractedFieldUpdate,
+    db: AsyncSession = Depends(get_db),
+) -> ExtractedFieldRead:
+    try:
+        updated_field = await quotation_service.update_field(
+            session=db,
+            quotation_id=quotation_id,
+            field_id=field_id,
+            data=payload,
+        )
+        return ExtractedFieldRead.model_validate(updated_field)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
+
+
+@router.get(
+    "/{quotation_id}/validation-status",
+    response_model=ExtractionValidationStatus,
+    summary="Get server-side validation breakdown for approval eligibility",
+)
+async def get_validation_status(
+    quotation_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> ExtractionValidationStatus:
+    extraction = await quotation_service.get_latest_extraction(db, quotation_id)
+    if not extraction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No extraction found for quotation '{quotation_id}'",
+        )
+    return quotation_service.validate_extraction_for_approval(extraction)
+
+
+@router.get(
+    "/{quotation_id}/audit-logs",
+    summary="Get append-only audit trail for this quotation",
+)
+async def get_quotation_audit_logs(
+    quotation_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> list[dict]:
+    logs = await quotation_service.get_audit_logs(db, quotation_id)
+    return [
+        {
+            "id": log.id,
+            "rfq_id": log.rfq_id,
+            "event_type": log.event_type,
+            "actor_type": log.actor_type.value,
+            "actor_id": log.actor_id,
+            "timestamp": log.timestamp.isoformat(),
+            "payload": log.payload,
+        }
+        for log in logs
+    ]
+
+
 @router.patch(
     "/{quotation_id}/status",
     response_model=SupplierQuotationRead,
-    summary="Explicit human review decision (approve or reject)",
+    summary="Explicit human review decision (approve or reject extraction with server-side validation)",
 )
 async def update_quotation_status(
     quotation_id: str,
@@ -257,6 +403,7 @@ async def update_quotation_status(
             quotation_id=quotation_id,
             target_status=payload.status,
             failure_reason=payload.failure_reason,
+            acknowledged_warnings=payload.acknowledged_warnings,
         )
         return SupplierQuotationRead.model_validate(updated_quotation)
     except ValueError as e:
