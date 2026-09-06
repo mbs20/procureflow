@@ -38,29 +38,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install uv
+      - name: Install uv and Python
         uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: "3.12"
 
       - name: Install backend dependencies
         working-directory: ./backend
         run: |
-          uv sync --dev
+          uv sync --frozen --dev
 
       - name: Lint with ruff
         working-directory: ./backend
         run: |
-          uv run ruff check src tests
-          uv run ruff format --check src tests
+          uv run --no-sync ruff check src tests 2>&1 | tee /tmp/ruff_check.log || { err=$(head -n 20 /tmp/ruff_check.log); echo "::error::$err"; exit 1; }
+          uv run --no-sync ruff format --check src tests 2>&1 | tee /tmp/ruff_format.log || { err=$(head -n 20 /tmp/ruff_format.log); echo "::error::$err"; exit 1; }
 
       - name: Typecheck with mypy
         working-directory: ./backend
         run: |
-          uv run mypy src/
+          uv run --no-sync mypy src/ 2>&1 | tee /tmp/mypy.log || { err=$(head -n 20 /tmp/mypy.log); echo "::error::$err"; exit 1; }
 
       - name: Run Pytest suite
         working-directory: ./backend
@@ -74,7 +72,7 @@ jobs:
           STORAGE_BACKEND: local
           STORAGE_LOCAL_DIR: /tmp/procureflow_test_storage
         run: |
-          uv run pytest --cov=procureflow tests/
+          uv run --no-sync pytest --cov=procureflow tests/ 2>&1 | tee /tmp/pytest.log || { err=$(head -n 20 /tmp/pytest.log); echo "::error::$err"; exit 1; }
 
   frontend-lint-and-build:
     name: Frontend Lint & Build
