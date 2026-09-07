@@ -232,7 +232,12 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({ blob, filename, activeEvid
       </div>
 
       {/* Canvas & Overlay Workspace */}
-      <div className="relative flex-1 overflow-auto p-4 flex justify-center items-start bg-slate-950/60">
+      <div
+        tabIndex={0}
+        role="region"
+        aria-label="Document Page Canvas Container"
+        className="relative flex-1 overflow-auto p-4 flex justify-center items-start bg-slate-950/60 focus:outline-none focus:ring-1 focus:ring-blue-500"
+      >
         {loading && (
           <div className="flex flex-col items-center justify-center h-64 gap-2 text-slate-400">
             <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />

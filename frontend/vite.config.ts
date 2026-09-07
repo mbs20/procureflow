@@ -15,7 +15,17 @@ export default defineConfig({
     host: true,
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
+        target: process.env.BACKEND_URL || process.env.VITE_BACKEND_URL || "http://localhost:8000",
+        changeOrigin: true,
+      },
+    },
+  },
+  preview: {
+    port: 5173,
+    host: true,
+    proxy: {
+      "/api": {
+        target: process.env.BACKEND_URL || process.env.VITE_BACKEND_URL || "http://localhost:8000",
         changeOrigin: true,
       },
     },

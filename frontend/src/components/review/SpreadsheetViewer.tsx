@@ -210,7 +210,13 @@ export const SpreadsheetViewer: React.FC<SpreadsheetViewerProps> = ({
       </div>
 
       {/* Spreadsheet Grid Container */}
-      <div ref={tableContainerRef} className="flex-1 overflow-auto bg-slate-950 p-2">
+      <div
+        ref={tableContainerRef}
+        tabIndex={0}
+        role="region"
+        aria-label="Spreadsheet Grid Table Container"
+        className="flex-1 overflow-auto bg-slate-950 p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+      >
         {loading && (
           <div className="flex flex-col items-center justify-center h-64 gap-2 text-slate-400">
             <RefreshCw className="w-6 h-6 animate-spin text-emerald-500" />

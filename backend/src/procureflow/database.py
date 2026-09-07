@@ -73,8 +73,16 @@ async def init_db() -> None:
         if not is_sqlite:
             from sqlalchemy import text
 
-            await conn.execute(
-                text(
-                    "ALTER TABLE extracted_quotations ADD COLUMN IF NOT EXISTS is_current BOOLEAN DEFAULT TRUE NOT NULL"
-                )
-            )
+            alter_statements = [
+                "ALTER TABLE extracted_quotations ADD COLUMN IF NOT EXISTS is_current BOOLEAN DEFAULT TRUE NOT NULL",
+                "ALTER TABLE extracted_quotations ADD COLUMN IF NOT EXISTS acknowledged_warnings JSON DEFAULT '[]'",
+                "ALTER TABLE extracted_line_items ADD COLUMN IF NOT EXISTS calculated_total_price NUMERIC(14, 4)",
+                "ALTER TABLE extracted_line_items ADD COLUMN IF NOT EXISTS source_evidence JSON",
+                "ALTER TABLE extracted_line_items ADD COLUMN IF NOT EXISTS human_corrected BOOLEAN DEFAULT FALSE NOT NULL",
+                "ALTER TABLE extracted_line_items ADD COLUMN IF NOT EXISTS is_removed BOOLEAN DEFAULT FALSE NOT NULL",
+                "ALTER TABLE extracted_line_items ADD COLUMN IF NOT EXISTS removal_reason VARCHAR(255)",
+                "ALTER TABLE extracted_quotation_fields ADD COLUMN IF NOT EXISTS source_evidence JSON",
+                "ALTER TABLE extracted_quotation_fields ADD COLUMN IF NOT EXISTS human_corrected BOOLEAN DEFAULT FALSE NOT NULL",
+            ]
+            for stmt in alter_statements:
+                await conn.execute(text(stmt))

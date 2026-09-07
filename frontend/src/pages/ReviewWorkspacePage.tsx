@@ -560,7 +560,9 @@ export const ReviewWorkspacePage: React.FC = () => {
             ) : (
               filteredLineItems.map((item) => {
                 const isSelected = selectedLineItemId === item.id;
-                const calcTotal = item.calculated_total_price ?? (item.quantity * item.unit_price);
+                const calcTotal = Number(
+                  item.calculated_total_price ?? (Number(item.quantity) * Number(item.unit_price))
+                );
                 const hasMismatch = item.has_discrepancy;
 
                 return (
