@@ -323,7 +323,9 @@ def test_bisection_breakeven_mathematical_precision(
     assert result.candidate_id == "supp-c"
     assert result.current_price == Decimal("14000.00")
     assert result.required_price is not None
-    assert result.required_price < Decimal("10000.00")  # Must be cheaper than A because A leads in lead time & Incoterms!
+    assert result.required_price < Decimal(
+        "10000.00"
+    )  # Must be cheaper than A because A leads in lead time & Incoterms!
     assert result.delta_price is not None and result.delta_price > Decimal("0.00")
     assert result.convergence_steps > 0
     assert result.convergence_steps <= 50

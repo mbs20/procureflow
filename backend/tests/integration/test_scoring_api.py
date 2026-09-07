@@ -62,8 +62,18 @@ async def test_full_phase5_scoring_lifecycle_and_provenance(async_client: AsyncC
         ],
         "criteria": [
             {"name": "Price", "weight": 0.50, "direction": "lower_is_better", "data_type": "price"},
-            {"name": "Lead Time", "weight": 0.30, "direction": "lower_is_better", "data_type": "days"},
-            {"name": "Payment Terms", "weight": 0.20, "direction": "higher_is_better", "data_type": "enum"},
+            {
+                "name": "Lead Time",
+                "weight": 0.30,
+                "direction": "lower_is_better",
+                "data_type": "days",
+            },
+            {
+                "name": "Payment Terms",
+                "weight": 0.20,
+                "direction": "higher_is_better",
+                "data_type": "enum",
+            },
         ],
     }
     rfq_resp = await async_client.post("/api/v1/rfqs", json=rfq_payload, headers=headers)
@@ -95,23 +105,52 @@ async def test_full_phase5_scoring_lifecycle_and_provenance(async_client: AsyncC
     extr_a = (await async_client.get(f"/api/v1/quotations/{qid_a}/extractions/latest")).json()
     await async_client.patch(
         f"/api/v1/quotations/{qid_a}/line-items/{extr_a['line_items'][0]['id']}",
-        json={"rfq_line_item_id": rfq_item_1_id, "unit_price": 12.50, "quantity": 100, "total_price": 1250.00, "currency": "USD", "lead_time_days": 14},
+        json={
+            "rfq_line_item_id": rfq_item_1_id,
+            "unit_price": 12.50,
+            "quantity": 100,
+            "total_price": 1250.00,
+            "currency": "USD",
+            "lead_time_days": 14,
+        },
         headers=headers,
     )
     await async_client.patch(
         f"/api/v1/quotations/{qid_a}/line-items/{extr_a['line_items'][1]['id']}",
-        json={"rfq_line_item_id": rfq_item_2_id, "unit_price": 4.00, "quantity": 50, "total_price": 200.00, "currency": "USD", "lead_time_days": 14},
+        json={
+            "rfq_line_item_id": rfq_item_2_id,
+            "unit_price": 4.00,
+            "quantity": 50,
+            "total_price": 200.00,
+            "currency": "USD",
+            "lead_time_days": 14,
+        },
         headers=headers,
     )
     # Metadata fields
     for field in extr_a["fields"]:
         if field["field_name"] == "payment_terms":
-            await async_client.patch(f"/api/v1/quotations/{qid_a}/fields/{field['id']}", json={"field_value": "Net 30"}, headers=headers)
+            await async_client.patch(
+                f"/api/v1/quotations/{qid_a}/fields/{field['id']}",
+                json={"field_value": "Net 30"},
+                headers=headers,
+            )
         if field["field_name"] == "lead_time":
-            await async_client.patch(f"/api/v1/quotations/{qid_a}/fields/{field['id']}", json={"field_value": "14 calendar days"}, headers=headers)
+            await async_client.patch(
+                f"/api/v1/quotations/{qid_a}/fields/{field['id']}",
+                json={"field_value": "14 calendar days"},
+                headers=headers,
+            )
     if len(extr_a["line_items"]) > 2:
-        await async_client.delete(f"/api/v1/quotations/{qid_a}/line-items/{extr_a['line_items'][2]['id']}", headers=headers)
-    await async_client.post(f"/api/v1/quotations/{qid_a}/review-decision", json={"status": "approved", "decision_notes": "Approved A"}, headers=headers)
+        await async_client.delete(
+            f"/api/v1/quotations/{qid_a}/line-items/{extr_a['line_items'][2]['id']}",
+            headers=headers,
+        )
+    await async_client.post(
+        f"/api/v1/quotations/{qid_a}/review-decision",
+        json={"status": "approved", "decision_notes": "Approved A"},
+        headers=headers,
+    )
 
     # Supplier B: $1550, 21 days, Net 60
     quote_b = (
@@ -132,17 +171,38 @@ async def test_full_phase5_scoring_lifecycle_and_provenance(async_client: AsyncC
     extr_b = (await async_client.get(f"/api/v1/quotations/{qid_b}/extractions/latest")).json()
     await async_client.patch(
         f"/api/v1/quotations/{qid_b}/line-items/{extr_b['line_items'][0]['id']}",
-        json={"rfq_line_item_id": rfq_item_1_id, "unit_price": 13.00, "quantity": 100, "total_price": 1300.00, "currency": "USD", "lead_time_days": 21},
+        json={
+            "rfq_line_item_id": rfq_item_1_id,
+            "unit_price": 13.00,
+            "quantity": 100,
+            "total_price": 1300.00,
+            "currency": "USD",
+            "lead_time_days": 21,
+        },
         headers=headers,
     )
     await async_client.patch(
         f"/api/v1/quotations/{qid_b}/line-items/{extr_b['line_items'][1]['id']}",
-        json={"rfq_line_item_id": rfq_item_2_id, "unit_price": 5.00, "quantity": 50, "total_price": 250.00, "currency": "USD", "lead_time_days": 21},
+        json={
+            "rfq_line_item_id": rfq_item_2_id,
+            "unit_price": 5.00,
+            "quantity": 50,
+            "total_price": 250.00,
+            "currency": "USD",
+            "lead_time_days": 21,
+        },
         headers=headers,
     )
     if len(extr_b["line_items"]) > 2:
-        await async_client.delete(f"/api/v1/quotations/{qid_b}/line-items/{extr_b['line_items'][2]['id']}", headers=headers)
-    await async_client.post(f"/api/v1/quotations/{qid_b}/review-decision", json={"status": "approved", "decision_notes": "Approved B"}, headers=headers)
+        await async_client.delete(
+            f"/api/v1/quotations/{qid_b}/line-items/{extr_b['line_items'][2]['id']}",
+            headers=headers,
+        )
+    await async_client.post(
+        f"/api/v1/quotations/{qid_b}/review-decision",
+        json={"status": "approved", "decision_notes": "Approved B"},
+        headers=headers,
+    )
 
     # Supplier C: $1200, 45 days (Knockout!), Advance
     quote_c = (
@@ -163,17 +223,38 @@ async def test_full_phase5_scoring_lifecycle_and_provenance(async_client: AsyncC
     extr_c = (await async_client.get(f"/api/v1/quotations/{qid_c}/extractions/latest")).json()
     await async_client.patch(
         f"/api/v1/quotations/{qid_c}/line-items/{extr_c['line_items'][0]['id']}",
-        json={"rfq_line_item_id": rfq_item_1_id, "unit_price": 10.00, "quantity": 100, "total_price": 1000.00, "currency": "USD", "lead_time_days": 45},
+        json={
+            "rfq_line_item_id": rfq_item_1_id,
+            "unit_price": 10.00,
+            "quantity": 100,
+            "total_price": 1000.00,
+            "currency": "USD",
+            "lead_time_days": 45,
+        },
         headers=headers,
     )
     await async_client.patch(
         f"/api/v1/quotations/{qid_c}/line-items/{extr_c['line_items'][1]['id']}",
-        json={"rfq_line_item_id": rfq_item_2_id, "unit_price": 4.00, "quantity": 50, "total_price": 200.00, "currency": "USD", "lead_time_days": 45},
+        json={
+            "rfq_line_item_id": rfq_item_2_id,
+            "unit_price": 4.00,
+            "quantity": 50,
+            "total_price": 200.00,
+            "currency": "USD",
+            "lead_time_days": 45,
+        },
         headers=headers,
     )
     if len(extr_c["line_items"]) > 2:
-        await async_client.delete(f"/api/v1/quotations/{qid_c}/line-items/{extr_c['line_items'][2]['id']}", headers=headers)
-    await async_client.post(f"/api/v1/quotations/{qid_c}/review-decision", json={"status": "approved", "decision_notes": "Approved C"}, headers=headers)
+        await async_client.delete(
+            f"/api/v1/quotations/{qid_c}/line-items/{extr_c['line_items'][2]['id']}",
+            headers=headers,
+        )
+    await async_client.post(
+        f"/api/v1/quotations/{qid_c}/review-decision",
+        json={"status": "approved", "decision_notes": "Approved C"},
+        headers=headers,
+    )
 
     # -------------------------------------------------------------------------
     # 2.5 Apply Payment Terms Overrides (Phase 4 Human Review)
@@ -311,7 +392,9 @@ async def test_full_phase5_scoring_lifecycle_and_provenance(async_client: AsyncC
     assert supp_b_res["rank"] == 2
 
     # Check complete formula provenance
-    a_price_crit = next(b for b in supp_a_res["criteria_breakdown"] if b["criterion_id"] == "c-price")
+    a_price_crit = next(
+        b for b in supp_a_res["criteria_breakdown"] if b["criterion_id"] == "c-price"
+    )
     assert "formula_audit" in a_price_crit
     assert "source_path" in a_price_crit
     assert a_price_crit["source_path"] == f"suppliers[{qid_a}].normalized_comparable_total"
