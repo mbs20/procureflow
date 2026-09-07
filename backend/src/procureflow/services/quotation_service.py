@@ -462,6 +462,24 @@ class QuotationService:
                     f"Line item '{item.description_raw}' has invalid non-positive total price ({item.total_price})."
                 )
 
+        # Check internal currency consistency across active items
+        # (Internal currency contradictions within extraction are critical blockers;
+        # cross-currency differences between quotation and RFQ reference currency are valid and normalized in Phase 4)
+        currencies = {item.currency.strip().upper() for item in active_items if item.currency}
+        missing_currency_items = [
+            item for item in active_items if not item.currency or not item.currency.strip()
+        ]
+        if missing_currency_items:
+            critical_issues.append(
+                f"{len(missing_currency_items)} line item(s) missing currency code."
+            )
+        if len(currencies) > 1:
+            critical_issues.append(
+                f"Contradictory currencies detected within quotation items ({', '.join(sorted(currencies))}). "
+                "All items within an extraction must use consistent currency."
+            )
+
+        for item in active_items:
             # Check math discrepancies
             if item.calculated_total_price is not None and item.total_price is not None:
                 diff = abs(item.total_price - item.calculated_total_price)

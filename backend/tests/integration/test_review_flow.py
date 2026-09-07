@@ -225,3 +225,104 @@ async def test_human_review_rejection_flow(async_client: AsyncClient):
     )
     logs = audit_resp.json()
     assert any(log_item["event_type"] == "QUOTATION_EXTRACTION_REJECTED" for log_item in logs)
+
+
+@pytest.mark.asyncio
+async def test_currency_rules_clarification(async_client: AsyncClient):
+    """
+    Clarification test:
+    1. A quotation in EUR against an RFQ in USD MUST be approvable (currency normalization belongs to Phase 4).
+    2. Contradictory currencies within the quotation itself (e.g. one line in USD, one in EUR) is a critical blocker.
+    """
+    headers = {"X-API-Key": "procureflow_dev_api_key_12345"}
+
+    # 1. Create RFQ with reference currency USD
+    rfq_resp = await async_client.post(
+        "/api/v1/rfqs",
+        json={
+            "title": "Global Fasteners Supply",
+            "category": "Hardware",
+            "reference_currency": "USD",
+            "line_items": [],
+        },
+        headers=headers,
+    )
+    assert rfq_resp.status_code == 201
+    rfq_id = rfq_resp.json()["id"]
+
+    # 2. Case A: Quotation entirely in EUR (cross-currency vs RFQ)
+    quote_eur_resp = await async_client.post(
+        "/api/v1/quotations",
+        json={"rfq_id": rfq_id, "supplier_name": "EuroFast GmbH"},
+        headers=headers,
+    )
+    assert quote_eur_resp.status_code == 201
+    quote_eur_id = quote_eur_resp.json()["id"]
+
+    # Ingest EUR document and extract
+    eur_csv = (
+        b"Item Description,Quantity,Unit,Unit Price,Currency,Total Price,Lead Time Days\n"
+        b"Precision Shaft Flange DN50,50,pcs,45.00,EUR,2250.00,10\n"
+    )
+    await async_client.post(
+        f"/api/v1/quotations/{quote_eur_id}/documents",
+        files={"file": ("german_flanges.csv", eur_csv, "text/csv")},
+        headers=headers,
+    )
+    await async_client.post(f"/api/v1/quotations/{quote_eur_id}/extract", headers=headers)
+
+    # Add line item with EUR currency
+    await async_client.post(
+        f"/api/v1/quotations/{quote_eur_id}/line-items",
+        json={
+            "description_raw": "Stainless Bolt Set M10",
+            "quantity": 100,
+            "unit": "pcs",
+            "unit_price": 2.50,
+            "total_price": 250.00,
+            "currency": "EUR",
+        },
+        headers=headers,
+    )
+
+    # Cross-currency quotation (EUR vs USD RFQ) is eligible for approval
+    val_status = await async_client.get(
+        f"/api/v1/quotations/{quote_eur_id}/validation-status",
+        headers=headers,
+    )
+    assert val_status.status_code == 200
+    # No currency blockers!
+    assert not any("currency" in issue.lower() for issue in val_status.json()["critical_issues"])
+
+    # 3. Case B: Internal contradictory currencies within extraction (EUR + USD)
+    await async_client.post(
+        f"/api/v1/quotations/{quote_eur_id}/line-items",
+        json={
+            "description_raw": "Imported Washer Kit",
+            "quantity": 50,
+            "unit": "pcs",
+            "unit_price": 1.00,
+            "total_price": 50.00,
+            "currency": "USD",  # Mismatched currency within same quotation!
+        },
+        headers=headers,
+    )
+
+    val_contradictory = await async_client.get(
+        f"/api/v1/quotations/{quote_eur_id}/validation-status",
+        headers=headers,
+    )
+    assert val_contradictory.status_code == 200
+    assert val_contradictory.json()["can_approve"] is False
+    assert any(
+        "contradictory currencies" in issue.lower()
+        for issue in val_contradictory.json()["critical_issues"]
+    )
+
+    # Attempting to approve must fail with 422
+    approve_fail = await async_client.patch(
+        f"/api/v1/quotations/{quote_eur_id}/status",
+        json={"status": "approved"},
+        headers=headers,
+    )
+    assert approve_fail.status_code == 422
