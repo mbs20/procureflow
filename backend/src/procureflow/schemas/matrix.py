@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 import datetime as dt
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from procureflow.services.normalization.currency import NormalizationStatus
+
+class NormalizationStatus(str, Enum):
+    NORMALIZED = "normalized"
+    IDENTICAL = "identical"
+    UNRESOLVED = "unresolved"
+    HUMAN_OVERRIDDEN = "human_overridden"
+    NOT_QUOTED = "not_quoted"
 
 
 class MatrixSupplierHeader(BaseModel):

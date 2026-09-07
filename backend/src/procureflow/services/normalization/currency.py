@@ -3,18 +3,11 @@ from __future__ import annotations
 import datetime as dt
 from collections.abc import Mapping
 from decimal import ROUND_HALF_UP, Decimal
-from enum import Enum
 from typing import Protocol
 
 from pydantic import BaseModel
 
-
-class NormalizationStatus(str, Enum):
-    NORMALIZED = "normalized"
-    IDENTICAL = "identical"
-    UNRESOLVED = "unresolved"
-    HUMAN_OVERRIDDEN = "human_overridden"
-    NOT_QUOTED = "not_quoted"
+from procureflow.schemas.matrix import NormalizationStatus
 
 
 class FXRateResult(BaseModel):
