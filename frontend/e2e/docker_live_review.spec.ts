@@ -14,6 +14,16 @@ test.describe("Live Docker Human Review Workflow", () => {
     page,
     request,
   }) => {
+    // Verify live backend availability; skip gracefully if running in a standalone frontend CI runner
+    let backendLive = false;
+    try {
+      const healthCheck = await request.get(`${API_BASE}/api/v1/health`, { timeout: 3000 });
+      backendLive = healthCheck.status() === 200;
+    } catch {
+      backendLive = false;
+    }
+    test.skip(!backendLive, "Live Docker backend is not available on port 8000 (standalone CI mode).");
+
     // 1. Create RFQ on live Docker backend
     const rfqRes = await request.post(`${API_BASE}/api/v1/rfqs`, {
       headers,
