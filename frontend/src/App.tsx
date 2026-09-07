@@ -7,6 +7,7 @@ import { RFQDetailPage } from "./pages/RFQDetailPage";
 import { QuotationsPage } from "./pages/QuotationsPage";
 import { ReviewWorkspacePage } from "./pages/ReviewWorkspacePage";
 import { ComparisonMatrixPage } from "./pages/ComparisonMatrixPage";
+import { ScoringEvaluationPage } from "./pages/ScoringEvaluationPage";
 
 export const App: React.FC = () => {
   return (
@@ -19,10 +20,13 @@ export const App: React.FC = () => {
           <Route path="rfqs" element={<RFQListPage />} />
           <Route path="rfqs/:id" element={<RFQDetailPage />} />
           <Route path="rfqs/:id/matrix" element={<ComparisonMatrixPage />} />
+          <Route path="rfqs/:id/scoring" element={<ScoringEvaluationPage />} />
           <Route path="quotations" element={<QuotationsPage />} />
           <Route path="review" element={<QuotationsPage />} />
           <Route path="matrix" element={<ComparisonMatrixPage />} />
           <Route path="matrix/:id" element={<ComparisonMatrixPage />} />
+          <Route path="scoring" element={<ScoringEvaluationPage />} />
+          <Route path="scoring/:id" element={<ScoringEvaluationPage />} />
           <Route
             path="decisions"
             element={

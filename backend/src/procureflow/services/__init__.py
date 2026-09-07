@@ -12,6 +12,7 @@ from procureflow.services.rfq_service import (
     update_rfq,
     validate_criteria_weights,
 )
+from procureflow.services.scoring_service import scoring_service
 
 __all__ = [
     "record_audit_event",
@@ -26,4 +27,5 @@ __all__ = [
     "validate_criteria_weights",
     "quotation_service",
     "matrix_service",
+    "scoring_service",
 ]

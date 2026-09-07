@@ -10,6 +10,7 @@ import {
   Filter,
   CheckCircle2,
   ChevronDown,
+  Sliders,
 } from "lucide-react";
 import {
   ComparisonMatrixResponse,
@@ -177,6 +178,14 @@ export const ComparisonMatrixPage: React.FC = () => {
           >
             <Camera className="h-3.5 w-3.5 text-purple-400" />
             Snapshots ({matrix?.snapshots_count || 0})
+          </button>
+
+          <button
+            onClick={() => navigate(`/rfqs/${selectedRfqId}/scoring`)}
+            className="flex items-center gap-1.5 rounded-xl border border-primary/40 bg-primary/15 px-3.5 py-2 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition-all shadow-sm"
+          >
+            <Sliders className="h-3.5 w-3.5" />
+            Evaluate & Score
           </button>
 
           <button

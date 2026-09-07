@@ -23,6 +23,7 @@ const navItems: NavItem[] = [
   { name: "Document Ingestion", href: "/quotations", icon: FileText },
   { name: "Review & Leveling", href: "/review", icon: Sliders },
   { name: "Comparison Matrix", href: "/matrix", icon: Scale },
+  { name: "Scoring & Evaluation", href: "/scoring", icon: Sliders },
   { name: "Decisions & Awards", href: "/decisions", icon: CheckCircle2 },
   { name: "Audit Trail", href: "/audit", icon: History },
 ];
