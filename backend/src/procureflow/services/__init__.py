@@ -1,4 +1,6 @@
 from procureflow.services.audit_service import record_audit_event
+from procureflow.services.matrix_service import matrix_service
+from procureflow.services.quotation_service import quotation_service
 from procureflow.services.rfq_service import (
     archive_rfq,
     clone_rfq,
@@ -22,4 +24,6 @@ __all__ = [
     "clone_rfq",
     "update_criteria",
     "validate_criteria_weights",
+    "quotation_service",
+    "matrix_service",
 ]

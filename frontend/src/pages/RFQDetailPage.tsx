@@ -165,6 +165,14 @@ export const RFQDetailPage: React.FC = () => {
           )}
 
           <Link
+            to={`/rfqs/${rfq.id}/matrix`}
+            className="flex items-center gap-1.5 rounded-xl bg-blue-500/10 px-3.5 py-2 text-xs font-semibold text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-colors"
+          >
+            <Scale className="h-3.5 w-3.5" />
+            Comparison Matrix
+          </Link>
+
+          <Link
             to="/quotations"
             className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/25 hover:bg-blue-600 transition-colors"
           >

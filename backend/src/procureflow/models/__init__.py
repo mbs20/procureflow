@@ -7,6 +7,11 @@ from procureflow.models.extraction import (
     ExtractedQuotation,
     ExtractedQuotationField,
 )
+from procureflow.models.normalization import (
+    ComparisonSnapshot,
+    NormalizationOverride,
+    RFQFXRateSet,
+)
 from procureflow.models.quotation import (
     QuotationDocument,
     QuotationStatus,
@@ -41,6 +46,9 @@ __all__ = [
     "ExtractedQuotation",
     "ExtractedLineItem",
     "ExtractedQuotationField",
+    "RFQFXRateSet",
+    "NormalizationOverride",
+    "ComparisonSnapshot",
     "ScoreResult",
     "SupplierScore",
     "CriterionScore",

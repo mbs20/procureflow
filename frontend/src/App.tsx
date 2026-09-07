@@ -6,6 +6,7 @@ import { RFQListPage } from "./pages/RFQListPage";
 import { RFQDetailPage } from "./pages/RFQDetailPage";
 import { QuotationsPage } from "./pages/QuotationsPage";
 import { ReviewWorkspacePage } from "./pages/ReviewWorkspacePage";
+import { ComparisonMatrixPage } from "./pages/ComparisonMatrixPage";
 
 export const App: React.FC = () => {
   return (
@@ -17,19 +18,11 @@ export const App: React.FC = () => {
           <Route index element={<DashboardPage />} />
           <Route path="rfqs" element={<RFQListPage />} />
           <Route path="rfqs/:id" element={<RFQDetailPage />} />
+          <Route path="rfqs/:id/matrix" element={<ComparisonMatrixPage />} />
           <Route path="quotations" element={<QuotationsPage />} />
           <Route path="review" element={<QuotationsPage />} />
-          <Route
-            path="matrix"
-            element={
-              <div className="glass-card rounded-xl p-8 text-center space-y-3">
-                <h2 className="text-xl font-bold text-white">Normalized Comparison Matrix</h2>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  Apples-to-apples comparison table across currencies, delivery lead times, and terms.
-                </p>
-              </div>
-            }
-          />
+          <Route path="matrix" element={<ComparisonMatrixPage />} />
+          <Route path="matrix/:id" element={<ComparisonMatrixPage />} />
           <Route
             path="decisions"
             element={
