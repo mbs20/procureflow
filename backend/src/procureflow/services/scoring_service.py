@@ -123,12 +123,20 @@ class ScoringRunNotFoundError(ScoringDomainError):
 # --------------------------------------------------------------------------
 
 
+def compute_canonical_hash(payload: Any) -> str:
+    """Computes a deterministic SHA-256 hash of arbitrary canonical JSON data with sorted keys."""
+    raw_json = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(raw_json.encode("utf-8")).hexdigest()
+
+
 def compute_scoring_run_hash(
     rfq_id: str,
     snapshot_id: str,
     snapshot_version: int,
+    comparison_snapshot_hash: str,
     configuration_id: str,
     configuration_version: int,
+    scoring_configuration_hash: str,
     engine_version: str,
     engine_policy: dict[str, Any],
     eligible_suppliers_count: int,
@@ -137,7 +145,8 @@ def compute_scoring_run_hash(
 ) -> str:
     """
     Computes a deterministic canonical SHA-256 integrity and reproducibility hash for an immutable ScoringRun.
-    The payload contains only semantic calculation inputs and authoritative exact outputs.
+    The payload binds directly to the content hashes of both the ComparisonSnapshot and ScoringConfiguration,
+    as well as the engine policy and authoritative exact supplier outputs.
     Excludes non-deterministic timestamps, dynamic run IDs, and the hash itself (never recursive).
     """
     canonical_suppliers = []
@@ -185,8 +194,10 @@ def compute_scoring_run_hash(
         "rfq_id": str(rfq_id),
         "snapshot_id": str(snapshot_id),
         "snapshot_version": int(snapshot_version),
+        "comparison_snapshot_hash": str(comparison_snapshot_hash),
         "configuration_id": str(configuration_id),
         "configuration_version": int(configuration_version),
+        "scoring_configuration_hash": str(scoring_configuration_hash),
         "engine_version": str(engine_version),
         "engine_policy": engine_policy,
         "eligible_suppliers_count": int(eligible_suppliers_count),
@@ -199,20 +210,44 @@ def compute_scoring_run_hash(
 
 
 def verify_scoring_run_integrity(
-    results_payload: dict[str, Any], expected_hash: str | None = None
+    results_payload: dict[str, Any],
+    snapshot_matrix_data: dict[str, Any] | None = None,
+    config_payload: dict[str, Any] | None = None,
+    expected_hash: str | None = None,
 ) -> bool:
     """
-    Verifies that a ScoringRun results_payload matches its recorded SHA-256 provenance hash.
+    Verifies that a ScoringRun results_payload matches its recorded SHA-256 provenance hash,
+    and optionally validates that provided snapshot/config content matches the bound content hashes.
     """
     target_hash = expected_hash or results_payload.get("provenance_hash")
     if not target_hash:
         return False
+
+    snapshot_hash = results_payload.get("comparison_snapshot_hash")
+    if snapshot_matrix_data is not None:
+        actual_snap_hash = compute_canonical_hash(snapshot_matrix_data)
+        if snapshot_hash and actual_snap_hash != snapshot_hash:
+            return False
+        snapshot_hash = actual_snap_hash
+
+    config_hash = results_payload.get("scoring_configuration_hash")
+    if config_payload is not None:
+        actual_cfg_hash = compute_canonical_hash(config_payload)
+        if config_hash and actual_cfg_hash != config_hash:
+            return False
+        config_hash = actual_cfg_hash
+
+    if not snapshot_hash or not config_hash:
+        return False
+
     computed = compute_scoring_run_hash(
         rfq_id=results_payload["rfq_id"],
         snapshot_id=results_payload["snapshot_id"],
         snapshot_version=results_payload["snapshot_version"],
+        comparison_snapshot_hash=snapshot_hash,
         configuration_id=results_payload["configuration_id"],
         configuration_version=results_payload["configuration_version"],
+        scoring_configuration_hash=config_hash,
         engine_version=results_payload.get("engine_version", SCORING_ENGINE_VERSION),
         engine_policy=results_payload.get("engine_policy", ENGINE_POLICY_METADATA),
         eligible_suppliers_count=results_payload["eligible_suppliers_count"],
@@ -690,13 +725,18 @@ class ScoringService:
 
         suppliers_payload = [s.model_dump(mode="json") for s in scores]
 
-        # Compute deterministic canonical SHA-256 provenance hash
+        # Compute deterministic canonical SHA-256 provenance hash binding to exact snapshot and config content
+        snapshot_hash = compute_canonical_hash(snapshot.matrix_data)
+        config_hash = compute_canonical_hash(cfg_record.config_payload)
+
         run_hash = compute_scoring_run_hash(
             rfq_id=rfq_id,
             snapshot_id=snapshot.id,
             snapshot_version=snapshot.snapshot_version,
+            comparison_snapshot_hash=snapshot_hash,
             configuration_id=cfg_record.id,
             configuration_version=cfg_record.version,
+            scoring_configuration_hash=config_hash,
             engine_version=SCORING_ENGINE_VERSION,
             engine_policy=ENGINE_POLICY_METADATA,
             eligible_suppliers_count=eligible_count,
@@ -708,9 +748,11 @@ class ScoringService:
             "rfq_id": rfq_id,
             "snapshot_id": snapshot.id,
             "snapshot_version": snapshot.snapshot_version,
+            "comparison_snapshot_hash": snapshot_hash,
             "configuration_id": cfg_record.id,
             "configuration_version": cfg_record.version,
             "configuration_name": cfg_record.name,
+            "scoring_configuration_hash": config_hash,
             "engine_version": SCORING_ENGINE_VERSION,
             "engine_policy": ENGINE_POLICY_METADATA,
             "provenance_hash": run_hash,
