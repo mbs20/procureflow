@@ -1,5 +1,7 @@
 from procureflow.services.audit_service import record_audit_event
+from procureflow.services.award_service import award_service
 from procureflow.services.matrix_service import matrix_service
+from procureflow.services.narrative_service import narrative_service
 from procureflow.services.quotation_service import quotation_service
 from procureflow.services.rfq_service import (
     archive_rfq,
@@ -28,4 +30,7 @@ __all__ = [
     "quotation_service",
     "matrix_service",
     "scoring_service",
+    "narrative_service",
+    "award_service",
 ]
+

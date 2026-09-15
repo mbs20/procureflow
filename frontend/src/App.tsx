@@ -8,6 +8,7 @@ import { QuotationsPage } from "./pages/QuotationsPage";
 import { ReviewWorkspacePage } from "./pages/ReviewWorkspacePage";
 import { ComparisonMatrixPage } from "./pages/ComparisonMatrixPage";
 import { ScoringEvaluationPage } from "./pages/ScoringEvaluationPage";
+import { DecisionWorkspacePage } from "./pages/DecisionWorkspacePage";
 
 export const App: React.FC = () => {
   return (
@@ -21,23 +22,15 @@ export const App: React.FC = () => {
           <Route path="rfqs/:id" element={<RFQDetailPage />} />
           <Route path="rfqs/:id/matrix" element={<ComparisonMatrixPage />} />
           <Route path="rfqs/:id/scoring" element={<ScoringEvaluationPage />} />
+          <Route path="rfqs/:id/decisions" element={<DecisionWorkspacePage />} />
           <Route path="quotations" element={<QuotationsPage />} />
           <Route path="review" element={<QuotationsPage />} />
           <Route path="matrix" element={<ComparisonMatrixPage />} />
           <Route path="matrix/:id" element={<ComparisonMatrixPage />} />
           <Route path="scoring" element={<ScoringEvaluationPage />} />
           <Route path="scoring/:id" element={<ScoringEvaluationPage />} />
-          <Route
-            path="decisions"
-            element={
-              <div className="glass-card rounded-xl p-8 text-center space-y-3">
-                <h2 className="text-xl font-bold text-white">Decisions & Award Records</h2>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  Deterministic scoring ranks, AI explanation narratives, and immutable decision justifications.
-                </p>
-              </div>
-            }
-          />
+          <Route path="decisions" element={<DecisionWorkspacePage />} />
+          <Route path="decisions/:id" element={<DecisionWorkspacePage />} />
           <Route
             path="audit"
             element={

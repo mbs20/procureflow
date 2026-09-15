@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from procureflow.config import get_settings
 from procureflow.database import Base
+import procureflow.models  # noqa: F401 — ensure all models are registered on Base.metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

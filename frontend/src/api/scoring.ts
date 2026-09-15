@@ -62,11 +62,17 @@ export interface ScoringRunCreate {
 export interface ScoringRunResponse {
   id: string;
   rfq_id: string;
-  scoring_configuration_id: string;
-  scoring_configuration_version: number;
+  configuration_id?: string;
+  snapshot_id?: string;
+  scoring_configuration_id?: string;
+  scoring_configuration_version?: number;
   comparison_snapshot_id: string;
-  comparison_snapshot_version: number;
+  comparison_snapshot_version?: number;
   comparison_snapshot_hash?: string | null;
+  run_number?: number;
+  name?: string;
+  results_payload?: Record<string, any>;
+  provenance_hash?: string | null;
   scores: SupplierScore[];
   notes?: string | null;
   created_at: string;

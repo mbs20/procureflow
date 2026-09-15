@@ -2,6 +2,20 @@ from procureflow.models.audit import (
     ActorType,
     AuditLog,
 )
+from procureflow.models.decision import (
+    AwardDecision,
+    AwardDecisionEvent,
+    AwardEventType,
+    AwardStatus,
+    ClaimType,
+    DecisionContext,
+    GroundingStatus,
+    NarrativeClaim,
+    NarrativeGeneration,
+    NarrativeOrigin,
+    NarrativeRevision,
+    NarrativeType,
+)
 from procureflow.models.extraction import (
     ExtractedLineItem,
     ExtractedQuotation,
@@ -50,4 +64,17 @@ __all__ = [
     "ScoringRun",
     "AuditLog",
     "ActorType",
+    "DecisionContext",
+    "NarrativeGeneration",
+    "NarrativeRevision",
+    "NarrativeClaim",
+    "NarrativeType",
+    "NarrativeOrigin",
+    "ClaimType",
+    "GroundingStatus",
+    "AwardDecision",
+    "AwardDecisionEvent",
+    "AwardStatus",
+    "AwardEventType",
 ]
+
