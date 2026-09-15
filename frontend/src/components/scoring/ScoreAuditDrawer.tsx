@@ -81,7 +81,7 @@ export const ScoreAuditDrawer: React.FC<ScoreAuditDrawerProps> = ({
               <p className="text-xs text-muted-foreground mt-0.5">
                 {supplierScore.is_eligible
                   ? "Passed all deterministic knockout gates and evaluated in relative scoring cohort."
-                  : `Disqualified from competitive ranking. Reason: ${supplierScore.knockout_reasons.join(", ")}`}
+                  : `Ineligible for competitive ranking. Reason: ${supplierScore.knockout_reasons.join(", ")}`}
               </p>
             </div>
           </div>

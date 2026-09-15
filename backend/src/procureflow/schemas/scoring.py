@@ -91,13 +91,18 @@ class CriterionScoreBreakdown(BaseModel):
     criterion_id: str
     criterion_name: str
     raw_value: Any
+    exact_raw_value: str | None = None
     source_path: str
     direction: CriterionDirection
     min_value: Decimal | None = None
     max_value: Decimal | None = None
-    normalized_score: Decimal  # 0.00 to 100.00
+    exact_min_value: str | None = None
+    exact_max_value: str | None = None
+    normalized_score: Decimal  # Display / export precision (4 decimal places)
+    exact_normalized_score: str | None = None  # Full unrounded Decimal string representation
     weight: Decimal
-    weighted_contribution: Decimal  # normalized_score * weight
+    weighted_contribution: Decimal  # Display / export precision (4 decimal places)
+    exact_weighted_contribution: str | None = None  # Full unrounded Decimal string representation
     formula_audit: str
     is_knockout_applied: bool = False
     notes: str | None = None
@@ -110,7 +115,8 @@ class SupplierScore(BaseModel):
     supplier_name: str
     eligibility_status: EligibilityStatus
     knockout_reasons: list[str] = Field(default_factory=list)
-    total_score: Decimal = Decimal("0.00")
+    total_score: Decimal = Decimal("0.0000")  # Display / export precision (4 decimal places)
+    exact_total_score: str = "0.0000"  # Full authoritative unrounded Decimal string representation
     rank: int | None = None  # None if knockout_failed / blocked
     criteria_breakdown: list[CriterionScoreBreakdown] = Field(default_factory=list)
 
@@ -132,6 +138,7 @@ class ScoringRunResponse(BaseModel):
     run_number: int
     name: str
     notes: str | None = None
+    provenance_hash: str | None = None
     results_payload: dict[str, Any]
     created_by: str
     created_at: datetime
@@ -173,6 +180,9 @@ class BreakevenResult(BaseModel):
     target_rank: int = 1
     current_price: Decimal
     required_price: Decimal | None = None
+    tie_price: Decimal | None = None
+    beat_price: Decimal | None = None
+    target_achievement_type: str = "tie_or_better"
     delta_price: Decimal | None = None
     delta_pct: Decimal | None = None
     feasible: bool
@@ -184,6 +194,8 @@ class BreakevenResult(BaseModel):
 class SensitivityResponse(BaseModel):
     swept_criterion_id: str
     weight_redistribution_rule: str
+    redistribution_policy: str = "proportional_unlocked_v1"
     points: list[SensitivityPoint]
     crossover_points: list[CrossoverPoint]
     breakeven: BreakevenResult | None = None
+

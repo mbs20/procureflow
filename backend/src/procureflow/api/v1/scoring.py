@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import structlog
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from procureflow.api.deps import get_db, verify_api_key
@@ -15,7 +15,17 @@ from procureflow.schemas.scoring import (
     SensitivityResponse,
     SupplierScore,
 )
-from procureflow.services.scoring_service import scoring_service
+from procureflow.services.scoring_service import (
+    BreakevenNotFeasibleError,
+    MissingValueError,
+    ScoringConfigurationError,
+    ScoringConfigurationNotFoundError,
+    ScoringDomainError,
+    ScoringRunNotFoundError,
+    ScoringSnapshotNotFoundError,
+    SensitivityConstraintError,
+    scoring_service,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -34,9 +44,14 @@ async def create_scoring_configuration(
     db: AsyncSession = Depends(get_db),
     api_key: str = Depends(verify_api_key),
 ) -> ScoringConfigurationResponse:
-    return await scoring_service.create_configuration(
-        session=db, rfq_id=rfq_id, data=data, actor_id="evaluator"
-    )
+    try:
+        return await scoring_service.create_configuration(
+            session=db, rfq_id=rfq_id, data=data, actor_id="evaluator"
+        )
+    except ScoringConfigurationError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    except ScoringDomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @router.get(
@@ -60,7 +75,10 @@ async def get_active_scoring_configuration(
     rfq_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> ScoringConfigurationResponse:
-    return await scoring_service.get_active_configuration(session=db, rfq_id=rfq_id)
+    try:
+        return await scoring_service.get_active_configuration(session=db, rfq_id=rfq_id)
+    except ScoringConfigurationNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.get(
@@ -73,9 +91,12 @@ async def get_scoring_configuration(
     configuration_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> ScoringConfigurationResponse:
-    return await scoring_service.get_configuration(
-        session=db, rfq_id=rfq_id, configuration_id=configuration_id
-    )
+    try:
+        return await scoring_service.get_configuration(
+            session=db, rfq_id=rfq_id, configuration_id=configuration_id
+        )
+    except ScoringConfigurationNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.post(
@@ -90,9 +111,16 @@ async def execute_scoring_run(
     db: AsyncSession = Depends(get_db),
     api_key: str = Depends(verify_api_key),
 ) -> ScoringRunResponse:
-    return await scoring_service.execute_and_save_run(
-        session=db, rfq_id=rfq_id, data=data, actor_id="evaluator"
-    )
+    try:
+        return await scoring_service.execute_and_save_run(
+            session=db, rfq_id=rfq_id, data=data, actor_id="evaluator"
+        )
+    except (ScoringSnapshotNotFoundError, ScoringConfigurationNotFoundError) as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except MissingValueError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
+    except ScoringDomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @router.get(
@@ -117,7 +145,10 @@ async def get_scoring_run(
     run_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> ScoringRunResponse:
-    return await scoring_service.get_run(session=db, rfq_id=rfq_id, run_id=run_id)
+    try:
+        return await scoring_service.get_run(session=db, rfq_id=rfq_id, run_id=run_id)
+    except ScoringRunNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.post(
@@ -130,17 +161,24 @@ async def simulate_scoring(
     data: ScoringSimulationRequest,
     db: AsyncSession = Depends(get_db),
 ) -> list[SupplierScore]:
-    snapshot = await scoring_service.get_snapshot(db, rfq_id, data.snapshot_id)
-    if data.custom_configuration:
-        config = data.custom_configuration
-    elif data.configuration_id:
-        cfg_record = await scoring_service.get_configuration(db, rfq_id, data.configuration_id)
-        config = ScoringConfigurationCreate.model_validate(cfg_record.config_payload)
-    else:
-        cfg_record = await scoring_service.get_active_configuration(db, rfq_id)
-        config = ScoringConfigurationCreate.model_validate(cfg_record.config_payload)
+    try:
+        snapshot = await scoring_service.get_snapshot(db, rfq_id, data.snapshot_id)
+        if data.custom_configuration:
+            config = data.custom_configuration
+        elif data.configuration_id:
+            cfg_record = await scoring_service.get_configuration(db, rfq_id, data.configuration_id)
+            config = ScoringConfigurationCreate.model_validate(cfg_record.config_payload)
+        else:
+            cfg_record = await scoring_service.get_active_configuration(db, rfq_id)
+            config = ScoringConfigurationCreate.model_validate(cfg_record.config_payload)
 
-    return scoring_service.evaluate_scoring(snapshot.matrix_data, config)
+        return scoring_service.evaluate_scoring(snapshot.matrix_data, config)
+    except (ScoringSnapshotNotFoundError, ScoringConfigurationNotFoundError) as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except MissingValueError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
+    except ScoringDomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @router.post(
@@ -153,4 +191,13 @@ async def run_sensitivity_analysis(
     data: SensitivityRequest,
     db: AsyncSession = Depends(get_db),
 ) -> SensitivityResponse:
-    return await scoring_service.run_sensitivity_analysis(session=db, rfq_id=rfq_id, req=data)
+    try:
+        return await scoring_service.run_sensitivity_analysis(session=db, rfq_id=rfq_id, req=data)
+    except (ScoringSnapshotNotFoundError, ScoringConfigurationNotFoundError) as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except SensitivityConstraintError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    except BreakevenNotFeasibleError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    except ScoringDomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

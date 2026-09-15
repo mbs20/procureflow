@@ -58,13 +58,13 @@ export const EvaluationRankTable: React.FC<EvaluationRankTableProps> = ({
               </tr>
             ) : (
               sortedScores.map((s) => {
-                const isDisqualified = !s.is_eligible;
+                const isIneligible = !s.is_eligible;
 
                 return (
                   <tr
                     key={s.quotation_id}
                     className={`transition-colors hover:bg-secondary/40 cursor-pointer ${
-                      isDisqualified ? "bg-red-950/10 opacity-80" : ""
+                      isIneligible ? "bg-red-950/10 opacity-80" : ""
                     }`}
                     onClick={() => onSelectSupplier(s)}
                   >
