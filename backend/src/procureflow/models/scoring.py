@@ -86,7 +86,9 @@ class ScoringRun(Base):
     results_payload: Mapped[dict[str, Any]] = mapped_column(
         JSON().with_variant(JSONB, "postgresql"), nullable=False
     )
-    provenance_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)  # SHA-256 integrity hash
+    provenance_hash: Mapped[str | None] = mapped_column(
+        String(64), nullable=True
+    )  # SHA-256 integrity hash
 
     created_by: Mapped[str] = mapped_column(String(100), default="system", nullable=False)
     created_at: Mapped[datetime] = mapped_column(

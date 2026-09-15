@@ -198,4 +198,3 @@ class SensitivityResponse(BaseModel):
     points: list[SensitivityPoint]
     crossover_points: list[CrossoverPoint]
     breakeven: BreakevenResult | None = None
-

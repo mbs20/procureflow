@@ -7,7 +7,6 @@ import pytest
 from procureflow.schemas.scoring import (
     CriterionConfig,
     CriterionDirection,
-    EligibilityStatus,
     ScoringConfigurationCreate,
 )
 from procureflow.services.scoring_service import (
@@ -161,7 +160,9 @@ def test_authoritative_full_decimal_precision_prevents_false_ties_and_rank_inver
     assert Decimal(s2.exact_total_score) > Decimal(s1.exact_total_score)
 
     # Display total scores are safely quantized without mutating ranking
-    assert s1.total_score == Decimal("100.0000")  # s2 is 100, s1 is (50.00004-10)/(50.00006-10)*100 = 99.99995... -> 100.0000
+    assert s1.total_score == Decimal(
+        "100.0000"
+    )  # s2 is 100, s1 is (50.00004-10)/(50.00006-10)*100 = 99.99995... -> 100.0000
 
 
 def test_exact_mathematical_score_breakdown(
@@ -575,5 +576,8 @@ def test_engine_policy_metadata_completeness():
     assert ENGINE_POLICY_METADATA["ranking_policy"] == "standard_competitive_1224"
     assert ENGINE_POLICY_METADATA["knockout_precedence"] == "pre_normalization_exclusion"
     assert ENGINE_POLICY_METADATA["missing_value_policy"] == "block_scoring"
-    assert ENGINE_POLICY_METADATA["precision_policy"] == "full_decimal_internal_ranking_4dp_presentation"
+    assert (
+        ENGINE_POLICY_METADATA["precision_policy"]
+        == "full_decimal_internal_ranking_4dp_presentation"
+    )
     assert ENGINE_POLICY_METADATA["redistribution_policy"] == "proportional_unlocked_v1"

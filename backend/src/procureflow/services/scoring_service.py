@@ -640,7 +640,11 @@ class ScoringService:
 
         current_rank = 1
         for idx, item in enumerate(eligible_scores):
-            if idx > 0 and raw_totals[item.quotation_id] == raw_totals[eligible_scores[idx - 1].quotation_id]:
+            if (
+                idx > 0
+                and raw_totals[item.quotation_id]
+                == raw_totals[eligible_scores[idx - 1].quotation_id]
+            ):
                 item.rank = eligible_scores[idx - 1].rank
             else:
                 item.rank = current_rank
@@ -766,9 +770,7 @@ class ScoringService:
         res = await session.execute(stmt)
         run = res.scalar_one_or_none()
         if not run:
-            raise ScoringRunNotFoundError(
-                f"Scoring run '{run_id}' not found for RFQ '{rfq_id}'"
-            )
+            raise ScoringRunNotFoundError(f"Scoring run '{run_id}' not found for RFQ '{rfq_id}'")
         return ScoringRunResponse.model_validate(run)
 
     # --------------------------------------------------------------------------
@@ -913,9 +915,7 @@ class ScoringService:
         baseline_scores = self.evaluate_scoring(snapshot_matrix_data, config)
         cand_score = next((s for s in baseline_scores if s.quotation_id == candidate_id), None)
         if not cand_score:
-            raise ScoringDomainError(
-                f"Candidate supplier '{candidate_id}' not found in snapshot."
-            )
+            raise ScoringDomainError(f"Candidate supplier '{candidate_id}' not found in snapshot.")
 
         if cand_score.eligibility_status != EligibilityStatus.ELIGIBLE:
             return BreakevenResult(
@@ -1007,7 +1007,9 @@ class ScoringService:
             current_price=current_p,
             required_price=required_p,
             tie_price=required_p,
-            beat_price=(required_p - Decimal("0.01")).quantize(PRECISION_2DP, rounding=ROUND_HALF_UP),
+            beat_price=(required_p - Decimal("0.01")).quantize(
+                PRECISION_2DP, rounding=ROUND_HALF_UP
+            ),
             target_achievement_type="tie_or_better",
             delta_price=delta_p,
             delta_pct=delta_pct,
