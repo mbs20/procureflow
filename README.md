@@ -134,7 +134,8 @@ Review the AI-drafted executive summary where all quantitative claims are ground
 ![Decision Narrative and Award](docs/assets/screenshots/05_grounded_decision_award_workflow.png)
 
 ### 6. Full Bilingual Localization (English & French)
-ProcureFlow natively supports English and French procurement workflows. Switch languages instantaneously from the top navigation bar with full persistence (`localStorage`), localized numeric/currency/date formats (`Intl`), and professional procurement terminology (*Appels d'offres*, *Devis*, *Matrice de comparaison*, *Normalisation*, *Seuil d'équilibre*, *Attribution*).
+- **UI Localization**: The user interface fully supports both English and French. Switch languages instantaneously from the top navigation bar with automatic browser locale detection (e.g., `fr-MA` defaults to French), persistence (`localStorage`), localized numeric/currency/date formats (`Intl`), and professional procurement terminology (*Appels d'offres*, *Devis*, *Matrice de comparaison*, *Normalisation*, *Seuil d'équilibre*, *Attribution*).
+- **AI Narrative Content**: AI-generated narrative content and grounded claims currently remain in English to maintain exact deterministic citation token alignment with upstream LLM prompts.
 
 ---
 

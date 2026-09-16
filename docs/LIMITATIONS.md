@@ -41,6 +41,10 @@ While hardened for self-hosted evaluation and pilot procurement workflows, v0.1.
 ### 5. Enterprise Integrations
 - **No Direct ERP/P2P Sync**: v0.1.0 does not include live bidirectional synchronization connectors for SAP Ariba, Coupa, or Oracle Cloud Procurement. Comparison snapshots and awarded decisions can be exported via JSON API.
 
+### 6. Localization Scope & AI Narrative Language
+- **UI Localization**: The user interface provides complete, seamless English and French localization with browser locale auto-detection (e.g. `fr-MA`), local persistence, and localized numerical/currency formatting.
+- **AI Narrative Content**: Backend LLM-generated narrative summaries, decision memos, and citation anchors currently remain in English to guarantee deterministic grounding accuracy and avoid prompt template modification.
+
 ---
 
 ## 📋 Recommended Deployment Posture
