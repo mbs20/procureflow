@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import {
   X,
   ShieldCheck,
@@ -17,6 +18,8 @@ import {
   applyNormalizationOverride,
   revertNormalizationOverride,
 } from "../../api/matrix";
+import { formatCurrency } from "../../lib/formatters";
+import { translateBackendError } from "../../lib/errorMessageMap";
 
 interface CellTraceabilityDrawerProps {
   rfqId: string;
@@ -37,6 +40,7 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
   onClose,
   onRefresh,
 }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"trace" | "override">("trace");
   const [overrideType, setOverrideType] = useState<"uom_factor" | "fx_rate" | "unit_price" | "lead_time">("uom_factor");
   const [overrideValue, setOverrideValue] = useState<string>("");
@@ -49,7 +53,7 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
   const handleApplyOverride = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!overrideValue || !overrideReason.trim()) {
-      setError("Please provide both an override value and a justification reason.");
+      setError(t('matrix.auditReasonPlaceholder'));
       return;
     }
     if (!cell.line_item_id) {
@@ -81,14 +85,14 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
         override_reason: overrideReason,
       });
 
-      setActionMessage("Human normalization override applied successfully.");
+      setActionMessage(t('matrix.overrideSuccess'));
       onRefresh();
       setTimeout(() => {
         setActionMessage(null);
         setActiveTab("trace");
       }, 1500);
     } catch (err: any) {
-      setError(err.message || "Failed to apply override");
+      setError(translateBackendError(err, t));
     } finally {
       setSubmitting(false);
     }
@@ -104,11 +108,11 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
         cell.override_id,
         revertReason || "Reverted to deterministic default"
       );
-      setActionMessage("Override reverted to deterministic baseline.");
+      setActionMessage(t('matrix.revertSuccess'));
       onRefresh();
       setTimeout(() => setActionMessage(null), 1500);
     } catch (err: any) {
-      setError(err.message || "Failed to revert override");
+      setError(translateBackendError(err, t));
     } finally {
       setSubmitting(false);
     }
@@ -121,7 +125,7 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-blue-400" />
-            <h2 className="text-base font-bold text-white">Cell Traceability & Provenance</h2>
+            <h2 className="text-base font-bold text-white">{t('matrix.traceDrawerTitle')}</h2>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             {supplier.supplier_name} • #{row.position} {row.description}
@@ -130,6 +134,7 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
         <button
           onClick={onClose}
           className="rounded-lg p-1.5 text-muted-foreground hover:text-white hover:bg-secondary transition-colors"
+          aria-label={t('common.close')}
         >
           <X className="h-5 w-5" />
         </button>
@@ -145,7 +150,7 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          Evidence & Normalization
+          {t('matrix.tabEvidence')}
         </button>
         <button
           onClick={() => setActiveTab("override")}
@@ -155,7 +160,7 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          {cell.is_human_overridden ? "Manage Override (Active)" : "Apply Manual Override"}
+          {cell.is_human_overridden ? t('matrix.tabManageOverride') : t('matrix.tabApplyOverride')}
         </button>
       </div>
 
@@ -182,36 +187,50 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
               {/* Normalized Value */}
               <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 space-y-2">
                 <div className="text-[10px] uppercase font-bold tracking-wider text-blue-400">
-                  Normalized Comparable
+                  {t('matrix.normalizedComparable')}
                 </div>
                 <div className="text-xl font-mono font-bold text-white">
                   {cell.normalized_unit_price !== null && cell.normalized_unit_price !== undefined
-                    ? `${cell.normalized_unit_price.toFixed(4)} ${referenceCurrency}`
-                    : "Unresolved"}
+                    ? formatCurrency(cell.normalized_unit_price, referenceCurrency)
+                    : t('matrix.unresolved')}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Extended: <strong className="text-foreground">{cell.normalized_extended_price !== null && cell.normalized_extended_price !== undefined ? `$${cell.normalized_extended_price.toFixed(2)} ${referenceCurrency}` : "N/A"}</strong>
+                  <Trans
+                    i18nKey="matrix.extendedLabel"
+                    values={{
+                      amount: cell.normalized_extended_price !== null && cell.normalized_extended_price !== undefined
+                        ? formatCurrency(cell.normalized_extended_price, referenceCurrency)
+                        : "N/A"
+                    }}
+                    components={{ 1: <strong className="text-foreground" /> }}
+                  />
                 </div>
                 <div className="text-[11px] text-muted-foreground">
-                  Basis: {row.required_quantity} {cell.canonical_unit || row.required_unit}
+                  {t('matrix.basisLabel', { qty: row.required_quantity, unit: cell.canonical_unit || row.required_unit })}
                 </div>
               </div>
 
               {/* Quoted Raw Value */}
               <div className="rounded-xl border border-border/80 bg-secondary/30 p-4 space-y-2">
                 <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                  Quoted Original
+                  {t('matrix.quotedOriginalTitle')}
                 </div>
                 <div className="text-xl font-mono font-bold text-foreground">
                   {cell.quoted_unit_price !== null && cell.quoted_unit_price !== undefined
-                    ? `${cell.quoted_unit_price.toFixed(2)} ${cell.original_currency}`
-                    : "Not Quoted"}
+                    ? formatCurrency(cell.quoted_unit_price, cell.original_currency)
+                    : t('matrix.notQuoted')}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Quoted Total: <strong className="text-foreground">{cell.quoted_total_price ? `${cell.quoted_total_price.toFixed(2)} ${cell.original_currency}` : "N/A"}</strong>
+                  <Trans
+                    i18nKey="matrix.quotedTotalLabel"
+                    values={{
+                      amount: cell.quoted_total_price ? formatCurrency(cell.quoted_total_price, cell.original_currency) : "N/A"
+                    }}
+                    components={{ 1: <strong className="text-foreground" /> }}
+                  />
                 </div>
                 <div className="text-[11px] text-muted-foreground">
-                  Basis: {cell.quoted_quantity} {cell.quoted_unit}
+                  {t('matrix.basisLabel', { qty: cell.quoted_quantity, unit: cell.quoted_unit })}
                 </div>
               </div>
             </div>
@@ -221,19 +240,19 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
               <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-purple-400 flex items-center gap-1.5">
-                    <Scale className="h-4 w-4" /> Human Override Active
+                    <Scale className="h-4 w-4" /> {t('matrix.humanOverrideActive')}
                   </span>
                   <button
                     onClick={handleRevertOverride}
                     disabled={submitting}
                     className="flex items-center gap-1 rounded bg-purple-500/20 px-2 py-1 text-[11px] font-semibold text-purple-300 hover:bg-purple-500/30 transition-colors"
                   >
-                    <RotateCcw className="h-3 w-3" /> Revert
+                    <RotateCcw className="h-3 w-3" /> {t('matrix.revertBtn')}
                   </button>
                 </div>
                 {cell.override_reason && (
                   <p className="text-xs text-muted-foreground italic">
-                    Reason: "{cell.override_reason}"
+                    {t('matrix.reasonPrefix', { reason: cell.override_reason })}
                   </p>
                 )}
               </div>
@@ -243,31 +262,31 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
             <div className="rounded-xl border border-border/80 bg-secondary/20 p-4 space-y-3">
               <div className="text-xs font-bold text-white flex items-center gap-2">
                 <Coins className="h-4 w-4 text-emerald-400" />
-                Normalization Conversion Parameters
+                {t('matrix.conversionParams')}
               </div>
 
               <div className="space-y-2 text-xs divide-y divide-border/40">
                 {/* FX Rate */}
                 <div className="pt-2 flex items-center justify-between">
-                  <span className="text-muted-foreground">FX Rate Used:</span>
+                  <span className="text-muted-foreground">{t('matrix.fxRateUsed')}</span>
                   <span className="font-mono font-semibold text-foreground">
-                    {cell.fx_rate_used ? `1 ${cell.original_currency} = ${cell.fx_rate_used} ${referenceCurrency}` : "Same currency (1.0000)"}
+                    {cell.fx_rate_used ? `1 ${cell.original_currency} = ${cell.fx_rate_used} ${referenceCurrency}` : t('matrix.sameCurrency')}
                   </span>
                 </div>
 
                 {/* UOM Conversion Factor */}
                 <div className="pt-2 flex items-center justify-between">
-                  <span className="text-muted-foreground">UOM Conversion Factor:</span>
+                  <span className="text-muted-foreground">{t('matrix.uomFactorLabel')}</span>
                   <span className="font-mono font-semibold text-foreground">
-                    {cell.uom_conversion_factor ? `1 ${cell.quoted_unit} = ${cell.uom_conversion_factor} ${cell.canonical_unit}` : "1.0000 (Direct match)"}
+                    {cell.uom_conversion_factor ? `1 ${cell.quoted_unit} = ${cell.uom_conversion_factor} ${cell.canonical_unit}` : t('matrix.directMatch')}
                   </span>
                 </div>
 
                 {/* Lead Time */}
                 <div className="pt-2 flex items-center justify-between">
-                  <span className="text-muted-foreground">Lead Time Interpretation:</span>
+                  <span className="text-muted-foreground">{t('matrix.leadTimeInterpretation')}</span>
                   <span className="font-semibold text-foreground">
-                    {cell.line_lead_time_display || "Not specified"}
+                    {cell.line_lead_time_display || t('matrix.notSpecified')}
                   </span>
                 </div>
 
@@ -276,7 +295,10 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
                   <div className="pt-2 text-amber-400 flex items-start gap-1.5">
                     <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                     <span>
-                      Quoted total ({cell.quoted_total_price}) differs from unit price × qty calculation ({cell.calculated_total_price}).
+                      {t('matrix.mathDiscrepancyWarning', {
+                        quoted: cell.quoted_total_price,
+                        calculated: cell.calculated_total_price
+                      })}
                     </span>
                   </div>
                 )}
@@ -287,14 +309,14 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
             <div className="rounded-xl border border-border/80 bg-secondary/20 p-4 space-y-3">
               <div className="text-xs font-bold text-white flex items-center gap-2">
                 <FileText className="h-4 w-4 text-blue-400" />
-                Phase 3 Extraction Evidence
+                {t('matrix.extractionEvidence')}
               </div>
 
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between text-muted-foreground">
-                  <span>Source Page:</span>
+                  <span>{t('matrix.sourcePage')}</span>
                   <span className="font-mono font-semibold text-foreground">
-                    {cell.source_page !== null && cell.source_page !== undefined ? `Page ${cell.source_page}` : "Extracted document"}
+                    {cell.source_page !== null && cell.source_page !== undefined ? t('matrix.pagePrefix', { page: cell.source_page }) : t('matrix.extractedDocument')}
                   </span>
                 </div>
 
@@ -311,7 +333,7 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
                   >
-                    View Original Document <ExternalLink className="h-3 w-3" />
+                    {t('matrix.viewOriginalDocument')} <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
               </div>
@@ -321,7 +343,7 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
           /* Human Override Form */
           <form onSubmit={handleApplyOverride} className="space-y-4">
             <div className="rounded-xl border border-border/80 bg-secondary/20 p-4 space-y-3">
-              <label className="text-xs font-bold text-white block">Override Field Target</label>
+              <label className="text-xs font-bold text-white block">{t('matrix.overrideFieldTarget')}</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -332,8 +354,8 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
                       : "border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/50"
                   }`}
                 >
-                  UOM Conversion Factor
-                  <span className="block text-[10px] text-muted-foreground font-normal">e.g. 1 box = 24 pcs</span>
+                  {t('matrix.uomFactorBtn')}
+                  <span className="block text-[10px] text-muted-foreground font-normal">{t('matrix.uomFactorHint')}</span>
                 </button>
 
                 <button
@@ -345,8 +367,8 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
                       : "border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/50"
                   }`}
                 >
-                  Custom FX Rate
-                  <span className="block text-[10px] text-muted-foreground font-normal">e.g. 1 EUR = 1.10 USD</span>
+                  {t('matrix.customFxBtn')}
+                  <span className="block text-[10px] text-muted-foreground font-normal">{t('matrix.customFxHint')}</span>
                 </button>
 
                 <button
@@ -358,8 +380,10 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
                       : "border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/50"
                   }`}
                 >
-                  Direct Normalized Price
-                  <span className="block text-[10px] text-muted-foreground font-normal">Manual price in {referenceCurrency}</span>
+                  {t('matrix.directPriceBtn')}
+                  <span className="block text-[10px] text-muted-foreground font-normal">
+                    {t('matrix.directPriceHint', { currency: referenceCurrency })}
+                  </span>
                 </button>
 
                 <button
@@ -371,8 +395,8 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
                       : "border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/50"
                   }`}
                 >
-                  Lead Time Days
-                  <span className="block text-[10px] text-muted-foreground font-normal">Expedited or confirmed days</span>
+                  {t('matrix.leadTimeDaysBtn')}
+                  <span className="block text-[10px] text-muted-foreground font-normal">{t('matrix.leadTimeDaysHint')}</span>
                 </button>
               </div>
             </div>
@@ -396,11 +420,11 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-white block">Audit Justification Reason</label>
+              <label className="text-xs font-bold text-white block">{t('matrix.auditReasonLabel')}</label>
               <textarea
                 value={overrideReason}
                 onChange={(e) => setOverrideReason(e.target.value)}
-                placeholder="State the reason for this manual correction (mandatory for audit trail)..."
+                placeholder={t('matrix.auditReasonPlaceholder')}
                 rows={3}
                 className="w-full rounded-lg border border-border bg-secondary/40 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-blue-500"
                 required
@@ -412,7 +436,7 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
               disabled={submitting}
               className="w-full rounded-xl bg-primary py-2.5 text-xs font-bold text-white hover:bg-blue-600 transition-colors shadow-md shadow-blue-500/20 disabled:opacity-50"
             >
-              {submitting ? "Applying Override..." : "Save Normalization Override"}
+              {submitting ? t('matrix.applyingOverride') : t('matrix.saveOverride')}
             </button>
           </form>
         )}

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   fetchRFQs,
   fetchRFQ,
@@ -22,6 +23,8 @@ import {
 import { NarrativeCard } from "../components/decision/NarrativeCard";
 import { AwardConfirmationModal } from "../components/decision/AwardConfirmationModal";
 import { DecisionTimeline } from "../components/decision/DecisionTimeline";
+import { formatDate } from "../lib/formatters";
+import { translateRFQStatus } from "../lib/statusTranslations";
 import {
   Award,
   Sparkles,
@@ -35,6 +38,7 @@ import {
 } from "lucide-react";
 
 export const DecisionWorkspacePage: React.FC = () => {
+  const { t } = useTranslation();
   const { id: routeRfqId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
 
@@ -109,7 +113,7 @@ export const DecisionWorkspacePage: React.FC = () => {
       setCurrentAward(activeAward);
       setAllAwards(awards);
     } catch (err: any) {
-      setError(err.message || "Failed to load decision workspace");
+      setError(err.message || t("decision.loadError"));
     } finally {
       setLoading(false);
     }
@@ -135,7 +139,7 @@ export const DecisionWorkspacePage: React.FC = () => {
       setSelectedNarrativeId(gen.id);
       setHumanNote("");
     } catch (err: any) {
-      setError(err.message || "Failed to generate narrative");
+      setError(err.message || t("decision.generateError"));
     } finally {
       setGenerating(false);
     }
@@ -154,16 +158,16 @@ export const DecisionWorkspacePage: React.FC = () => {
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Link to="/rfqs" className="hover:text-foreground flex items-center gap-1 transition">
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to RFQs
+              <ArrowLeft className="w-3.5 h-3.5" /> {t("decision.backToRfqs")}
             </Link>
             <span>/</span>
-            <span className="text-foreground">Decisions & Human Award</span>
+            <span className="text-foreground">{t("decision.decisionsAndAwardBreadcrumb")}</span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
-            Evidence-Backed Decision & Award Workflow
+            {t("decision.title")}
           </h1>
           <p className="text-xs text-muted-foreground">
-            Phase 6 — AI-drafted explanatory narratives grounded in deterministic scoring facts with mandatory human award confirmation.
+            {t("decision.subtitle")}
           </p>
         </div>
 
@@ -171,7 +175,7 @@ export const DecisionWorkspacePage: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="relative">
             <select
-              aria-label="Select Procurement RFQ"
+              aria-label={t("decision.selectRfq")}
               value={selectedRfqId}
               onChange={(e) => {
                 setSelectedRfqId(e.target.value);
@@ -181,7 +185,7 @@ export const DecisionWorkspacePage: React.FC = () => {
             >
               {rfqs.map((q) => (
                 <option key={q.id} value={q.id}>
-                  {q.title} ({q.status})
+                  {q.title} ({translateRFQStatus(q.status, t)})
                 </option>
               ))}
             </select>
@@ -192,7 +196,7 @@ export const DecisionWorkspacePage: React.FC = () => {
             onClick={() => selectedRfqId && loadWorkspace(selectedRfqId)}
             disabled={loading}
             className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-white border border-border/60 transition"
-            title="Refresh workspace"
+            title={t("decision.refreshWorkspace")}
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
@@ -217,10 +221,10 @@ export const DecisionWorkspacePage: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                    Official Awarded Supplier
+                    {t("decision.officialAwardedSupplier")}
                   </span>
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    RFQ Status: {rfq?.status.toUpperCase()}
+                    {t("decision.rfqStatusLabel", { status: rfq ? translateRFQStatus(rfq.status, t) : "" })}
                   </span>
                 </div>
                 <h2 className="text-xl font-bold text-white mt-0.5">
@@ -231,9 +235,9 @@ export const DecisionWorkspacePage: React.FC = () => {
 
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <span className="text-[11px] text-muted-foreground block">Evaluation Rank</span>
+                <span className="text-[11px] text-muted-foreground block">{t("decision.evaluationRank")}</span>
                 <span className="text-lg font-bold text-primary">
-                  Rank #{currentAward.awarded_supplier_rank ?? "1"}
+                  {t("scoring.rankCol")} #{currentAward.awarded_supplier_rank ?? "1"}
                 </span>
               </div>
             </div>
@@ -243,7 +247,7 @@ export const DecisionWorkspacePage: React.FC = () => {
             <div className="p-3 rounded-lg bg-amber-950/40 border border-amber-500/40 text-xs text-amber-200 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
               <span>
-                Notice: A newer Scoring Run exists than the run this award was confirmed against.
+                {t("decision.newerRunWarning")}
               </span>
             </div>
           )}
@@ -253,10 +257,10 @@ export const DecisionWorkspacePage: React.FC = () => {
           <div className="space-y-1">
             <h2 className="text-base font-bold text-white flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-primary" />
-              Human Decision Pending
+              {t("decision.humanDecisionPending")}
             </h2>
             <p className="text-xs text-muted-foreground">
-              Deterministic scoring has completed. Review the grounded narratives below, then execute the formal human award.
+              {t("decision.humanDecisionPendingDesc")}
             </p>
           </div>
 
@@ -266,7 +270,7 @@ export const DecisionWorkspacePage: React.FC = () => {
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-bold text-xs shadow-lg shadow-amber-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Award className="w-4 h-4" />
-            Draft & Confirm Award Decision
+            {t("decision.draftAndConfirmAwardBtn")}
           </button>
         </div>
       )}
@@ -279,17 +283,17 @@ export const DecisionWorkspacePage: React.FC = () => {
           <div className="glass-card rounded-xl border border-border/80 p-5 space-y-4">
             <div className="flex items-center gap-2 border-b border-border/60 pb-3">
               <Sparkles className="w-4 h-4 text-primary" />
-              <h2 className="font-bold text-sm text-white">Generate Decision Narrative</h2>
+              <h2 className="font-bold text-sm text-white">{t("decision.generateNarrativeTitle")}</h2>
             </div>
 
             {scoringRuns.length === 0 ? (
               <div className="p-4 rounded-lg bg-amber-950/30 border border-amber-500/30 text-xs text-amber-200 space-y-2">
-                <p>No scoring runs exist for this RFQ yet.</p>
+                <p>{t("decision.noScoringRunsYet")}</p>
                 <Link
                   to={`/rfqs/${selectedRfqId}/scoring`}
                   className="inline-block text-primary hover:underline font-semibold"
                 >
-                  Go to Scoring Engine &rarr;
+                  {t("decision.goToScoringLink")}
                 </Link>
               </div>
             ) : (
@@ -297,11 +301,11 @@ export const DecisionWorkspacePage: React.FC = () => {
                 {/* Scoring Run Selection */}
                 <div className="space-y-1">
                   <label htmlFor="scoringRunSelect" className="text-muted-foreground font-medium block">
-                    Authoritative Scoring Run:
+                    {t("decision.authoritativeRun")}
                   </label>
                   <select
                     id="scoringRunSelect"
-                    aria-label="Authoritative Scoring Run"
+                    aria-label={t("decision.authoritativeRun")}
                     value={selectedRunId}
                     onChange={(e) => setSelectedRunId(e.target.value)}
                     className="w-full bg-slate-900 border border-border rounded-lg p-2 text-white font-mono focus:ring-1 focus:ring-primary focus:outline-none"
@@ -317,33 +321,33 @@ export const DecisionWorkspacePage: React.FC = () => {
                 {/* Narrative Type */}
                 <div className="space-y-1">
                   <label htmlFor="narrativeTypeSelect" className="text-muted-foreground font-medium block">
-                    Narrative Type:
+                    {t("decision.memoTypeLabel")}
                   </label>
                   <select
                     id="narrativeTypeSelect"
-                    aria-label="Narrative Type"
+                    aria-label={t("decision.memoTypeLabel")}
                     value={narrativeType}
                     onChange={(e) => setNarrativeType(e.target.value as NarrativeType)}
                     className="w-full bg-slate-900 border border-border rounded-lg p-2 text-white capitalize focus:ring-1 focus:ring-primary focus:outline-none"
                   >
-                    <option value="decision_support_memo">Decision Support Memo</option>
-                    <option value="comparison_summary">Comparison Summary</option>
-                    <option value="tradeoff_analysis">Trade-off Analysis</option>
-                    <option value="decision_considerations">Decision Considerations</option>
-                    <option value="sensitivity_summary">Sensitivity Summary</option>
+                    <option value="decision_support_memo">{t("decision.typeDecisionMemo")}</option>
+                    <option value="comparison_summary">{t("decision.typeComparisonSummary")}</option>
+                    <option value="tradeoff_analysis">{t("decision.typeTradeoff")}</option>
+                    <option value="decision_considerations">{t("decision.typeDecisionConsiderations")}</option>
+                    <option value="sensitivity_summary">{t("decision.typeSensitivitySummary")}</option>
                   </select>
                 </div>
 
                 {/* Unverified Human Note */}
                 <div className="space-y-1">
                   <label className="text-muted-foreground font-medium block">
-                    Human Context Note (Optional, marked unverified):
+                    {t("decision.humanGuidanceLabel")}
                   </label>
                   <textarea
                     rows={2}
                     value={humanNote}
                     onChange={(e) => setHumanNote(e.target.value)}
-                    placeholder="e.g. Include evaluation committee strategic remarks..."
+                    placeholder={t("decision.humanGuidancePlaceholder")}
                     className="w-full bg-slate-900 border border-border rounded-lg p-2 text-white focus:ring-1 focus:ring-primary focus:outline-none"
                   />
                 </div>
@@ -358,7 +362,7 @@ export const DecisionWorkspacePage: React.FC = () => {
                     className="rounded border-border bg-slate-900 text-primary focus:ring-0"
                   />
                   <label htmlFor="sensToggle" className="text-muted-foreground cursor-pointer">
-                    Include breakeven & sensitivity facts
+                    {t("decision.includeSensitivityLabel")}
                   </label>
                 </div>
 
@@ -368,7 +372,7 @@ export const DecisionWorkspacePage: React.FC = () => {
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition disabled:opacity-50"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  {generating ? "Generating Grounded Narrative..." : "Generate AI Narrative"}
+                  {generating ? t("decision.generatingMemoBtn") : t("decision.generateMemoBtn")}
                 </button>
               </form>
             )}
@@ -377,10 +381,10 @@ export const DecisionWorkspacePage: React.FC = () => {
           {/* Historical Narratives List */}
           <div className="glass-card rounded-xl border border-border/80 p-5 space-y-3">
             <h2 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
-              Narrative Generations ({narratives.length})
+              {t("decision.narrativeGenerationsCount", { count: narratives.length })}
             </h2>
             {narratives.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">No narratives generated yet.</p>
+              <p className="text-xs text-muted-foreground italic">{t("decision.noNarrativesYet")}</p>
             ) : (
               <div className="space-y-2">
                 {narratives.map((n) => {
@@ -404,8 +408,8 @@ export const DecisionWorkspacePage: React.FC = () => {
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-[10px] mt-1 text-muted-foreground">
-                        <span>{new Date(n.generated_at).toLocaleDateString()}</span>
-                        <span>{n.claims.length} claims</span>
+                        <span>{formatDate(n.generated_at)}</span>
+                        <span>{t("decision.claimsCount", { count: n.claims.length })}</span>
                       </div>
                     </div>
                   );
@@ -426,8 +430,8 @@ export const DecisionWorkspacePage: React.FC = () => {
           ) : (
             <div className="glass-card rounded-xl border border-border/80 p-12 text-center text-muted-foreground text-xs space-y-2">
               <Sparkles className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
-              <p className="font-semibold text-foreground">No narrative selected</p>
-              <p>Generate a decision narrative from the left panel to review grounded explanations.</p>
+              <p className="font-semibold text-foreground">{t("decision.noNarrativeSelected")}</p>
+              <p>{t("decision.noNarrativeSelectedDesc")}</p>
             </div>
           )}
 

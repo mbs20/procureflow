@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   FileText,
   Upload,
@@ -31,8 +32,12 @@ import {
   updateQuotationStatus,
 } from "../api/quotation";
 import { RFQ, fetchRFQs } from "../api/rfq";
+import { translateQuotationStatus } from "../lib/statusTranslations";
+import { translateBackendError } from "../lib/errorMessageMap";
+import { formatDate, formatCurrency, formatNumber } from "../lib/formatters";
 
 export const QuotationsPage: React.FC = () => {
+  const { t } = useTranslation();
   const [quotations, setQuotations] = useState<SupplierQuotation[]>([]);
   const [rfqs, setRfqs] = useState<RFQ[]>([]);
   const [selectedRfqId, setSelectedRfqId] = useState<string>("");
@@ -214,54 +219,55 @@ export const QuotationsPage: React.FC = () => {
   };
 
   const getStatusBadge = (status: QuotationStatus) => {
+    const label = translateQuotationStatus(status);
     switch (status) {
       case "needs_review":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
             <AlertTriangle className="w-3.5 h-3.5" />
-            Needs Review
+            {label}
           </span>
         );
       case "approved":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            Approved
+            {label}
           </span>
         );
       case "rejected":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
             <XCircle className="w-3.5 h-3.5" />
-            Rejected
+            {label}
           </span>
         );
       case "extracting":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 animate-pulse">
             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            Extracting...
+            {label}
           </span>
         );
       case "queued":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
             <Clock className="w-3.5 h-3.5" />
-            Queued
+            {label}
           </span>
         );
       case "failed":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">
             <XCircle className="w-3.5 h-3.5" />
-            Failed
+            {label}
           </span>
         );
       default:
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-300 border border-slate-500/20">
             <FileText className="w-3.5 h-3.5" />
-            Uploaded
+            {label}
           </span>
         );
     }
@@ -274,15 +280,14 @@ export const QuotationsPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/20 text-primary border border-primary/30">
-              Phase 2
+              ProcureFlow
             </span>
             <h1 className="text-2xl font-bold tracking-tight text-white">
-              Supplier Quotations & Ingestion
+              {t("quotations.title", "Supplier Quotations & Ingestion")}
             </h1>
           </div>
           <p className="text-sm text-muted-foreground max-w-2xl">
-            Upload supplier documents (PDF, modern Excel .xlsx, CSV). Process multi-tier deterministic,
-            OCR, and LLM extractions with authoritative parser coordinate evidence and human review.
+            {t("quotations.subtitle", "Upload supplier documents (PDF, modern Excel .xlsx, CSV). Process multi-tier deterministic, OCR, and LLM extractions with authoritative parser coordinate evidence and human review.")}
           </p>
         </div>
         <button
@@ -290,14 +295,14 @@ export const QuotationsPage: React.FC = () => {
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition-colors shadow-lg shadow-primary/20"
         >
           <Upload className="w-4 h-4" />
-          Upload Quotation
+          {t("quotations.uploadQuote", "Upload Supplier Quote")}
         </button>
       </div>
 
       {error && (
         <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-center gap-2">
           <AlertTriangle className="w-4 h-4" />
-          {error}
+          {translateBackendError(error) || error}
         </div>
       )}
 
@@ -305,14 +310,14 @@ export const QuotationsPage: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl glass-card border border-white/5">
         <div className="flex items-center gap-3">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            RFQ Scope:
+            {t("quotations.filterRfq", "Filter by RFQ")}:
           </label>
           <select
             value={selectedRfqId}
             onChange={(e) => setSelectedRfqId(e.target.value)}
             className="bg-secondary/60 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary"
           >
-            <option value="">All RFQs ({rfqs.length})</option>
+            <option value="">{t("quotations.allRfqs", "All RFQs")} ({rfqs.length})</option>
             {rfqs.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.title} ({r.reference_currency})
@@ -322,17 +327,24 @@ export const QuotationsPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1.5 bg-secondary/40 p-1 rounded-lg border border-white/5 text-xs">
-          {["all", "needs_review", "uploaded", "approved", "rejected", "failed"].map((st) => (
+          {[
+            { key: "all", label: t("common.all", "All") },
+            { key: "needs_review", label: t("common.status.needsReview", "Needs review") },
+            { key: "uploaded", label: t("common.status.ready", "Uploaded") },
+            { key: "approved", label: t("common.status.approved", "Approved") },
+            { key: "rejected", label: t("common.status.rejected", "Rejected") },
+            { key: "failed", label: t("common.status.failed", "Failed") },
+          ].map(({ key, label }) => (
             <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
+              key={key}
+              onClick={() => setStatusFilter(key)}
               className={`px-3 py-1 rounded-md capitalize transition-colors ${
-                statusFilter === st
+                statusFilter === key
                   ? "bg-primary text-white font-medium"
                   : "text-muted-foreground hover:text-white"
               }`}
             >
-              {st.replace("_", " ")}
+              {label}
             </button>
           ))}
         </div>
@@ -343,14 +355,14 @@ export const QuotationsPage: React.FC = () => {
         {loading ? (
           <div className="p-12 text-center text-muted-foreground flex flex-col items-center justify-center gap-3">
             <RefreshCw className="w-6 h-6 animate-spin text-primary" />
-            <span>Loading quotation records...</span>
+            <span>{t("common.loading", "Loading quotation records...")}</span>
           </div>
         ) : quotations.length === 0 ? (
           <div className="p-12 text-center space-y-3">
             <FileSpreadsheet className="w-12 h-12 text-muted-foreground/40 mx-auto" />
-            <h3 className="text-base font-medium text-white">No quotations found</h3>
+            <h3 className="text-base font-medium text-white">{t("quotations.noQuotesFound", "No supplier quotations found")}</h3>
             <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-              Upload supplier quotations in PDF, modern Excel (.xlsx), or CSV format to begin parsing.
+              {t("quotations.noQuotesDesc", "Upload supplier quotations in PDF, modern Excel (.xlsx), or CSV format to begin parsing.")}
             </p>
           </div>
         ) : (
@@ -358,12 +370,12 @@ export const QuotationsPage: React.FC = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/5 bg-secondary/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  <th className="p-4">Supplier</th>
-                  <th className="p-4">Reference</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Documents</th>
-                  <th className="p-4">Created</th>
-                  <th className="p-4 text-right">Actions</th>
+                  <th className="p-4">{t("quotations.supplierHeader", "Supplier")}</th>
+                  <th className="p-4">{t("quotations.referenceHeader", "Reference")}</th>
+                  <th className="p-4">{t("quotations.statusHeader", "Status")}</th>
+                  <th className="p-4">{t("quotations.documentsHeader", "Documents")}</th>
+                  <th className="p-4">{t("quotations.dateHeader", "Created")}</th>
+                  <th className="p-4 text-right">{t("quotations.actionsHeader", "Actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-sm">
@@ -403,20 +415,20 @@ export const QuotationsPage: React.FC = () => {
                           ))}
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">None</span>
+                        <span className="text-xs text-muted-foreground">{t("common.none", "None")}</span>
                       )}
                     </td>
                     <td className="p-4 text-xs text-muted-foreground">
-                      {new Date(q.created_at).toLocaleDateString()}
+                      {formatDate(q.created_at)}
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                         <Link
                           to={`/quotations/${q.id}/review`}
                           className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors shadow-sm"
-                          title="Open Split-Pane Human Review Workspace"
+                          title={t("review.title", "Open Split-Pane Human Review Workspace")}
                         >
-                          Review
+                          {t("quotations.reviewBtn", "Review")}
                         </Link>
                         <button
                           onClick={() => handleTriggerExtract(q.id)}
@@ -425,10 +437,11 @@ export const QuotationsPage: React.FC = () => {
                           title="Extract or re-extract (idempotent archive history)"
                         >
                           <RefreshCw className="w-3.5 h-3.5 inline mr-1" />
-                          {q.status === "needs_review" || q.status === "approved" ? "Re-extract" : "Extract"}
+                          {q.status === "needs_review" || q.status === "approved" ? t("quotations.reextractBtn", "Re-extract") : t("quotations.extractBtn", "Extract")}
                         </button>
                         <button
                           onClick={() => handleOpenDrawer(q)}
+                          aria-label={t("quotations.inspectExtraction", "Quick Drawer View")}
                           className="p-1.5 rounded-lg text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
                           title="Quick Drawer View"
                         >
@@ -451,10 +464,11 @@ export const QuotationsPage: React.FC = () => {
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <Upload className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-bold text-white">Upload Supplier Quotation</h2>
+                <h2 className="text-lg font-bold text-white">{t("quotations.uploadModalTitle", "Upload Supplier Quotation")}</h2>
               </div>
               <button
                 onClick={() => setShowUploadModal(false)}
+                aria-label={t("common.close", "Close")}
                 className="text-muted-foreground hover:text-white p-1"
               >
                 <X className="w-5 h-5" />
@@ -464,7 +478,7 @@ export const QuotationsPage: React.FC = () => {
             <form onSubmit={handleUploadSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  Target RFQ <span className="text-rose-400">*</span>
+                  {t("quotations.targetRfqLabel", "Target RFQ")} <span className="text-rose-400">*</span>
                 </label>
                 <select
                   required
@@ -482,12 +496,12 @@ export const QuotationsPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  Supplier Name <span className="text-rose-400">*</span>
+                  {t("quotations.supplierNameLabel", "Supplier Name")} <span className="text-rose-400">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g., Acme Industrial Parts Ltd."
+                  placeholder={t("quotations.supplierNamePlaceholder", "e.g., Acme Industrial Parts Ltd.")}
                   value={uploadSupplierName}
                   onChange={(e) => setUploadSupplierName(e.target.value)}
                   className="w-full bg-secondary/60 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary"
@@ -496,11 +510,11 @@ export const QuotationsPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  Supplier Reference / Quotation ID (Optional)
+                  {t("quotations.supplierRefLabel", "Supplier Reference / Quotation ID (Optional)")}
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g., QUOTE-2026-902"
+                  placeholder={t("quotations.supplierRefPlaceholder", "e.g., QUOTE-2026-902")}
                   value={uploadSupplierRef}
                   onChange={(e) => setUploadSupplierRef(e.target.value)}
                   className="w-full bg-secondary/60 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary"
@@ -509,7 +523,7 @@ export const QuotationsPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  Quotation File <span className="text-rose-400">*</span>
+                  {t("quotations.documentFileLabel", "Quotation File")} <span className="text-rose-400">*</span>
                 </label>
                 <div className="border-2 border-dashed border-white/15 rounded-xl p-6 text-center hover:border-primary/50 transition-colors bg-secondary/20">
                   <input
@@ -523,10 +537,10 @@ export const QuotationsPage: React.FC = () => {
                   <label htmlFor="quotation-file-input" className="cursor-pointer space-y-2 block">
                     <FileText className="w-8 h-8 text-primary/70 mx-auto" />
                     <div className="text-sm font-medium text-white">
-                      {selectedFile ? selectedFile.name : "Click or drag quotation file to upload"}
+                      {selectedFile ? selectedFile.name : t("quotations.chooseFile", "Click or drag quotation file to upload")}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Supported formats: PDF (.pdf), modern Excel (.xlsx), CSV (.csv)
+                      {t("quotations.supportedFormats", "Supported formats: PDF (.pdf), modern Excel (.xlsx), CSV (.csv)")}
                     </p>
                   </label>
                 </div>
@@ -534,12 +548,12 @@ export const QuotationsPage: React.FC = () => {
 
               {/* Excel Format Note */}
               <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 space-y-1">
-                <span className="font-semibold">Format Note:</span> Modern Excel (<span className="font-mono">.xlsx</span>) is fully supported. Legacy <span className="font-mono">.xls</span> must be saved as <span className="font-mono">.xlsx</span> prior to ingestion.
+                <span className="font-semibold">{t("quotations.formatNote", "Format Note: Modern Excel (.xlsx) is fully supported. Legacy .xls must be saved as .xlsx prior to ingestion.")}</span>
               </div>
 
               {uploadError && (
                 <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
-                  {uploadError}
+                  {translateBackendError(uploadError) || uploadError}
                 </div>
               )}
 
@@ -549,7 +563,7 @@ export const QuotationsPage: React.FC = () => {
                   onClick={() => setShowUploadModal(false)}
                   className="px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:text-white"
                 >
-                  Cancel
+                  {t("common.cancel", "Cancel")}
                 </button>
                 <button
                   type="submit"
@@ -557,7 +571,7 @@ export const QuotationsPage: React.FC = () => {
                   className="px-5 py-2 rounded-xl text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 disabled:opacity-50 flex items-center gap-2"
                 >
                   {uploading && <RefreshCw className="w-4 h-4 animate-spin" />}
-                  {uploading ? "Saving..." : "Save & Attach Document"}
+                  {uploading ? t("quotations.saving", "Saving...") : t("quotations.saveAndAttach", "Save & Attach Document")}
                 </button>
               </div>
             </form>
@@ -588,11 +602,12 @@ export const QuotationsPage: React.FC = () => {
                 {selectedQuotation.supplier_name}
               </h2>
               <p className="text-xs text-muted-foreground font-mono">
-                Ref: {selectedQuotation.supplier_reference || "N/A"} • Quotation ID: {selectedQuotation.id}
+                {t("quotations.referenceHeader", "Ref")}: {selectedQuotation.supplier_reference || "N/A"} • {t("common.id", "ID")}: {selectedQuotation.id}
               </p>
             </div>
             <button
               onClick={() => setSelectedQuotation(null)}
+              aria-label={t("common.close", "Close")}
               className="p-1.5 rounded-lg text-muted-foreground hover:text-white hover:bg-white/5"
             >
               <X className="w-5 h-5" />
@@ -609,7 +624,7 @@ export const QuotationsPage: React.FC = () => {
                   className="px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary hover:bg-secondary/80 text-white border border-white/10 flex items-center gap-1.5"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
-                  Trigger / Retry Extraction
+                  {t("quotations.triggerRetryExtract", "Trigger / Retry Extraction")}
                 </button>
                 {selectedQuotation.documents.length > 0 && (
                   <a
@@ -618,7 +633,7 @@ export const QuotationsPage: React.FC = () => {
                     className="px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary/60 hover:bg-secondary text-primary border border-white/10 flex items-center gap-1.5"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    Download Original
+                    {t("quotations.downloadOriginal", "Download Original")}
                   </a>
                 )}
               </div>
@@ -631,7 +646,7 @@ export const QuotationsPage: React.FC = () => {
                   className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  Approve Quotation
+                  {t("quotations.approveBtn", "Approve Quotation")}
                 </button>
                 <button
                   onClick={() => handleReviewDecision("rejected")}
@@ -639,7 +654,7 @@ export const QuotationsPage: React.FC = () => {
                   className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/80 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5"
                 >
                   <XCircle className="w-3.5 h-3.5" />
-                  Reject
+                  {t("quotations.rejectBtn", "Reject")}
                 </button>
               </div>
             </div>
@@ -650,7 +665,7 @@ export const QuotationsPage: React.FC = () => {
                 <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 space-y-1">
                   <div className="flex items-center gap-1.5 font-semibold text-amber-200">
                     <AlertTriangle className="w-4 h-4" />
-                    Ingestion Warnings & Anomalies Detected:
+                    {t("quotations.warningsDetected", "Ingestion Warnings & Anomalies Detected:")}
                   </div>
                   <ul className="list-disc list-inside space-y-0.5 text-amber-300/90 pl-1">
                     {latestExtraction.raw_llm_output.validation_warnings.map((w, idx) => (
@@ -664,12 +679,12 @@ export const QuotationsPage: React.FC = () => {
             {loadingExtraction ? (
               <div className="py-12 text-center text-muted-foreground flex flex-col items-center justify-center gap-2">
                 <RefreshCw className="w-6 h-6 animate-spin text-primary" />
-                <span>Reading extracted data & coordinates...</span>
+                <span>{t("common.loading", "Reading extracted data & coordinates...")}</span>
               </div>
             ) : !latestExtraction ? (
               <div className="p-8 text-center text-muted-foreground space-y-2">
                 <Layers className="w-8 h-8 mx-auto text-muted-foreground/40" />
-                <p>No extraction performed yet. Click "Trigger / Retry Extraction" to start parsing.</p>
+                <p>{t("quotations.noExtractionYet", "No extraction performed yet. Click \"Trigger / Retry Extraction\" to start parsing.")}</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -677,19 +692,19 @@ export const QuotationsPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 rounded-xl bg-secondary/30 border border-white/5 space-y-1">
                     <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                      Overall Extraction Confidence
+                      {t("quotations.overallConfidence", "Overall Extraction Confidence")}
                     </span>
                     <div className="text-lg font-bold text-white flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-primary" />
-                      {(Number(latestExtraction.overall_confidence) * 100).toFixed(1)}%
+                      {formatNumber(Number(latestExtraction.overall_confidence) * 100, { maximumFractionDigits: 1 })}%
                     </div>
                   </div>
                   <div className="p-3 rounded-xl bg-secondary/30 border border-white/5 space-y-1">
                     <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                      Line Items Extracted
+                      {t("quotations.lineItemsExtracted", "Line Items Extracted")}
                     </span>
                     <div className="text-lg font-bold text-white">
-                      {latestExtraction.line_items.length} items
+                      {t("quotations.itemsCountExtracted", { count: latestExtraction.line_items.length, defaultValue: `${latestExtraction.line_items.length} items` })}
                     </div>
                   </div>
                 </div>
@@ -697,19 +712,19 @@ export const QuotationsPage: React.FC = () => {
                 {/* Line Items Table */}
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
-                    Extracted Line Items (With Authoritative Parser Coordinates)
+                    {t("quotations.lineItemsExtracted", "Extracted Line Items")}
                   </h3>
                   <div className="border border-white/10 rounded-xl overflow-hidden">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="bg-secondary/40 text-muted-foreground border-b border-white/10">
-                          <th className="p-3">Item Description</th>
-                          <th className="p-3">Qty</th>
-                          <th className="p-3">Unit Price</th>
-                          <th className="p-3">Total</th>
-                          <th className="p-3">Confidence</th>
-                          <th className="p-3">Evidence</th>
-                          <th className="p-3 text-right">Edit</th>
+                          <th className="p-3">{t("review.description", "Item Description")}</th>
+                          <th className="p-3">{t("review.quantity", "Qty")}</th>
+                          <th className="p-3">{t("review.quotedUnitPrice", "Unit Price")}</th>
+                          <th className="p-3">{t("review.calculatedTotal", "Total")}</th>
+                          <th className="p-3">{t("review.confidence", "Confidence")}</th>
+                          <th className="p-3">{t("review.evidence", "Evidence")}</th>
+                          <th className="p-3 text-right">{t("common.edit", "Edit")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
@@ -719,7 +734,7 @@ export const QuotationsPage: React.FC = () => {
                               {item.description_raw}
                               {item.human_corrected && (
                                 <span className="ml-2 text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300">
-                                  corrected
+                                  {t("quotations.correctedBadge", "corrected")}
                                 </span>
                               )}
                             </td>
@@ -745,18 +760,20 @@ export const QuotationsPage: React.FC = () => {
                                   className="w-20 bg-black/60 border border-white/20 rounded px-1 py-0.5 text-white"
                                 />
                               ) : (
-                                `${Number(item.unit_price).toFixed(2)} ${item.currency}`
+                                formatCurrency(Number(item.unit_price), item.currency)
                               )}
                             </td>
                             <td className="p-3 font-mono font-semibold text-white">
-                              <div>{Number(item.total_price).toFixed(2)}</div>
+                              <div>{formatCurrency(Number(item.total_price), item.currency)}</div>
                               {item.has_discrepancy && (
                                 <div
                                   className="text-[10px] text-amber-400 font-sans font-normal flex items-center gap-1 mt-0.5"
                                   title="Quoted total differs from calculated quantity × unit price"
                                 >
-                                  <span>Calc: {item.calculated_total_price != null ? Number(item.calculated_total_price).toFixed(2) : (Number(item.quantity) * Number(item.unit_price)).toFixed(2)}</span>
-                                  <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300">discrepancy</span>
+                                  <span>{t("quotations.calcLabel", { val: formatCurrency(item.calculated_total_price != null ? Number(item.calculated_total_price) : (Number(item.quantity) * Number(item.unit_price)), item.currency), defaultValue: `Calc: ${Number(item.calculated_total_price || 0).toFixed(2)}` })}</span>
+                                  <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300">
+                                    {t("quotations.discrepancyBadge", "discrepancy")}
+                                  </span>
                                 </div>
                               )}
                             </td>
@@ -773,7 +790,7 @@ export const QuotationsPage: React.FC = () => {
                                       })
                                     }
                                     className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded bg-secondary/80 hover:bg-secondary text-primary border border-white/5 transition-colors"
-                                    title="View Authoritative Parser Coordinates"
+                                    title={t("quotations.parserCoordinates", "View Authoritative Parser Coordinates")}
                                   >
                                     <MapPin className="w-3 h-3" />
                                     {ev.type === "spreadsheet"
@@ -792,14 +809,14 @@ export const QuotationsPage: React.FC = () => {
                                     onClick={() => handleSaveLineItemEdit(item.id)}
                                     disabled={savingItem}
                                     className="p-1 rounded text-emerald-400 hover:bg-emerald-500/10"
-                                    title="Save"
+                                    title={t("common.save", "Save")}
                                   >
                                     <Save className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     onClick={() => setEditingItemId(null)}
                                     className="p-1 rounded text-muted-foreground hover:bg-white/5"
-                                    title="Cancel"
+                                    title={t("common.cancel", "Cancel")}
                                   >
                                     <X className="w-3.5 h-3.5" />
                                   </button>
@@ -812,7 +829,7 @@ export const QuotationsPage: React.FC = () => {
                                     setEditPrice(Number(item.unit_price));
                                   }}
                                   className="p-1 rounded text-muted-foreground hover:text-white hover:bg-white/5"
-                                  title="Human Correction"
+                                  title={t("review.editLineItem", "Human Correction")}
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
                                 </button>
@@ -829,7 +846,7 @@ export const QuotationsPage: React.FC = () => {
                 {latestExtraction.fields && latestExtraction.fields.length > 0 && (
                   <div className="space-y-3">
                     <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
-                      Commercial & Delivery Terms
+                      {t("quotations.commercialTerms", "Commercial & Delivery Terms")}
                     </h3>
                     <div className="grid grid-cols-2 gap-3">
                       {latestExtraction.fields.map((f) => (
@@ -852,7 +869,7 @@ export const QuotationsPage: React.FC = () => {
                                   className="text-[10px] text-primary hover:underline flex items-center gap-1"
                                 >
                                   <MapPin className="w-2.5 h-2.5" />
-                                  Evidence
+                                  {t("quotations.evidenceLabel", "Evidence")}
                                 </button>
                               );
                             })()}
@@ -876,10 +893,11 @@ export const QuotationsPage: React.FC = () => {
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-primary" />
-                <h3 className="text-sm font-bold text-white">Authoritative Parser Coordinates</h3>
+                <h3 className="text-sm font-bold text-white">{t("quotations.parserCoordinates", "Authoritative Parser Coordinates")}</h3>
               </div>
               <button
                 onClick={() => setActiveEvidence(null)}
+                aria-label={t("common.close", "Close")}
                 className="text-muted-foreground hover:text-white p-1"
               >
                 <X className="w-4 h-4" />
@@ -888,7 +906,7 @@ export const QuotationsPage: React.FC = () => {
 
             <div className="space-y-2 text-xs">
               <p className="text-muted-foreground">
-                Originating from parser/OCR output (not LLM-invented):
+                {t("quotations.originatingParser", "Originating from parser/OCR output (not LLM-invented):")}
               </p>
               <pre className="p-3 rounded-xl bg-black/60 border border-white/10 text-emerald-400 font-mono overflow-x-auto text-[11px]">
                 {JSON.stringify(activeEvidence.data, null, 2)}
@@ -900,7 +918,7 @@ export const QuotationsPage: React.FC = () => {
                 onClick={() => setActiveEvidence(null)}
                 className="px-4 py-1.5 rounded-lg text-xs font-medium bg-secondary hover:bg-secondary/80 text-white"
               >
-                Close
+                {t("common.close", "Close")}
               </button>
             </div>
           </div>

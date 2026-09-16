@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   Archive,
@@ -15,10 +16,14 @@ import {
   Award,
 } from "lucide-react";
 import { RFQ, fetchRFQById, archiveRFQ, unarchiveRFQ, cloneRFQ } from "../api/rfq";
+import { formatDate } from "../lib/formatters";
+import { translateRFQStatus } from "../lib/statusTranslations";
+import { translateBackendError } from "../lib/errorMessageMap";
 
 export const RFQDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [rfq, setRfq] = useState<RFQ | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,7 +52,7 @@ export const RFQDetailPage: React.FC = () => {
     if (!rfq) return;
     try {
       await archiveRFQ(rfq.id);
-      setActionMessage("RFQ archived (soft deleted)");
+      setActionMessage(t("rfq.archiveSuccess", "RFQ archived successfully"));
       loadData();
       setTimeout(() => setActionMessage(null), 3000);
     } catch (err: any) {
@@ -59,7 +64,7 @@ export const RFQDetailPage: React.FC = () => {
     if (!rfq) return;
     try {
       await unarchiveRFQ(rfq.id);
-      setActionMessage("RFQ restored to active");
+      setActionMessage(t("rfq.unarchiveSuccess", "RFQ restored to active"));
       loadData();
       setTimeout(() => setActionMessage(null), 3000);
     } catch (err: any) {
@@ -89,10 +94,10 @@ export const RFQDetailPage: React.FC = () => {
     return (
       <div className="glass-card rounded-2xl p-12 text-center space-y-4">
         <AlertCircle className="h-10 w-10 text-red-400 mx-auto" />
-        <h2 className="text-lg font-bold text-white">RFQ Not Found</h2>
-        <p className="text-xs text-muted-foreground">{error || "Could not retrieve procurement request."}</p>
+        <h2 className="text-lg font-bold text-white">{t("rfq.notFoundTitle", "RFQ Not Found")}</h2>
+        <p className="text-xs text-muted-foreground">{translateBackendError(error) || t("rfq.notFoundDesc", "Could not retrieve procurement request.")}</p>
         <Link to="/rfqs" className="inline-flex items-center gap-2 rounded-xl bg-secondary px-4 py-2 text-xs font-semibold text-foreground">
-          <ArrowLeft className="h-4 w-4" /> Back to RFQ List
+          <ArrowLeft className="h-4 w-4" /> {t("rfq.backToList", "Back to RFQ List")}
         </Link>
       </div>
     );
@@ -117,22 +122,22 @@ export const RFQDetailPage: React.FC = () => {
               <h1 className="text-xl font-bold text-white">{rfq.title}</h1>
               {rfq.is_archived ? (
                 <span className="rounded bg-zinc-500/10 px-2 py-0.5 text-[11px] font-semibold text-zinc-400 border border-zinc-500/20">
-                  Archived
+                  {t("common.status.archived", "Archived")}
                 </span>
               ) : (
                 <span className="rounded bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-400 border border-blue-500/20 uppercase">
-                  {rfq.status}
+                  {translateRFQStatus(rfq.status)}
                 </span>
               )}
             </div>
             <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-              <span>Category: <strong className="text-foreground">{rfq.category}</strong></span>
+              <span>{t("rfq.category", "Category")}: <strong className="text-foreground">{rfq.category}</strong></span>
               <span>•</span>
-              <span>Currency: <strong className="text-foreground">{rfq.reference_currency}</strong></span>
+              <span>{t("rfq.referenceCurrency", "Currency")}: <strong className="text-foreground">{rfq.reference_currency}</strong></span>
               <span>•</span>
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                Created {new Date(rfq.created_at).toLocaleDateString()}
+                {t("rfq.createdDate", { date: formatDate(rfq.created_at), defaultValue: `Created ${formatDate(rfq.created_at)}` })}
               </span>
             </div>
           </div>
@@ -144,7 +149,7 @@ export const RFQDetailPage: React.FC = () => {
             className="flex items-center gap-1.5 rounded-xl bg-secondary/60 px-3.5 py-2 text-xs font-medium text-foreground hover:bg-secondary hover:text-white transition-colors border border-border"
           >
             <Copy className="h-3.5 w-3.5" />
-            Clone Template
+            {t("rfq.cloneTemplate", "Clone Template")}
           </button>
 
           {rfq.is_archived ? (
@@ -153,7 +158,7 @@ export const RFQDetailPage: React.FC = () => {
               className="flex items-center gap-1.5 rounded-xl bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors"
             >
               <RefreshCw className="h-3.5 w-3.5" />
-              Restore RFQ
+              {t("rfq.restoreRfq", "Restore RFQ")}
             </button>
           ) : (
             <button
@@ -161,7 +166,7 @@ export const RFQDetailPage: React.FC = () => {
               className="flex items-center gap-1.5 rounded-xl bg-secondary/60 px-3.5 py-2 text-xs font-medium text-muted-foreground hover:bg-red-500/20 hover:text-red-400 border border-border transition-colors"
             >
               <Archive className="h-3.5 w-3.5" />
-              Archive
+              {t("rfq.archiveRfq", "Archive")}
             </button>
           )}
 
@@ -170,7 +175,7 @@ export const RFQDetailPage: React.FC = () => {
             className="flex items-center gap-1.5 rounded-xl bg-blue-500/10 px-3.5 py-2 text-xs font-semibold text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-colors"
           >
             <Scale className="h-3.5 w-3.5" />
-            Matrix
+            {t("rfq.matrixBtn", "Matrix")}
           </Link>
 
           <Link
@@ -178,7 +183,7 @@ export const RFQDetailPage: React.FC = () => {
             className="flex items-center gap-1.5 rounded-xl bg-amber-500/10 px-3.5 py-2 text-xs font-semibold text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 transition-colors"
           >
             <Award className="h-3.5 w-3.5" />
-            Decisions & Award
+            {t("rfq.decisionsBtn", "Decisions & Award")}
           </Link>
 
           <Link
@@ -186,7 +191,7 @@ export const RFQDetailPage: React.FC = () => {
             className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/25 hover:bg-blue-600 transition-colors"
           >
             <Upload className="h-3.5 w-3.5" />
-            Upload Quotations
+            {t("rfq.uploadQuotations", "Upload Quotations")}
           </Link>
         </div>
       </div>
@@ -201,7 +206,7 @@ export const RFQDetailPage: React.FC = () => {
       {/* Scope / Notes */}
       {rfq.description && (
         <div className="glass-card rounded-xl p-5 space-y-1.5">
-          <div className="text-xs uppercase font-semibold text-muted-foreground">Scope & Specification Notes</div>
+          <div className="text-xs uppercase font-semibold text-muted-foreground">{t("rfq.scopeNotes", "Scope & Specification Notes")}</div>
           <p className="text-xs text-foreground leading-relaxed">{rfq.description}</p>
         </div>
       )}
@@ -213,7 +218,7 @@ export const RFQDetailPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
               <FileSpreadsheet className="h-4 w-4 text-blue-400" />
-              Required Line Items ({rfq.line_items?.length || 0})
+              {t("rfq.requiredLineItemsCount", { count: rfq.line_items?.length || 0, defaultValue: `Required Line Items (${rfq.line_items?.length || 0})` })}
             </h2>
           </div>
 
@@ -222,9 +227,9 @@ export const RFQDetailPage: React.FC = () => {
               <thead className="border-b border-border/80 text-muted-foreground uppercase text-[10px] tracking-wider">
                 <tr>
                   <th className="py-2.5 px-3">#</th>
-                  <th className="py-2.5 px-3">Description</th>
-                  <th className="py-2.5 px-3 text-right">Quantity</th>
-                  <th className="py-2.5 px-3">Unit</th>
+                  <th className="py-2.5 px-3">{t("rfq.itemDescription", "Description")}</th>
+                  <th className="py-2.5 px-3 text-right">{t("rfq.itemQuantity", "Quantity")}</th>
+                  <th className="py-2.5 px-3">{t("rfq.itemUnit", "Unit")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
@@ -246,10 +251,10 @@ export const RFQDetailPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
               <Scale className="h-4 w-4 text-purple-400" />
-              Weighted Criteria
+              {t("rfq.weightedCriteria", "Weighted Criteria")}
             </h2>
             <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
-              Total {totalWeightPercent}%
+              {t("rfq.totalPercent", { total: totalWeightPercent, defaultValue: `Total ${totalWeightPercent}%` })}
             </span>
           </div>
 
@@ -268,9 +273,9 @@ export const RFQDetailPage: React.FC = () => {
                     <p className="text-[11px] text-muted-foreground">{crit.description}</p>
                   )}
                   <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1">
-                    <span>Direction: <strong className="text-foreground">{crit.direction === "lower_is_better" ? "Lower is better" : "Higher is better"}</strong></span>
+                    <span>{t("rfq.directionLabel", "Direction:")} <strong className="text-foreground">{crit.direction === "lower_is_better" ? t("rfq.lowerBetter", "Lower is better") : t("rfq.higherBetter", "Higher is better")}</strong></span>
                     {crit.is_knockout && (
-                      <span className="text-red-400 font-semibold">Knockout Rule</span>
+                      <span className="text-red-400 font-semibold">{t("rfq.knockoutRule", "Knockout Rule")}</span>
                     )}
                   </div>
                 </div>
@@ -281,10 +286,10 @@ export const RFQDetailPage: React.FC = () => {
           <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 text-[11px] text-muted-foreground space-y-1">
             <div className="flex items-center gap-1.5 text-foreground font-semibold">
               <ShieldCheck className="h-3.5 w-3.5 text-blue-400" />
-              Scoring Philosophy
+              {t("rfq.scoringPhilosophy", "Scoring Philosophy")}
             </div>
             <p>
-              When supplier quotations are uploaded, this RFQ will evaluate all normalized bids against these criteria with mathematical explainability.
+              {t("rfq.scoringPhilosophyDesc", "When supplier quotations are uploaded, this RFQ will evaluate all normalized bids against these criteria with mathematical explainability.")}
             </p>
           </div>
         </div>

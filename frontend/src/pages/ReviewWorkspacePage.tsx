@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -39,9 +40,12 @@ import { LineItemEditDialog } from "../components/review/LineItemEditDialog";
 import { LineItemAddDialog } from "../components/review/LineItemAddDialog";
 import { ExtractionDecisionModal } from "../components/review/ExtractionDecisionModal";
 import { AuditHistoryDrawer } from "../components/review/AuditHistoryDrawer";
+import { translateBackendError } from "../lib/errorMessageMap";
+import { formatCurrency } from "../lib/formatters";
 
 export const ReviewWorkspacePage: React.FC = () => {
   const { id: quotationId } = useParams<{ id: string }>();
+  const { t } = useTranslation();
 
   const [quotation, setQuotation] = useState<SupplierQuotation | null>(null);
   const [rfq, setRfq] = useState<RFQ | null>(null);
@@ -290,7 +294,7 @@ export const ReviewWorkspacePage: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950 text-white gap-3">
         <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-xs text-slate-400 font-mono">Initializing Human Review Workspace...</p>
+        <p className="text-xs text-slate-400 font-mono">{t("review.initReviewWorkspace", "Initializing Human Review Workspace...")}</p>
       </div>
     );
   }
@@ -299,13 +303,13 @@ export const ReviewWorkspacePage: React.FC = () => {
     return (
       <div className="p-8 max-w-lg mx-auto my-12 bg-slate-900 border border-slate-800 rounded-xl text-center space-y-4">
         <AlertTriangle className="w-10 h-10 text-rose-400 mx-auto" />
-        <h2 className="text-lg font-bold text-white">Review Workspace Error</h2>
-        <p className="text-xs text-slate-400">{error || "Quotation not found"}</p>
+        <h2 className="text-lg font-bold text-white">{t("review.reviewWorkspaceError", "Review Workspace Error")}</h2>
+        <p className="text-xs text-slate-400">{translateBackendError(error) || error || t("quotations.noQuotesFound", "Quotation not found")}</p>
         <Link
           to="/quotations"
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-xs font-semibold rounded-lg transition"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Quotations
+          <ArrowLeft className="w-4 h-4" /> {t("review.backToQuotations", "Back to Quotations")}
         </Link>
       </div>
     );
@@ -319,7 +323,8 @@ export const ReviewWorkspacePage: React.FC = () => {
           <Link
             to="/quotations"
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
-            title="Back to quotations"
+            title={t("review.backToQuotations", "Back to Quotations")}
+            aria-label={t("review.backToQuotations", "Back to Quotations")}
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
@@ -331,7 +336,7 @@ export const ReviewWorkspacePage: React.FC = () => {
               </h1>
               {quotation.supplier_reference && (
                 <span className="text-xs font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded">
-                  Ref: {quotation.supplier_reference}
+                  {t("quotations.referenceHeader", "Ref")}: {quotation.supplier_reference}
                 </span>
               )}
               {/* Review Status Pill */}
@@ -345,15 +350,15 @@ export const ReviewWorkspacePage: React.FC = () => {
                 }`}
               >
                 {quotation.status === "approved"
-                  ? "Extraction Approved"
+                  ? t("review.statusApproved", "Extraction Approved")
                   : quotation.status === "rejected"
-                  ? "Extraction Rejected"
-                  : "Needs Review"}
+                  ? t("review.statusRejected", "Extraction Rejected")
+                  : t("review.statusNeedsReview", "Needs Review")}
               </span>
             </div>
             {rfq && (
               <p className="text-[11px] text-slate-400 truncate max-w-md">
-                RFQ: {rfq.title} ({rfq.reference_currency})
+                {t("quotations.targetRfqLabel", "RFQ")}: {rfq.title} ({rfq.reference_currency})
               </p>
             )}
           </div>
@@ -382,7 +387,7 @@ export const ReviewWorkspacePage: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-lg border border-slate-700/80 transition"
           >
             <History className="w-3.5 h-3.5 text-blue-400" />
-            <span>Audit Trail ({auditLogs.length})</span>
+            <span>{t("review.auditTrail", "Audit Trail")} ({auditLogs.length})</span>
           </button>
 
           {/* Decision Buttons (Strictly explicit human action with confirmation modal) */}
@@ -393,7 +398,7 @@ export const ReviewWorkspacePage: React.FC = () => {
                 className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/80 rounded-lg transition shadow-sm"
               >
                 <XCircle className="w-3.5 h-3.5" />
-                <span>Reject Extraction</span>
+                <span>{t("review.rejectQuotation", "Reject Extraction")}</span>
               </button>
 
               <button
@@ -401,7 +406,7 @@ export const ReviewWorkspacePage: React.FC = () => {
                 className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-600 rounded-lg transition shadow-md shadow-emerald-700/20"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Approve Extraction</span>
+                <span>{t("review.approveQuotation", "Approve Extraction")}</span>
               </button>
             </div>
           )}
@@ -468,7 +473,7 @@ export const ReviewWorkspacePage: React.FC = () => {
           {extraction && extraction.fields.length > 0 && (
             <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-lg text-xs space-y-2">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Commercial Terms & Validity
+                {t("review.commercialTermsTitle", "Commercial Terms & Validity")}
               </span>
               <div className="grid grid-cols-2 gap-3 pt-1">
                 {extraction.fields.map((field) => (
@@ -477,10 +482,10 @@ export const ReviewWorkspacePage: React.FC = () => {
                       {field.field_name.replace("_", " ")}:
                     </span>
                     <div className="flex items-center gap-1.5 font-medium text-slate-200">
-                      <span>{field.raw_value || "Not specified"}</span>
+                      <span>{field.raw_value || t("review.notSpecified", "Not specified")}</span>
                       {field.human_corrected && (
                         <span className="text-[9px] px-1 bg-blue-950 text-blue-300 border border-blue-800 rounded">
-                          Edited
+                          {t("review.edited", "Edited")}
                         </span>
                       )}
                     </div>
@@ -494,11 +499,11 @@ export const ReviewWorkspacePage: React.FC = () => {
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-2">
               <h2 className="text-xs font-bold text-white uppercase tracking-wider">
-                Extracted Line Items ({activeLineItems.length})
+                {t("quotations.lineItemsExtracted", "Extracted Line Items")} ({activeLineItems.length})
               </h2>
               {discrepanciesCount > 0 && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800">
-                  {discrepanciesCount} Math Mismatch
+                  {t("review.mathMismatchCount", { count: discrepanciesCount, defaultValue: `${discrepanciesCount} Math Mismatch` })}
                 </span>
               )}
             </div>
@@ -514,7 +519,7 @@ export const ReviewWorkspacePage: React.FC = () => {
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
-                  All ({activeLineItems.length})
+                  {t("review.allCount", { count: activeLineItems.length, defaultValue: `All (${activeLineItems.length})` })}
                 </button>
                 <button
                   onClick={() => setFilterMode("attention")}
@@ -524,7 +529,7 @@ export const ReviewWorkspacePage: React.FC = () => {
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
-                  Attention ({activeLineItems.filter((i) => i.has_discrepancy || i.confidence < 0.8).length})
+                  {t("review.attentionCount", { count: activeLineItems.filter((i) => i.has_discrepancy || i.confidence < 0.8).length, defaultValue: `Attention (${activeLineItems.filter((i) => i.has_discrepancy || i.confidence < 0.8).length})` })}
                 </button>
                 {excludedLineItems.length > 0 && (
                   <button
@@ -535,7 +540,7 @@ export const ReviewWorkspacePage: React.FC = () => {
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    Excluded ({excludedLineItems.length})
+                    {t("review.excludedCount", { count: excludedLineItems.length, defaultValue: `Excluded (${excludedLineItems.length})` })}
                   </button>
                 )}
               </div>
@@ -546,7 +551,7 @@ export const ReviewWorkspacePage: React.FC = () => {
                 className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-blue-300 bg-blue-950/60 hover:bg-blue-900 border border-blue-800/80 rounded-lg transition"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Add Item</span>
+                <span>{t("review.addLineItem", "Add Item")}</span>
               </button>
             </div>
           </div>
@@ -555,7 +560,7 @@ export const ReviewWorkspacePage: React.FC = () => {
           <div className="flex-1 space-y-2">
             {filteredLineItems.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-500 bg-slate-950/40 rounded-lg border border-slate-800">
-                No line items match the selected filter.
+                {t("review.noMatchFilter", "No line items match the selected filter.")}
               </div>
             ) : (
               filteredLineItems.map((item) => {
@@ -586,17 +591,17 @@ export const ReviewWorkspacePage: React.FC = () => {
                           </span>
                           {item.human_corrected && (
                             <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-950 text-blue-300 border border-blue-800">
-                              Corrected
+                              {t("quotations.correctedBadge", "Corrected")}
                             </span>
                           )}
                           {item.confidence < 0.75 && (
                             <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-800">
-                              Low Conf ({Math.round(item.confidence * 100)}%)
+                              {t("review.lowConfBadge", { pct: Math.round(item.confidence * 100), defaultValue: `Low Conf (${Math.round(item.confidence * 100)}%)` })}
                             </span>
                           )}
                           {item.is_removed && (
                             <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-rose-950 text-rose-300 border border-rose-800 not-italic">
-                              Removed{item.removal_reason ? `: ${item.removal_reason}` : ""}
+                              {item.removal_reason ? t("review.removedReason", { reason: item.removal_reason, defaultValue: `Removed: ${item.removal_reason}` }) : t("review.removed", "Removed")}
                             </span>
                           )}
                         </div>
@@ -606,12 +611,15 @@ export const ReviewWorkspacePage: React.FC = () => {
                           <div className="text-[11px] text-slate-400">
                             {item.rfq_line_item_id ? (
                               <span className="text-emerald-400 font-medium">
-                                Matched to RFQ #{rfq.line_items.find((r) => r.id === item.rfq_line_item_id)?.position} (
-                                {rfq.line_items.find((r) => r.id === item.rfq_line_item_id)?.description})
+                                {t("review.matchedToRfq", {
+                                  pos: rfq.line_items.find((r) => r.id === item.rfq_line_item_id)?.position,
+                                  desc: rfq.line_items.find((r) => r.id === item.rfq_line_item_id)?.description,
+                                  defaultValue: `Matched to RFQ #${rfq.line_items.find((r) => r.id === item.rfq_line_item_id)?.position} (${rfq.line_items.find((r) => r.id === item.rfq_line_item_id)?.description})`
+                                })}
                               </span>
                             ) : (
                               <span className="text-amber-400/90 italic">
-                                Unlinked: Select RFQ requirement in Edit
+                                {t("review.unlinkedRfq", "Unlinked: Select RFQ requirement in Edit")}
                               </span>
                             )}
                           </div>
@@ -624,22 +632,22 @@ export const ReviewWorkspacePage: React.FC = () => {
                           <button
                             onClick={() => handleSelectLineItem(item)}
                             className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-950/80 hover:bg-blue-900 border border-blue-800/80 text-blue-300 hover:text-blue-200 text-[10px] font-mono transition"
-                            title="Jump to document evidence"
-                            aria-label="Jump to document evidence"
+                            title={t("review.jumpToEvidence", "Jump to document evidence")}
+                            aria-label={t("review.jumpToEvidence", "Jump to document evidence")}
                           >
                             <Eye className="w-3 h-3" />
                             <span>
                               {item.source_evidence.page_number
                                 ? `p. ${item.source_evidence.page_number}`
-                                : item.source_evidence.cell_range || "Evidence"}
+                                : item.source_evidence.cell_range || t("review.evidence", "Evidence")}
                             </span>
                           </button>
                         )}
                         <button
                           onClick={() => setEditingItem(item)}
                           className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition"
-                          title="Edit line item"
-                          aria-label="Edit line item"
+                          title={t("review.editLineItem", "Edit line item")}
+                          aria-label={t("review.editLineItem", "Edit line item")}
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
@@ -647,8 +655,8 @@ export const ReviewWorkspacePage: React.FC = () => {
                           <button
                             onClick={() => handleRestoreLineItem(item.id)}
                             className="p-1 rounded hover:bg-slate-800 text-emerald-400 hover:text-emerald-300 transition"
-                            title="Restore excluded item"
-                            aria-label="Restore excluded item"
+                            title={t("review.restoreExcluded", "Restore excluded item")}
+                            aria-label={t("review.restoreExcluded", "Restore excluded item")}
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
                           </button>
@@ -656,8 +664,8 @@ export const ReviewWorkspacePage: React.FC = () => {
                           <button
                             onClick={() => handleSoftDeleteLineItem(item.id)}
                             className="p-1 rounded hover:bg-slate-800 text-slate-500 hover:text-rose-400 transition"
-                            title="Soft-delete this line item (preserves in audit history)"
-                            aria-label="Soft-delete this line item (preserves in audit history)"
+                            title={t("review.softDeleteAria", "Soft-delete this line item (preserves in audit history)")}
+                            aria-label={t("review.softDeleteAria", "Soft-delete this line item (preserves in audit history)")}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -668,24 +676,24 @@ export const ReviewWorkspacePage: React.FC = () => {
                     {/* Numeric breakdown & Preserved Quoted vs Calculated */}
                     <div className="mt-2 pt-2 border-t border-slate-800/80 grid grid-cols-4 gap-2 text-[11px] font-mono">
                       <div>
-                        <span className="text-slate-400 block text-[10px]">Qty:</span>
+                        <span className="text-slate-400 block text-[10px]">{t("review.quantity", "Qty")}:</span>
                         <span className="text-slate-200">
                           {item.quantity} {item.unit}
                         </span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px]">Unit Price:</span>
-                        <span className="text-slate-200">${item.unit_price}</span>
+                        <span className="text-slate-400 block text-[10px]">{t("review.quotedUnitPrice", "Unit Price")}:</span>
+                        <span className="text-slate-200">{formatCurrency(Number(item.unit_price), item.currency)}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px]">Supplier Quoted:</span>
+                        <span className="text-slate-400 block text-[10px]">{t("review.supplierQuoted", "Supplier Quoted:")}</span>
                         <span className={`font-bold ${hasMismatch ? "text-rose-400" : "text-white"}`}>
-                          ${item.total_price}
+                          {formatCurrency(Number(item.total_price), item.currency)}
                         </span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px]">Calculated:</span>
-                        <span className="text-slate-300">${calcTotal.toFixed(2)}</span>
+                        <span className="text-slate-400 block text-[10px]">{t("review.calculated", "Calculated:")}</span>
+                        <span className="text-slate-300">{formatCurrency(calcTotal, item.currency)}</span>
                       </div>
                     </div>
 
@@ -695,7 +703,11 @@ export const ReviewWorkspacePage: React.FC = () => {
                         <span className="flex items-center gap-1">
                           <AlertTriangle className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
                           <span>
-                            Math Mismatch: Quoted (${item.total_price}) != Calc (${calcTotal.toFixed(2)})
+                            {t("review.mathMismatchBanner", {
+                              quoted: formatCurrency(Number(item.total_price), item.currency),
+                              calc: formatCurrency(calcTotal, item.currency),
+                              defaultValue: `Math Mismatch: Quoted (${formatCurrency(Number(item.total_price), item.currency)}) != Calc (${formatCurrency(calcTotal, item.currency)})`
+                            })}
                           </span>
                         </span>
                         <button
@@ -705,7 +717,7 @@ export const ReviewWorkspacePage: React.FC = () => {
                           }}
                           className="text-blue-400 hover:underline font-semibold"
                         >
-                          Resolve in Edit
+                          {t("review.resolveInEdit", "Resolve in Edit")}
                         </button>
                       </div>
                     )}

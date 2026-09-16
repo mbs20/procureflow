@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { CriterionConfig, ScoringConfigurationResponse } from "../../api/scoring";
 import { Lock, Unlock, Sliders, Save, Play, RotateCcw, AlertCircle, CheckCircle2 } from "lucide-react";
+import { formatNumber } from "../../lib/formatters";
+import { translateBackendError } from "../../lib/errorMessageMap";
 
 interface CriteriaWeightSlidersProps {
   initialCriteria: CriterionConfig[];
@@ -17,6 +20,7 @@ export const CriteriaWeightSliders: React.FC<CriteriaWeightSlidersProps> = ({
   onSaveNewVersion,
   isSimulating = false,
 }) => {
+  const { t } = useTranslation();
   const [criteria, setCriteria] = useState<CriterionConfig[]>(initialCriteria);
   const [lockedCriteria, setLockedCriteria] = useState<Record<string, boolean>>({});
   const [configName, setConfigName] = useState<string>("");
@@ -101,7 +105,7 @@ export const CriteriaWeightSliders: React.FC<CriteriaWeightSlidersProps> = ({
 
   const handleSave = async () => {
     if (!isBalanced) {
-      setErrorMsg("Total weights must sum to exactly 100.0%");
+      setErrorMsg(t('scoring.weightsMustSum100'));
       return;
     }
     setErrorMsg(null);
@@ -109,7 +113,7 @@ export const CriteriaWeightSliders: React.FC<CriteriaWeightSlidersProps> = ({
     try {
       await onSaveNewVersion(criteria, configName || "Custom Scoring Model");
     } catch (err: any) {
-      setErrorMsg(err.message || "Failed to save configuration");
+      setErrorMsg(translateBackendError(err, t));
     } finally {
       setIsSaving(false);
     }
@@ -122,10 +126,10 @@ export const CriteriaWeightSliders: React.FC<CriteriaWeightSlidersProps> = ({
         <div>
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <Sliders className="h-4 w-4 text-primary" />
-            Criteria Weights & Proportional Balancing
+            {t('scoring.weightsTitle')}
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Adjust weights in real time. Unlocked criteria automatically redistribute to maintain 100% total.
+            {t('scoring.weightsSubtitle')}
           </p>
         </div>
 
@@ -138,13 +142,14 @@ export const CriteriaWeightSliders: React.FC<CriteriaWeightSlidersProps> = ({
             }`}
           >
             {isBalanced ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
-            <span>Total: {totalWeightPct.toFixed(1)}%</span>
+            <span>{t('scoring.totalLabel', { pct: formatNumber(totalWeightPct, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}</span>
           </div>
 
           <button
             onClick={handleReset}
             className="p-1.5 rounded-lg border border-border bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-            title="Reset weights to original active configuration"
+            title={t('common.reset')}
+            aria-label={t('common.reset')}
           >
             <RotateCcw className="h-4 w-4" />
           </button>
@@ -183,7 +188,7 @@ export const CriteriaWeightSliders: React.FC<CriteriaWeightSlidersProps> = ({
                         ? "bg-primary text-primary-foreground border-primary"
                         : "bg-secondary/60 text-muted-foreground border-border hover:text-foreground"
                     }`}
-                    title={isLocked ? "Unlock criterion weight" : "Lock criterion weight"}
+                    title={isLocked ? t('scoring.unlockCriterionWeight') : t('scoring.lockCriterionWeight')}
                     aria-label={isLocked ? `Unlock weight for ${c.name}` : `Lock weight for ${c.name}`}
                   >
                     {isLocked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
@@ -232,12 +237,14 @@ export const CriteriaWeightSliders: React.FC<CriteriaWeightSlidersProps> = ({
                 <div className="mt-2.5 pt-2 border-t border-border/40 flex flex-wrap gap-2 text-[11px] font-mono text-muted-foreground">
                   {c.knockout_condition && (
                     <span className="text-amber-400/90">
-                      Knockout: {c.knockout_condition} {c.knockout_threshold}
+                      {t('scoring.knockoutLabel', { condition: c.knockout_condition, threshold: c.knockout_threshold })}
                     </span>
                   )}
                   {c.categorical_map && (
                     <span className="text-blue-300">
-                      Categorical map: {Object.entries(c.categorical_map).map(([k, v]) => `${k}=${v}`).join(", ")}
+                      {t('scoring.categoricalMapLabel', {
+                        map: Object.entries(c.categorical_map).map(([k, v]) => `${k}=${v}`).join(", ")
+                      })}
                     </span>
                   )}
                 </div>
@@ -252,7 +259,7 @@ export const CriteriaWeightSliders: React.FC<CriteriaWeightSlidersProps> = ({
         <div className="flex items-center gap-2">
           <input
             type="text"
-            placeholder="Configuration title (e.g., Cost-Prioritized Model)"
+            placeholder={t('scoring.configTitlePlaceholder')}
             value={configName}
             onChange={(e) => setConfigName(e.target.value)}
             className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary w-64"
@@ -266,7 +273,7 @@ export const CriteriaWeightSliders: React.FC<CriteriaWeightSlidersProps> = ({
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-border bg-secondary/70 text-xs font-semibold text-foreground hover:bg-secondary hover:text-white transition-colors"
           >
             <Play className={`h-3.5 w-3.5 text-blue-400 ${isSimulating ? "animate-spin" : ""}`} />
-            Simulate Weights
+            {t('scoring.simulateWeights')}
           </button>
 
           <button
@@ -275,7 +282,7 @@ export const CriteriaWeightSliders: React.FC<CriteriaWeightSlidersProps> = ({
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
           >
             <Save className="h-3.5 w-3.5" />
-            {isSaving ? "Saving..." : "Save As New Version"}
+            {isSaving ? t('scoring.saving') : t('scoring.saveAsNewVersion')}
           </button>
         </div>
       </div>

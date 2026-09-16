@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   AwardDecisionResponse,
   revokeAward,
 } from "../../api/decision";
+import { formatDateTime } from "../../lib/formatters";
 import {
   History,
   CheckCircle2,
@@ -26,6 +28,7 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
   rfqId,
   onAwardRevoked,
 }) => {
+  const { t } = useTranslation();
   const [showRevokeModal, setShowRevokeModal] = useState(false);
   const [revocationReason, setRevocationReason] = useState("");
   const [submittingRevoke, setSubmittingRevoke] = useState(false);
@@ -45,7 +48,7 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
       setRevocationReason("");
       if (onAwardRevoked) onAwardRevoked(updated);
     } catch (err: any) {
-      setRevokeError(err.message || "Failed to revoke award");
+      setRevokeError(err.message || t("decision.failedRevokeAward"));
     } finally {
       setSubmittingRevoke(false);
     }
@@ -56,19 +59,19 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
       case "draft_created":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">
-            <FilePlus className="w-3 h-3" /> Draft Created
+            <FilePlus className="w-3 h-3" /> {t("decision.draftCreatedBadge")}
           </span>
         );
       case "confirmed":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-            <CheckCircle2 className="w-3 h-3" /> Human Confirmed
+            <CheckCircle2 className="w-3 h-3" /> {t("decision.humanConfirmedBadge")}
           </span>
         );
       case "revoked":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-            <RotateCcw className="w-3 h-3" /> Revoked
+            <RotateCcw className="w-3 h-3" /> {t("decision.revokedBadge")}
           </span>
         );
       default:
@@ -88,11 +91,11 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
           <div className="flex items-center gap-2.5">
             <History className="w-5 h-5 text-primary" />
             <h3 className="text-base font-bold text-white">
-              Award Lifecycle Event Stream ({award.events.length} events)
+              {t("decision.awardLifecycleTitle", { count: award.events.length })}
             </h3>
           </div>
           <p className="text-xs text-muted-foreground">
-            Append-only event log capturing all state transitions and human confirmations.
+            {t("decision.awardLifecycleSubtitle")}
           </p>
         </div>
 
@@ -102,7 +105,7 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-semibold transition"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            Revoke Confirmed Award
+            {t("decision.revokeAwardBtn")}
           </button>
         )}
       </div>
@@ -126,7 +129,7 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
                 </div>
                 <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                   <Clock className="w-3 h-3" />
-                  {new Date(evt.created_at).toLocaleString()}
+                  {formatDateTime(evt.created_at)}
                 </span>
               </div>
 
@@ -134,9 +137,9 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
               {evt.event_type === "draft_created" && (
                 <div className="text-xs text-foreground/90 space-y-1">
                   <div>
-                    <span className="text-muted-foreground">Awarded Supplier: </span>
+                    <span className="text-muted-foreground">{t("decision.awardedSupplier")}: </span>
                     <strong className="text-white">{award.awarded_supplier_name}</strong>{" "}
-                    (Rank #{award.awarded_supplier_rank ?? "—"})
+                    ({t("scoring.rankCol")} #{award.awarded_supplier_rank ?? "—"})
                   </div>
                   {evt.event_payload?.justification && (
                     <p className="bg-secondary/40 p-2 rounded text-muted-foreground italic">
@@ -145,7 +148,7 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
                   )}
                   {evt.event_payload?.non_rank1_rationale && (
                     <div className="p-2 rounded bg-amber-950/30 border border-amber-500/30 text-amber-200">
-                      <strong>Non-Rank #1 Rationale:</strong> {evt.event_payload.non_rank1_rationale}
+                      <strong>{t("decision.nonRank1RuleTitle")}:</strong> {evt.event_payload.non_rank1_rationale}
                     </div>
                   )}
                 </div>
@@ -155,12 +158,12 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
                 <div className="text-xs text-foreground/90 space-y-2">
                   <div className="flex items-center gap-2 text-emerald-400 font-semibold">
                     <CheckCircle2 className="w-4 h-4" />
-                    Confirmed by authorized buyer. RFQ transitioned to DECIDED status.
+                    {t("decision.confirmedByBuyer")}
                   </div>
                   {award.provenance_hash && (
                     <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground bg-slate-950 p-2 rounded border border-border/40">
                       <Key className="w-3.5 h-3.5 text-primary" />
-                      <span>Provenance Hash: {award.provenance_hash}</span>
+                      <span>{t("decision.provenanceHashLabel", { hash: award.provenance_hash })}</span>
                     </div>
                   )}
                 </div>
@@ -170,11 +173,11 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
                 <div className="text-xs text-foreground/90 space-y-1.5">
                   <div className="text-rose-400 font-semibold flex items-center gap-1.5">
                     <RotateCcw className="w-3.5 h-3.5" />
-                    Award revoked. RFQ reverted to EVALUATING status.
+                    {t("decision.awardRevokedNotice")}
                   </div>
                   {evt.event_payload?.revocation_reason && (
                     <p className="bg-rose-950/30 border border-rose-500/30 p-2 rounded text-rose-200">
-                      <strong>Revocation Reason:</strong> "{evt.event_payload.revocation_reason}"
+                      {t("decision.revocationReasonAudit", { reason: evt.event_payload.revocation_reason })}
                     </p>
                   )}
                 </div>
@@ -191,9 +194,13 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
             <div className="flex items-center justify-between border-b border-border/60 pb-3">
               <div className="flex items-center gap-2 text-rose-400 font-bold">
                 <RotateCcw className="w-5 h-5" />
-                <h3>Revoke Confirmed Procurement Award</h3>
+                <h3>{t("decision.revokeModalTitle")}</h3>
               </div>
-              <button onClick={() => setShowRevokeModal(false)} className="text-muted-foreground hover:text-white">
+              <button
+                onClick={() => setShowRevokeModal(false)}
+                className="text-muted-foreground hover:text-white"
+                aria-label={t("common.close")}
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -207,18 +214,18 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
 
             <form onSubmit={handleRevoke} className="space-y-4 text-xs">
               <p className="text-muted-foreground leading-relaxed">
-                Revoking an award invalidates the supplier decision and returns the RFQ to the <strong className="text-white">EVALUATING</strong> state. This action is permanently appended to the audit log.
+                {t("decision.revokeModalNotice")}
               </p>
 
               <div className="space-y-1.5">
                 <label className="font-semibold text-foreground block">
-                  Mandatory Revocation Reason:
+                  {t("decision.mandatoryRevocationReasonLabel")}
                 </label>
                 <textarea
                   rows={3}
                   value={revocationReason}
                   onChange={(e) => setRevocationReason(e.target.value)}
-                  placeholder="e.g. Supplier failed final credit check or commercial terms renegotiation required..."
+                  placeholder={t("decision.revocationReasonPlaceholder")}
                   className="w-full bg-slate-900 border border-border rounded-lg p-2.5 text-white text-xs focus:ring-1 focus:ring-rose-400 focus:outline-none"
                   required
                 />
@@ -230,14 +237,14 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
                   onClick={() => setShowRevokeModal(false)}
                   className="px-4 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-xs font-semibold"
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={submittingRevoke || !revocationReason.trim()}
                   className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition disabled:opacity-50"
                 >
-                  {submittingRevoke ? "Revoking..." : "Confirm Revocation"}
+                  {submittingRevoke ? t("decision.revokingBtn") : t("decision.confirmRevocationBtn")}
                 </button>
               </div>
             </form>

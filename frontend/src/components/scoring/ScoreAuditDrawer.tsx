@@ -1,6 +1,9 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { X, CheckCircle, AlertTriangle, ShieldAlert, FileText } from "lucide-react";
 import { SupplierScore } from "../../api/scoring";
+import { formatNumber } from "../../lib/formatters";
+import { translateKnockoutStatus } from "../../lib/statusTranslations";
 
 interface ScoreAuditDrawerProps {
   isOpen: boolean;
@@ -17,6 +20,8 @@ export const ScoreAuditDrawer: React.FC<ScoreAuditDrawerProps> = ({
   snapshotVersion,
   configVersion,
 }) => {
+  const { t } = useTranslation();
+
   if (!isOpen || !supplierScore) return null;
 
   return (
@@ -32,11 +37,11 @@ export const ScoreAuditDrawer: React.FC<ScoreAuditDrawerProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-400">
-                Deterministic Score Audit
+                {t("scoring.deterministicScoreAudit")}
               </span>
               {supplierScore.rank && (
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
-                  Rank #{supplierScore.rank}
+                  {t("scoring.rankCol")} #{supplierScore.rank}
                 </span>
               )}
             </div>
@@ -44,16 +49,16 @@ export const ScoreAuditDrawer: React.FC<ScoreAuditDrawerProps> = ({
               {supplierScore.supplier_name}
             </h2>
             <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-              <span>Snapshot v{snapshotVersion ?? 1}</span>
+              <span>{t("scoring.snapshotVersionLabel", { v: snapshotVersion ?? 1 })}</span>
               <span>•</span>
-              <span>Scoring Config v{configVersion ?? 1}</span>
+              <span>{t("scoring.configVersionLabel", { v: configVersion ?? 1 })}</span>
             </div>
           </div>
 
           <button
             onClick={onClose}
             className="p-2 rounded-lg text-muted-foreground hover:text-white hover:bg-secondary/80 transition-colors"
-            aria-label="Close audit drawer"
+            aria-label={t("scoring.closeAuditAria", "Close audit drawer")}
           >
             <X className="h-5 w-5" />
           </button>
@@ -76,12 +81,12 @@ export const ScoreAuditDrawer: React.FC<ScoreAuditDrawerProps> = ({
             )}
             <div>
               <div className="font-semibold text-sm">
-                Status: {supplierScore.status.toUpperCase()}
+                {t("common.status")}: {translateKnockoutStatus(supplierScore.status, t)}
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {supplierScore.is_eligible
-                  ? "Passed all deterministic knockout gates and evaluated in relative scoring cohort."
-                  : `Ineligible for competitive ranking. Reason: ${supplierScore.knockout_reasons.join(", ")}`}
+                  ? t("scoring.statusPassedKnockout")
+                  : t("scoring.statusIneligibleKnockout", { reason: supplierScore.knockout_reasons.join(", ") })}
               </p>
             </div>
           </div>
@@ -89,13 +94,13 @@ export const ScoreAuditDrawer: React.FC<ScoreAuditDrawerProps> = ({
           {/* Composite Score Card */}
           <div className="glass-card rounded-xl p-5 border border-border/80 flex items-center justify-between">
             <div>
-              <div className="text-xs uppercase font-bold text-muted-foreground">Composite Evaluation Score</div>
+              <div className="text-xs uppercase font-bold text-muted-foreground">{t("scoring.compositeEvaluationScore", "Composite Evaluation Score")}</div>
               <div className="text-xs text-muted-foreground mt-0.5">
-                Sum of weighted criterion contributions (0.00 – 100.00)
+                {t("scoring.compositeScoreDesc")}
               </div>
             </div>
             <div className="text-3xl font-mono font-black text-blue-400">
-              {supplierScore.composite_score.toFixed(2)}
+              {formatNumber(supplierScore.composite_score, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               <span className="text-sm font-normal text-muted-foreground"> / 100</span>
             </div>
           </div>
@@ -104,7 +109,7 @@ export const ScoreAuditDrawer: React.FC<ScoreAuditDrawerProps> = ({
           <div className="space-y-4">
             <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary" />
-              Formula & Criterion Breakdown
+              {t("scoring.formulaAndBreakdown")}
             </h3>
 
             {Object.entries(supplierScore.breakdown).map(([criterionName, b]) => (
@@ -115,55 +120,57 @@ export const ScoreAuditDrawer: React.FC<ScoreAuditDrawerProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="font-semibold text-sm text-white">{criterionName}</div>
                   <div className="text-xs font-mono font-bold text-emerald-400">
-                    +{b.weighted_contribution.toFixed(2)} pts
+                    +{formatNumber(b.weighted_contribution, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} pts
                     <span className="text-muted-foreground font-normal text-[11px] ml-1">
-                      (w = {(b.weight * 100).toFixed(1)}%)
+                      (w = {formatNumber(b.weight * 100, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%)
                     </span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs bg-card/60 p-3 rounded-lg border border-border/40 font-mono">
                   <div>
-                    <span className="text-muted-foreground block text-[10px] uppercase">Raw Value</span>
+                    <span className="text-muted-foreground block text-[10px] uppercase">{t("scoring.rawValLabel")}</span>
                     <span className="text-foreground font-semibold">
-                      {b.raw_value !== null ? String(b.raw_value) : "N/A"}
+                      {b.raw_value !== null ? (typeof b.raw_value === "number" ? formatNumber(b.raw_value) : String(b.raw_value)) : "N/A"}
                     </span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block text-[10px] uppercase">Cohort Bounds</span>
+                    <span className="text-muted-foreground block text-[10px] uppercase">{t("scoring.cohortBoundsLabel")}</span>
                     <span className="text-muted-foreground">
                       {b.cohort_min != null && b.cohort_max != null
-                        ? `[${b.cohort_min}, ${b.cohort_max}]`
-                        : "Single/Fixed"}
+                        ? `[${formatNumber(b.cohort_min)}, ${formatNumber(b.cohort_max)}]`
+                        : t("scoring.singleFixedCohort")}
                     </span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block text-[10px] uppercase">Norm Score</span>
-                    <span className="text-blue-400 font-bold">{b.normalized_score.toFixed(2)} / 100</span>
+                    <span className="text-muted-foreground block text-[10px] uppercase">{t("scoring.normScoreLabel")}</span>
+                    <span className="text-blue-400 font-bold">
+                      {formatNumber(b.normalized_score, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / 100
+                    </span>
                   </div>
                 </div>
 
                 {/* Mathematical Equation display */}
                 <div className="text-[11px] text-muted-foreground bg-secondary/30 p-2.5 rounded-lg border border-border/30 font-mono">
-                  <span className="text-foreground font-semibold">Formula: </span>
+                  <span className="text-foreground font-semibold">{t("scoring.formulaLabel")} </span>
                   {b.cohort_min !== null && b.cohort_max !== null && b.cohort_min !== b.cohort_max ? (
                     <span>
-                      Normalized = ({b.raw_value} - {b.cohort_min}) / ({b.cohort_max} - {b.cohort_min}) × 100 ={" "}
-                      {b.normalized_score.toFixed(2)}
+                      Normalized = ({formatNumber(Number(b.raw_value))} - {formatNumber(b.cohort_min)}) / ({formatNumber(b.cohort_max)} - {formatNumber(b.cohort_min)}) × 100 ={" "}
+                      {formatNumber(b.normalized_score, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   ) : (
-                    <span>Normalized = 100.00 (Cohort variance zero or single candidate)</span>
+                    <span>{t("scoring.varianceZeroCohort")}</span>
                   )}
                   <br />
-                  <span className="text-foreground font-semibold">Contribution: </span>
+                  <span className="text-foreground font-semibold">{t("scoring.contributionLabel")} </span>
                   <span>
-                    {b.normalized_score.toFixed(2)} × {b.weight.toFixed(4)} = {b.weighted_contribution.toFixed(2)}
+                    {formatNumber(b.normalized_score, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} × {formatNumber(b.weight, { minimumFractionDigits: 4, maximumFractionDigits: 4 })} = {formatNumber(b.weighted_contribution, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
 
                 {b.source_path && (
                   <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 font-mono">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground">Source Binding:</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground">{t("scoring.sourceBindingLabel")}</span>
                     <span className="text-primary truncate" title={b.source_path}>
                       {b.source_path}
                     </span>
@@ -186,7 +193,7 @@ export const ScoreAuditDrawer: React.FC<ScoreAuditDrawerProps> = ({
             onClick={onClose}
             className="px-4 py-2 rounded-xl bg-secondary text-sm font-semibold text-foreground hover:bg-secondary/80 transition-colors"
           >
-            Close Audit
+            {t("scoring.closeAuditBtn")}
           </button>
         </div>
       </div>

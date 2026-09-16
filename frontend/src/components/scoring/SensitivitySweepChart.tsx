@@ -1,6 +1,8 @@
 import React from "react";
+import { useTranslation, Trans } from "react-i18next";
 import { SensitivityResponse } from "../../api/scoring";
 import { TrendingUp, GitCommit, Info } from "lucide-react";
+import { formatNumber } from "../../lib/formatters";
 
 interface SensitivitySweepChartProps {
   sensitivityData: SensitivityResponse | null;
@@ -11,11 +13,12 @@ export const SensitivitySweepChart: React.FC<SensitivitySweepChartProps> = ({
   sensitivityData,
   isLoading = false,
 }) => {
+  const { t } = useTranslation();
   if (isLoading) {
     return (
       <div className="glass-card rounded-xl p-8 text-center text-muted-foreground flex flex-col items-center justify-center space-y-3">
         <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        <span className="text-xs">Computing deterministic sensitivity sweep across parameter space...</span>
+        <span className="text-xs">{t('scoring.computingSweep')}</span>
       </div>
     );
   }
@@ -23,7 +26,7 @@ export const SensitivitySweepChart: React.FC<SensitivitySweepChartProps> = ({
   if (!sensitivityData || sensitivityData.data_points.length === 0) {
     return (
       <div className="glass-card rounded-xl p-6 text-center text-muted-foreground text-xs">
-        Select a criterion and run sensitivity analysis to inspect rank trajectory and crossover points.
+        {t('scoring.selectCriterionPrompt')}
       </div>
     );
   }
@@ -49,11 +52,13 @@ export const SensitivitySweepChart: React.FC<SensitivitySweepChartProps> = ({
         <div>
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-emerald-400" />
-            Sensitivity Trajectory: {sweep_criterion}
+            {t('scoring.sensitivityTrajectory', { criterion: sweep_criterion })}
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Evaluating score stability as weight scales from {(data_points[0].weight * 100).toFixed(0)}% to{" "}
-            {(data_points[data_points.length - 1].weight * 100).toFixed(0)}% with proportional redistribution.
+            {t('scoring.evaluatingStability', {
+              min: (data_points[0].weight * 100).toFixed(0),
+              max: (data_points[data_points.length - 1].weight * 100).toFixed(0)
+            })}
           </p>
         </div>
       </div>
@@ -63,7 +68,7 @@ export const SensitivitySweepChart: React.FC<SensitivitySweepChartProps> = ({
         <div className="space-y-2">
           <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
             <GitCommit className="h-3.5 w-3.5 text-primary" />
-            Rank Crossover Points ({crossover_points.length})
+            {t('scoring.rankCrossoverPoints', { count: crossover_points.length })}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {crossover_points.map((cp, idx) => (
@@ -74,14 +79,21 @@ export const SensitivitySweepChart: React.FC<SensitivitySweepChartProps> = ({
                 <div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" />
                 <div className="space-y-0.5">
                   <div className="font-semibold text-white font-mono">
-                    Weight: {(cp.weight * 100).toFixed(1)}% (Score: {cp.score_at_crossover.toFixed(2)})
+                    {t('scoring.crossoverWeightInfo', {
+                      weight: formatNumber(cp.weight * 100, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+                      score: formatNumber(cp.score_at_crossover, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    })}
                   </div>
                   <div className="text-muted-foreground">
                     {cp.description || (
-                      <>
-                        <span className="text-foreground font-medium">{cp.supplier_a_name}</span> ranks equal/crossover with{" "}
-                        <span className="text-foreground font-medium">{cp.supplier_b_name}</span>
-                      </>
+                      <Trans
+                        i18nKey="scoring.crossoverDescription"
+                        values={{ suppA: cp.supplier_a_name, suppB: cp.supplier_b_name }}
+                        components={{
+                          1: <span className="text-foreground font-medium" />,
+                          3: <span className="text-foreground font-medium" />
+                        }}
+                      />
                     )}
                   </div>
                 </div>
@@ -92,14 +104,14 @@ export const SensitivitySweepChart: React.FC<SensitivitySweepChartProps> = ({
       ) : (
         <div className="p-3 rounded-lg bg-secondary/30 border border-border/40 text-xs text-muted-foreground flex items-center gap-2">
           <Info className="h-4 w-4 text-muted-foreground shrink-0" />
-          <span>No rank inversions observed within this weight range; rankings are stable.</span>
+          <span>{t('scoring.noInversions')}</span>
         </div>
       )}
 
       {/* SVG Trajectory Chart */}
       <div className="space-y-2">
         <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Score Trajectory Curves (0.00 – 100.00)
+          {t('scoring.scoreTrajectoryCurves')}
         </div>
         <div className="w-full bg-card/60 p-4 rounded-xl border border-border/70 overflow-x-auto">
           <svg viewBox="0 0 700 240" className="w-full h-48 overflow-visible font-mono text-[10px]">
@@ -175,10 +187,10 @@ export const SensitivitySweepChart: React.FC<SensitivitySweepChartProps> = ({
         <table className="w-full text-left text-xs font-mono">
           <thead className="bg-secondary/40 border-b border-border text-[10px] uppercase text-muted-foreground">
             <tr>
-              <th className="py-2 px-3">Weight</th>
+              <th className="py-2 px-3">{t('scoring.weightCol')}</th>
               {supplierIds.map((suppId, idx) => (
                 <th key={suppId} className="py-2 px-3">
-                  <span style={{ color: colors[idx % colors.length] }}>Supplier #{idx + 1}</span>
+                  <span style={{ color: colors[idx % colors.length] }}>{t('scoring.supplierNum', { num: idx + 1 })}</span>
                 </th>
               ))}
             </tr>
@@ -186,10 +198,15 @@ export const SensitivitySweepChart: React.FC<SensitivitySweepChartProps> = ({
           <tbody className="divide-y divide-border/40 text-muted-foreground">
             {data_points.map((pt, idx) => (
               <tr key={idx} className="hover:bg-secondary/20">
-                <td className="py-1.5 px-3 font-bold text-foreground">{(pt.weight * 100).toFixed(1)}%</td>
+                <td className="py-1.5 px-3 font-bold text-foreground">
+                  {formatNumber(pt.weight * 100, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                </td>
                 {supplierIds.map((suppId) => (
                   <td key={suppId} className="py-1.5 px-3">
-                    {(pt.supplier_scores[suppId] || 0).toFixed(2)} (Rank #{pt.ranks[suppId] || "—"})
+                    {t('scoring.scoreRankDisplay', {
+                      score: formatNumber(pt.supplier_scores[suppId] || 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                      rank: pt.ranks[suppId] || "—"
+                    })}
                   </td>
                 ))}
               </tr>

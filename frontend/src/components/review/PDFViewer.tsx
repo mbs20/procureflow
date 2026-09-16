@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
@@ -30,6 +31,7 @@ interface PDFViewerProps {
 }
 
 export const PDFViewer: React.FC<PDFViewerProps> = ({ blob, filename, activeEvidence }) => {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -177,20 +179,20 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({ blob, filename, activeEvid
             onClick={handlePrevPage}
             disabled={currentPage <= 1 || loading}
             className="p-1.5 rounded hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition"
-            title="Previous page"
-            aria-label="Previous page"
+            title={t('review.prevPage')}
+            aria-label={t('review.prevPage')}
           >
             <ChevronLeft className="w-4 h-4 text-slate-300" />
           </button>
           <span className="font-mono text-slate-200">
-            Page {currentPage} of {totalPages}
+            {t('review.pageCounter', { current: currentPage, total: totalPages })}
           </span>
           <button
             onClick={handleNextPage}
             disabled={currentPage >= totalPages || loading}
             className="p-1.5 rounded hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition"
-            title="Next page"
-            aria-label="Next page"
+            title={t('review.nextPage')}
+            aria-label={t('review.nextPage')}
           >
             <ChevronRight className="w-4 h-4 text-slate-300" />
           </button>
@@ -203,8 +205,8 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({ blob, filename, activeEvid
             onClick={handleZoomOut}
             disabled={zoomScale <= 0.5 || loading}
             className="p-1.5 rounded hover:bg-slate-800 disabled:opacity-30 transition"
-            title="Zoom out"
-            aria-label="Zoom out"
+            title={t('review.zoomOut')}
+            aria-label={t('review.zoomOut')}
           >
             <ZoomOut className="w-3.5 h-3.5 text-slate-300" />
           </button>
@@ -215,16 +217,16 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({ blob, filename, activeEvid
             onClick={handleZoomIn}
             disabled={zoomScale >= 2.5 || loading}
             className="p-1.5 rounded hover:bg-slate-800 disabled:opacity-30 transition"
-            title="Zoom in"
-            aria-label="Zoom in"
+            title={t('review.zoomIn')}
+            aria-label={t('review.zoomIn')}
           >
             <ZoomIn className="w-3.5 h-3.5 text-slate-300" />
           </button>
           <button
             onClick={handleResetZoom}
             className="p-1.5 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition ml-1"
-            title="Fit width"
-            aria-label="Fit width"
+            title={t('review.fitWidth')}
+            aria-label={t('review.fitWidth')}
           >
             <Maximize2 className="w-3.5 h-3.5" />
           </button>
@@ -235,13 +237,13 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({ blob, filename, activeEvid
       <div
         tabIndex={0}
         role="region"
-        aria-label="Document Page Canvas Container"
+        aria-label={t('review.canvasContainerAria')}
         className="relative flex-1 overflow-auto p-4 flex justify-center items-start bg-slate-950/60 focus:outline-none focus:ring-1 focus:ring-blue-500"
       >
         {loading && (
           <div className="flex flex-col items-center justify-center h-64 gap-2 text-slate-400">
             <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
-            <span className="text-xs">Streaming PDF pages...</span>
+            <span className="text-xs">{t('review.streamingPages')}</span>
           </div>
         )}
 

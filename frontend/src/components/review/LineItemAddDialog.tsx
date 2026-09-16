@@ -1,7 +1,10 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { X, Plus } from "lucide-react";
 import { ExtractedLineItemCreate } from "../../api/quotation";
 import { RFQLineItem } from "../../api/rfq";
+import { formatCurrency } from "../../lib/formatters";
+import { translateBackendError } from "../../lib/errorMessageMap";
 
 interface LineItemAddDialogProps {
   isOpen: boolean;
@@ -18,7 +21,7 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
   onClose,
   onAdd,
 }) => {
-  if (!isOpen) return null;
+  const { t } = useTranslation();
 
   const [description, setDescription] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -29,6 +32,8 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
   const [rfqItemId, setRfqItemId] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (!isOpen) return null;
 
   const calculatedTotal = Number((quantity * unitPrice).toFixed(4));
 
@@ -49,7 +54,7 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
       });
       onClose();
     } catch (err: any) {
-      setError(err.message || "Failed to add line item");
+      setError(translateBackendError(err, t));
     } finally {
       setAdding(false);
     }
@@ -66,16 +71,16 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/60">
           <div>
             <h2 id="add-item-title" className="text-base font-bold text-white">
-              Add Missed Line Item
+              {t('review.addMissedTitle')}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Append an item not automatically recognized during extraction. Marked as human-corrected.
+              {t('review.addMissedSubtitle')}
             </p>
           </div>
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
-            aria-label="Close dialog"
+            aria-label={t('common.close')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -90,7 +95,7 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
 
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Description *
+              {t('review.descriptionLabel')}
             </label>
             <input
               type="text"
@@ -104,14 +109,14 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
 
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Match RFQ Requirement
+              {t('review.matchRfqRequirement')}
             </label>
             <select
               value={rfqItemId}
               onChange={(e) => setRfqItemId(e.target.value)}
               className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 transition"
             >
-              <option value="">-- None (unmatched) --</option>
+              <option value="">{t('review.noneUnmatched')}</option>
               {rfqLineItems.map((rfqItem) => (
                 <option key={rfqItem.id} value={rfqItem.id}>
                   Item #{rfqItem.position}: {rfqItem.description} ({rfqItem.quantity} {rfqItem.unit})
@@ -122,7 +127,7 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Quantity *</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('review.quantityLabel')} *</label>
               <input
                 type="number"
                 step="any"
@@ -135,7 +140,7 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Unit *</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('review.unitLabel')} *</label>
               <input
                 type="text"
                 value={unit}
@@ -147,7 +152,7 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Unit Price ({currency}) *
+                {t('review.unitPriceLabel', { currency })} *
               </label>
               <input
                 type="number"
@@ -164,7 +169,7 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Supplier-Quoted Total (Optional)
+                {t('review.supplierQuotedTotalOptional')}
               </label>
               <input
                 type="number"
@@ -172,14 +177,14 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
                 min="0"
                 value={totalPrice ?? ""}
                 onChange={(e) => setTotalPrice(e.target.value ? parseFloat(e.target.value) : undefined)}
-                placeholder={`Default: $${calculatedTotal.toFixed(2)}`}
+                placeholder={t('review.defaultCalculated', { amount: formatCurrency(calculatedTotal, currency) })}
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-blue-500 transition"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Lead Time (Days)
+                {t('review.leadTimeDays')}
               </label>
               <input
                 type="number"
@@ -198,7 +203,7 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
               onClick={onClose}
               className="px-4 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -206,7 +211,7 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
               className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg transition"
             >
               <Plus className="w-4 h-4" />
-              <span>{adding ? "Adding Item..." : "Add Line Item"}</span>
+              <span>{adding ? t('review.addingItem') : t('review.addItem')}</span>
             </button>
           </div>
         </form>

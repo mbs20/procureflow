@@ -1,6 +1,11 @@
+import React from "react";
+import { useTranslation } from "react-i18next";
 import { ShieldCheck, BookOpen, Github } from "lucide-react";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 export const Navbar: React.FC = () => {
+  const { t } = useTranslation();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 glass-panel">
       <div className="container flex h-16 max-w-7xl items-center justify-between px-6">
@@ -18,12 +23,14 @@ export const Navbar: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Explainable RFQ Comparison & Decision Engine
+              {t("nav.brandSubtitle", "Explainable RFQ Comparison & Decision Engine")}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <LanguageSwitcher />
+
           <a
             href="http://localhost:8000/docs"
             target="_blank"
@@ -31,7 +38,7 @@ export const Navbar: React.FC = () => {
             className="flex items-center gap-2 rounded-lg bg-secondary/60 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary hover:text-white transition-colors border border-border"
           >
             <BookOpen className="h-3.5 w-3.5 text-blue-400" />
-            API Docs
+            {t("nav.apiDocs", "API Docs")}
           </a>
           <a
             href="https://github.com/mbs20/procureflow"
@@ -40,7 +47,7 @@ export const Navbar: React.FC = () => {
             className="flex items-center gap-2 rounded-lg bg-secondary/60 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary hover:text-white transition-colors border border-border"
           >
             <Github className="h-3.5 w-3.5 text-white" />
-            GitHub
+            {t("nav.github", "GitHub")}
           </a>
         </div>
       </div>

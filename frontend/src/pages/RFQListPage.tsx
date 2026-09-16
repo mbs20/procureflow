@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Layers,
   Plus,
@@ -15,8 +16,12 @@ import {
 } from "lucide-react";
 import { RFQ, fetchRFQs, archiveRFQ, unarchiveRFQ, cloneRFQ } from "../api/rfq";
 import { CreateRFQModal } from "../components/rfq/CreateRFQModal";
+import { formatDate } from "../lib/formatters";
+import { translateRFQStatus } from "../lib/statusTranslations";
+import { translateBackendError } from "../lib/errorMessageMap";
 
 export const RFQListPage: React.FC = () => {
+  const { t } = useTranslation();
   const [rfqs, setRfqs] = useState<RFQ[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +59,7 @@ export const RFQListPage: React.FC = () => {
     e.stopPropagation();
     try {
       await archiveRFQ(id);
-      setActionMessage("RFQ archived successfully");
+      setActionMessage(t("rfq.archiveSuccess", "RFQ archived successfully"));
       loadRFQs();
       setTimeout(() => setActionMessage(null), 3000);
     } catch (err: any) {
@@ -67,7 +72,7 @@ export const RFQListPage: React.FC = () => {
     e.stopPropagation();
     try {
       await unarchiveRFQ(id);
-      setActionMessage("RFQ restored to active");
+      setActionMessage(t("rfq.unarchiveSuccess", "RFQ restored to active"));
       loadRFQs();
       setTimeout(() => setActionMessage(null), 3000);
     } catch (err: any) {
@@ -80,7 +85,7 @@ export const RFQListPage: React.FC = () => {
     e.stopPropagation();
     try {
       const cloned = await cloneRFQ(id, `${title} (Copy)`);
-      setActionMessage(`Cloned as "${cloned.title}"`);
+      setActionMessage(t("rfq.cloneSuccess", { title: cloned.title }));
       loadRFQs();
       setTimeout(() => setActionMessage(null), 3000);
     } catch (err: any) {
@@ -93,7 +98,7 @@ export const RFQListPage: React.FC = () => {
       return (
         <span className="inline-flex items-center gap-1 rounded-md bg-zinc-500/10 px-2 py-0.5 text-[11px] font-semibold text-zinc-400 border border-zinc-500/20">
           <Archive className="h-3 w-3" />
-          Archived
+          {translateRFQStatus(status, true)}
         </span>
       );
     }
@@ -102,25 +107,25 @@ export const RFQListPage: React.FC = () => {
         return (
           <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-400 border border-emerald-500/20">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Active
+            {translateRFQStatus(status)}
           </span>
         );
       case "evaluating":
         return (
           <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-400 border border-blue-500/20">
-            Evaluating
+            {translateRFQStatus(status)}
           </span>
         );
       case "decided":
         return (
           <span className="inline-flex items-center gap-1 rounded-md bg-purple-500/10 px-2 py-0.5 text-[11px] font-semibold text-purple-400 border border-purple-500/20">
-            Decided
+            {translateRFQStatus(status)}
           </span>
         );
       default:
         return (
           <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-400 border border-amber-500/20">
-            Draft
+            {translateRFQStatus(status)}
           </span>
         );
     }
@@ -133,10 +138,10 @@ export const RFQListPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <Layers className="h-6 w-6 text-blue-400" />
-            <h1 className="text-2xl font-bold tracking-tight text-white">Procurement Requests & RFQs</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-white">{t("rfq.listTitle", "Procurement Requests & RFQs")}</h1>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Create sourcing events, define required line items, and set weighted evaluation rubrics.
+            {t("rfq.listSubtitle", "Create sourcing events, define required line items, and set weighted evaluation rubrics.")}
           </p>
         </div>
 
@@ -145,7 +150,7 @@ export const RFQListPage: React.FC = () => {
           className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-blue-500/25 hover:bg-blue-600 transition-all"
         >
           <Plus className="h-4 w-4" />
-          Create New RFQ
+          {t("rfq.createNew", "Create New RFQ")}
         </button>
       </div>
 
@@ -159,7 +164,7 @@ export const RFQListPage: React.FC = () => {
       {error && (
         <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          <span>{error}</span>
+          <span>{translateBackendError(error)}</span>
         </div>
       )}
 
@@ -167,12 +172,12 @@ export const RFQListPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
         <div className="flex items-center gap-1 bg-secondary/40 p-1 rounded-xl border border-border/50 text-xs overflow-x-auto">
           {[
-            { key: "all", label: "All RFQs" },
-            { key: "draft", label: "Draft" },
-            { key: "active", label: "Active" },
-            { key: "evaluating", label: "Evaluating" },
-            { key: "decided", label: "Decided" },
-            { key: "archived", label: "Archived (Soft Delete)" },
+            { key: "all", label: t("rfq.tabAll", "All RFQs") },
+            { key: "draft", label: t("rfq.tabDraft", "Draft") },
+            { key: "active", label: t("rfq.tabActive", "Active") },
+            { key: "evaluating", label: t("rfq.tabEvaluating", "Evaluating") },
+            { key: "decided", label: t("rfq.tabDecided", "Decided") },
+            { key: "archived", label: t("rfq.tabArchived", "Archived (Soft Delete)") },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -192,7 +197,7 @@ export const RFQListPage: React.FC = () => {
           <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Filter by category..."
+            placeholder={t("rfq.filterPlaceholder", "Filter by category...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-lg border border-border bg-secondary/30 pl-8 pr-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -211,11 +216,11 @@ export const RFQListPage: React.FC = () => {
             <Filter className="h-6 w-6" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-white">No Procurement Requests Found</h3>
+            <h3 className="text-base font-semibold text-white">{t("rfq.noRfqsFound", "No Procurement Requests Found")}</h3>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
               {activeTab === "archived"
-                ? "No soft-deleted archived RFQs in this category."
-                : "Get started by creating your first RFQ with required line items and evaluation criteria."}
+                ? t("rfq.noArchivedDesc", "No soft-deleted archived RFQs in this category.")
+                : t("rfq.createRfqPrompt", "Get started by creating your first RFQ with required line items and evaluation criteria.")}
             </p>
           </div>
           {activeTab !== "archived" && (
@@ -224,7 +229,7 @@ export const RFQListPage: React.FC = () => {
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-white shadow hover:bg-blue-600 transition-all"
             >
               <Plus className="h-4 w-4" />
-              Create RFQ Now
+              {t("rfq.createRfqNow", "Create RFQ Now")}
             </button>
           )}
         </div>
@@ -248,24 +253,24 @@ export const RFQListPage: React.FC = () => {
                     {getStatusBadge(rfq.status, rfq.is_archived)}
                   </div>
                   <p className="text-xs text-muted-foreground line-clamp-1">
-                    {rfq.description || "No specific scope notes provided."}
+                    {rfq.description || t("rfq.noScopeNotes", "No specific scope notes provided.")}
                   </p>
                   <div className="flex flex-wrap items-center gap-4 pt-1 text-[11px] text-muted-foreground">
                     <span className="rounded bg-secondary/60 px-2 py-0.5 border border-border">
-                      Category: <strong className="text-foreground">{rfq.category}</strong>
+                      {t("rfq.categoryLabel", "Category:")} <strong className="text-foreground">{rfq.category}</strong>
                     </span>
                     <span className="rounded bg-secondary/60 px-2 py-0.5 border border-border">
-                      Currency: <strong className="text-foreground">{rfq.reference_currency}</strong>
+                      {t("rfq.currencyLabel", "Currency:")} <strong className="text-foreground">{rfq.reference_currency}</strong>
                     </span>
                     <span>
-                      Items: <strong className="text-foreground">{rfq.line_items?.length || 0}</strong>
+                      {t("rfq.itemsCount", "Items:")} <strong className="text-foreground">{rfq.line_items?.length || 0}</strong>
                     </span>
                     <span>
-                      Criteria: <strong className="text-foreground">{rfq.criteria?.length || 0}</strong>
+                      {t("rfq.criteriaCount", "Criteria:")} <strong className="text-foreground">{rfq.criteria?.length || 0}</strong>
                     </span>
                     <span className="flex items-center gap-1 text-slate-400">
                       <Clock className="h-3 w-3" />
-                      {new Date(rfq.created_at).toLocaleDateString()}
+                      {formatDate(rfq.created_at)}
                     </span>
                   </div>
                 </div>
@@ -275,12 +280,12 @@ export const RFQListPage: React.FC = () => {
                     to={`/rfqs/${rfq.id}`}
                     className="rounded-lg bg-secondary/60 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary hover:text-white transition-colors border border-border"
                   >
-                    View Details
+                    {t("rfq.viewDetails", "View Details")}
                   </Link>
 
                   <button
                     onClick={(e) => handleClone(rfq.id, rfq.title, e)}
-                    title="Clone as new template"
+                    title={t("rfq.cloneTooltip", "Clone as new template")}
                     className="rounded-lg bg-secondary/40 p-2 text-muted-foreground hover:bg-secondary hover:text-white transition-colors border border-border"
                   >
                     <Copy className="h-3.5 w-3.5" />
@@ -289,7 +294,7 @@ export const RFQListPage: React.FC = () => {
                   {rfq.is_archived ? (
                     <button
                       onClick={(e) => handleUnarchive(rfq.id, e)}
-                      title="Restore from archive"
+                      title={t("rfq.restoreTooltip", "Restore from archive")}
                       className="rounded-lg bg-secondary/40 p-2 text-muted-foreground hover:bg-emerald-500/20 hover:text-emerald-400 transition-colors border border-border"
                     >
                       <RefreshCw className="h-3.5 w-3.5" />
@@ -297,7 +302,7 @@ export const RFQListPage: React.FC = () => {
                   ) : (
                     <button
                       onClick={(e) => handleArchive(rfq.id, e)}
-                      title="Archive RFQ (soft delete)"
+                      title={t("rfq.archiveTooltip", "Archive RFQ (soft delete)")}
                       className="rounded-lg bg-secondary/40 p-2 text-muted-foreground hover:bg-red-500/20 hover:text-red-400 transition-colors border border-border"
                     >
                       <Archive className="h-3.5 w-3.5" />
@@ -315,7 +320,7 @@ export const RFQListPage: React.FC = () => {
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         onSuccess={() => {
-          setActionMessage("New RFQ created successfully!");
+          setActionMessage(t("rfq.createSuccess", "New RFQ created successfully!"));
           loadRFQs();
           setTimeout(() => setActionMessage(null), 3000);
         }}

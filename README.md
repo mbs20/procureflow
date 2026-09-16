@@ -10,6 +10,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/badge/Release-v0.1.0_preview-informational.svg)](RELEASE_NOTES_v0.1.0.md)
+[![Languages](https://img.shields.io/badge/Languages-EN%20%7C%20FR-4c1?logo=translate)](frontend/)
 [![Python](https://img.shields.io/badge/Python-3.12%2B-blue?logo=python)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688?logo=fastapi)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18%2B-61DAFB?logo=react)](https://react.dev)
@@ -131,6 +132,9 @@ Configure criteria weights (Cost, Lead Time, Warranty, Technical) and knockout t
 ### 5. Grounded Decision Narrative & Human Award Workflow
 Review the AI-drafted executive summary where all quantitative claims are grounded in verified data. Award with explicit human authorization and superseded warnings.
 ![Decision Narrative and Award](docs/assets/screenshots/05_grounded_decision_award_workflow.png)
+
+### 6. Full Bilingual Localization (English & French)
+ProcureFlow natively supports English and French procurement workflows. Switch languages instantaneously from the top navigation bar with full persistence (`localStorage`), localized numeric/currency/date formats (`Intl`), and professional procurement terminology (*Appels d'offres*, *Devis*, *Matrice de comparaison*, *Normalisation*, *Seuil d'équilibre*, *Attribution*).
 
 ---
 

@@ -20,12 +20,15 @@ import {
   fetchComparisonMatrix,
 } from "../api/matrix";
 import { RFQ, fetchRFQs, PaginatedRFQs } from "../api/rfq";
+import { useTranslation } from "react-i18next";
+import { translateBackendError } from "../lib/errorMessageMap";
 import { ComparisonTable } from "../components/matrix/ComparisonTable";
 import { CellTraceabilityDrawer } from "../components/matrix/CellTraceabilityDrawer";
 import { FXRateConfigModal } from "../components/matrix/FXRateConfigModal";
 import { SnapshotsModal } from "../components/matrix/SnapshotsModal";
 
 export const ComparisonMatrixPage: React.FC = () => {
+  const { t } = useTranslation();
   const { id: routeRfqId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -75,7 +78,7 @@ export const ComparisonMatrixPage: React.FC = () => {
       const data = await fetchComparisonMatrix(rfqId);
       setMatrix(data);
     } catch (err: any) {
-      setError(err.message || "Failed to load comparison matrix");
+      setError(translateBackendError(err, t));
     } finally {
       setLoading(false);
     }
@@ -134,13 +137,13 @@ export const ComparisonMatrixPage: React.FC = () => {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-white">Normalized Comparison Matrix</h1>
+              <h1 className="text-xl font-bold text-white">{t('matrix.title')}</h1>
               <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
-                Phase 4 Leveling
+                {t('matrix.phase4Badge')}
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Apples-to-apples commercial & technical comparison with strict data provenance.
+              {t('matrix.subtitle')}
             </p>
           </div>
         </div>
@@ -152,7 +155,7 @@ export const ComparisonMatrixPage: React.FC = () => {
             <select
               value={selectedRfqId}
               onChange={(e) => handleRFQChange(e.target.value)}
-              aria-label="Select RFQ to compare"
+              aria-label={t('matrix.selectRfqAria')}
               className="appearance-none rounded-xl border border-border bg-secondary/50 px-3.5 py-2 pr-8 text-xs font-semibold text-foreground focus:outline-none focus:border-blue-500 cursor-pointer"
             >
               {rfqList.map((rfq) => (
@@ -169,7 +172,7 @@ export const ComparisonMatrixPage: React.FC = () => {
             className="flex items-center gap-1.5 rounded-xl border border-border bg-secondary/40 px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-secondary hover:text-white transition-colors"
           >
             <Coins className="h-3.5 w-3.5 text-emerald-400" />
-            FX Rates (v{matrix?.fx_rate_set?.version || 1})
+            {t('matrix.fxRates', { version: matrix?.fx_rate_set?.version || 1 })}
           </button>
 
           <button
@@ -177,7 +180,7 @@ export const ComparisonMatrixPage: React.FC = () => {
             className="flex items-center gap-1.5 rounded-xl border border-border bg-secondary/40 px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-secondary hover:text-white transition-colors"
           >
             <Camera className="h-3.5 w-3.5 text-purple-400" />
-            Snapshots ({matrix?.snapshots_count || 0})
+            {t('matrix.snapshots', { count: matrix?.snapshots_count || 0 })}
           </button>
 
           <button
@@ -185,7 +188,7 @@ export const ComparisonMatrixPage: React.FC = () => {
             className="flex items-center gap-1.5 rounded-xl border border-primary/40 bg-primary/15 px-3.5 py-2 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition-all shadow-sm"
           >
             <Sliders className="h-3.5 w-3.5" />
-            Evaluate & Score
+            {t('matrix.evaluateScore')}
           </button>
 
           <button
@@ -194,13 +197,13 @@ export const ComparisonMatrixPage: React.FC = () => {
             className="flex items-center gap-1.5 rounded-xl border border-border bg-secondary/40 px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-secondary hover:text-white transition-colors disabled:opacity-50"
           >
             <Download className="h-3.5 w-3.5" />
-            Export CSV
+            {t('matrix.exportCSV')}
           </button>
 
           <button
             onClick={() => selectedRfqId && loadMatrix(selectedRfqId)}
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-white transition-colors border border-border"
-            title="Refresh Matrix"
+            title={t('matrix.refreshMatrix')}
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin text-blue-400" : ""}`} />
           </button>
@@ -211,31 +214,33 @@ export const ComparisonMatrixPage: React.FC = () => {
       {matrix && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="glass-card rounded-xl p-4 space-y-1">
-            <div className="text-[10px] uppercase font-bold text-muted-foreground">Suppliers Compared</div>
-            <div className="text-xl font-mono font-bold text-white">{matrix.suppliers.length} Approved Quotations</div>
+            <div className="text-[10px] uppercase font-bold text-muted-foreground">{t('matrix.suppliersCompared')}</div>
+            <div className="text-xl font-mono font-bold text-white">
+              {t('matrix.approvedQuotations', { count: matrix.suppliers.length })}
+            </div>
           </div>
 
           <div className="glass-card rounded-xl p-4 space-y-1">
-            <div className="text-[10px] uppercase font-bold text-muted-foreground">Reference Currency</div>
+            <div className="text-[10px] uppercase font-bold text-muted-foreground">{t('matrix.referenceCurrency')}</div>
             <div className="text-xl font-mono font-bold text-blue-400">
               {matrix.reference_currency}{" "}
               <span className="text-xs font-normal text-muted-foreground">
-                ({matrix.fx_rate_set?.is_synthetic ? "Synthetic FX" : "Authoritative FX"})
+                ({matrix.fx_rate_set?.is_synthetic ? t('matrix.syntheticFx') : t('matrix.authoritativeFx')})
               </span>
             </div>
           </div>
 
           <div className="glass-card rounded-xl p-4 space-y-1">
-            <div className="text-[10px] uppercase font-bold text-muted-foreground">Human Overrides</div>
+            <div className="text-[10px] uppercase font-bold text-muted-foreground">{t('matrix.humanOverrides')}</div>
             <div className="text-xl font-mono font-bold text-purple-400">
-              {matrix.active_overrides_count} Active
+              {t('matrix.activeOverrides', { count: matrix.active_overrides_count })}
             </div>
           </div>
 
           <div className="glass-card rounded-xl p-4 space-y-1">
-            <div className="text-[10px] uppercase font-bold text-muted-foreground">Engine Integrity</div>
+            <div className="text-[10px] uppercase font-bold text-muted-foreground">{t('matrix.engineIntegrity')}</div>
             <div className="text-xl font-mono font-bold text-emerald-400 flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4" /> Deterministic v{matrix.normalization_engine_version}
+              <CheckCircle2 className="h-4 w-4" /> {t('matrix.deterministic', { version: matrix.normalization_engine_version })}
             </div>
           </div>
         </div>
@@ -245,7 +250,7 @@ export const ComparisonMatrixPage: React.FC = () => {
       <div className="glass-card rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2 text-muted-foreground font-semibold">
           <Filter className="h-4 w-4 text-blue-400" />
-          <span>Matrix Display Filters:</span>
+          <span>{t('matrix.displayFilters')}</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
@@ -256,7 +261,7 @@ export const ComparisonMatrixPage: React.FC = () => {
               onChange={(e) => setHighlightMissing(e.target.checked)}
               className="rounded border-border bg-secondary accent-blue-500 h-3.5 w-3.5"
             />
-            <span>Highlight Missing / Not Quoted</span>
+            <span>{t('matrix.highlightMissing')}</span>
           </label>
 
           <label className="flex items-center gap-2 cursor-pointer text-foreground">
@@ -266,7 +271,7 @@ export const ComparisonMatrixPage: React.FC = () => {
               onChange={(e) => setHighlightWarnings(e.target.checked)}
               className="rounded border-border bg-secondary accent-blue-500 h-3.5 w-3.5"
             />
-            <span>Highlight Warnings & Discrepancies</span>
+            <span>{t('matrix.highlightWarnings')}</span>
           </label>
 
           <label className="flex items-center gap-2 cursor-pointer text-foreground">
@@ -276,7 +281,7 @@ export const ComparisonMatrixPage: React.FC = () => {
               onChange={(e) => setShowExtraItems(e.target.checked)}
               className="rounded border-border bg-secondary accent-blue-500 h-3.5 w-3.5"
             />
-            <span>Show Extra Unmapped Items</span>
+            <span>{t('matrix.showExtraItems')}</span>
           </label>
         </div>
       </div>
@@ -289,7 +294,7 @@ export const ComparisonMatrixPage: React.FC = () => {
       ) : error ? (
         <div className="glass-card rounded-2xl p-12 text-center space-y-4">
           <AlertCircle className="h-10 w-10 text-red-400 mx-auto" />
-          <h2 className="text-lg font-bold text-white">Failed to Compile Matrix</h2>
+          <h2 className="text-lg font-bold text-white">{t('matrix.failedCompile')}</h2>
           <p className="text-xs text-muted-foreground">{error}</p>
         </div>
       ) : matrix ? (

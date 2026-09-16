@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import { X, Camera, Clock, CheckCircle2, AlertTriangle, Eye, Plus } from "lucide-react";
 import {
   ComparisonSnapshotRead,
   createComparisonSnapshot,
   listComparisonSnapshots,
 } from "../../api/matrix";
+import { formatDateTime } from "../../lib/formatters";
+import { translateBackendError } from "../../lib/errorMessageMap";
 
 interface SnapshotsModalProps {
   rfqId: string;
@@ -19,6 +22,7 @@ export const SnapshotsModal: React.FC<SnapshotsModalProps> = ({
   onSelectSnapshot,
   onSnapshotCreated,
 }) => {
+  const { t } = useTranslation();
   const [snapshots, setSnapshots] = useState<ComparisonSnapshotRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [titleInput, setTitleInput] = useState("");
@@ -33,7 +37,7 @@ export const SnapshotsModal: React.FC<SnapshotsModalProps> = ({
       const list = await listComparisonSnapshots(rfqId);
       setSnapshots(list);
     } catch (err: any) {
-      setError(err.message || "Failed to load comparison snapshots");
+      setError(translateBackendError(err, t));
     } finally {
       setLoading(false);
     }
@@ -49,13 +53,13 @@ export const SnapshotsModal: React.FC<SnapshotsModalProps> = ({
     setError(null);
     try {
       await createComparisonSnapshot(rfqId, titleInput.trim() || undefined);
-      setSuccessMsg("Comparison snapshot frozen successfully.");
+      setSuccessMsg(t('matrix.snapshotFrozenSuccess'));
       setTitleInput("");
       onSnapshotCreated();
       loadSnapshots();
       setTimeout(() => setSuccessMsg(null), 2000);
     } catch (err: any) {
-      setError(err.message || "Failed to create comparison snapshot");
+      setError(translateBackendError(err, t));
     } finally {
       setCreating(false);
     }
@@ -71,15 +75,16 @@ export const SnapshotsModal: React.FC<SnapshotsModalProps> = ({
               <Camera className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">Comparison Snapshots</h2>
+              <h2 className="text-base font-bold text-white">{t('matrix.snapshotsModalTitle')}</h2>
               <p className="text-xs text-muted-foreground">
-                Immutable records guaranteeing 100% reproducible historical comparison states.
+                {t('matrix.snapshotsSubtitle')}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
             className="rounded-lg p-1.5 text-muted-foreground hover:text-white hover:bg-secondary transition-colors"
+            aria-label={t('common.close')}
           >
             <X className="h-5 w-5" />
           </button>
@@ -101,13 +106,13 @@ export const SnapshotsModal: React.FC<SnapshotsModalProps> = ({
 
         {/* Freeze New Snapshot Form */}
         <form onSubmit={handleCreateSnapshot} className="rounded-xl border border-border/80 bg-secondary/20 p-4 space-y-3">
-          <label className="text-xs font-bold text-white block">Freeze Current Matrix State</label>
+          <label className="text-xs font-bold text-white block">{t('matrix.freezeCurrentState')}</label>
           <div className="flex items-center gap-2">
             <input
               type="text"
               value={titleInput}
               onChange={(e) => setTitleInput(e.target.value)}
-              placeholder="e.g. Q1 Committee Baseline Review..."
+              placeholder={t('matrix.freezePlaceholder')}
               className="flex-1 rounded-lg border border-border bg-secondary/40 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-purple-500"
             />
             <button
@@ -116,7 +121,7 @@ export const SnapshotsModal: React.FC<SnapshotsModalProps> = ({
               className="flex items-center gap-1.5 rounded-xl bg-purple-600 px-4 py-2 text-xs font-bold text-white hover:bg-purple-500 transition-colors shadow-md shadow-purple-500/20 disabled:opacity-50"
             >
               <Plus className="h-3.5 w-3.5" />
-              {creating ? "Freezing..." : "Freeze Snapshot"}
+              {creating ? t('matrix.freezing') : t('matrix.freezeBtn')}
             </button>
           </div>
         </form>
@@ -124,15 +129,15 @@ export const SnapshotsModal: React.FC<SnapshotsModalProps> = ({
         {/* Historical Snapshots List */}
         <div className="space-y-2">
           <div className="text-xs font-bold text-white flex items-center justify-between">
-            <span>Historical Frozen Snapshots ({snapshots.length})</span>
+            <span>{t('matrix.historicalSnapshots', { count: snapshots.length })}</span>
           </div>
 
           <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
             {loading ? (
-              <div className="text-center py-6 text-xs text-muted-foreground">Loading snapshots...</div>
+              <div className="text-center py-6 text-xs text-muted-foreground">{t('matrix.loadingSnapshots')}</div>
             ) : snapshots.length === 0 ? (
               <div className="text-center py-8 border border-dashed border-border rounded-xl text-xs text-muted-foreground">
-                No snapshots frozen yet. Click "Freeze Snapshot" above to preserve the current state.
+                {t('matrix.noSnapshots')}
               </div>
             ) : (
               snapshots.map((s) => (
@@ -145,17 +150,31 @@ export const SnapshotsModal: React.FC<SnapshotsModalProps> = ({
                       <span className="rounded bg-purple-500/20 px-2 py-0.5 text-[10px] font-mono font-bold text-purple-300">
                         v{s.snapshot_version}
                       </span>
-                      <span className="text-xs font-semibold text-white">{s.title || `Snapshot v${s.snapshot_version}`}</span>
+                      <span className="text-xs font-semibold text-white">
+                        {s.title || t('matrix.snapshotDefaultTitle', { version: s.snapshot_version })}
+                      </span>
                     </div>
                     <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {new Date(s.created_at).toLocaleString()}
+                        {formatDateTime(s.created_at)}
                       </span>
                       <span>•</span>
-                      <span>Currency: <strong className="text-foreground">{s.reference_currency}</strong></span>
+                      <span>
+                        <Trans
+                          i18nKey="matrix.currencySnapshotInfo"
+                          values={{ currency: s.reference_currency }}
+                          components={{ 1: <strong className="text-foreground" /> }}
+                        />
+                      </span>
                       <span>•</span>
-                      <span>Engine: <strong className="text-foreground">{s.normalization_engine_version}</strong></span>
+                      <span>
+                        <Trans
+                          i18nKey="matrix.engineSnapshotInfo"
+                          values={{ version: s.normalization_engine_version }}
+                          components={{ 1: <strong className="text-foreground" /> }}
+                        />
+                      </span>
                     </div>
                   </div>
 
@@ -165,7 +184,7 @@ export const SnapshotsModal: React.FC<SnapshotsModalProps> = ({
                       onClick={() => onSelectSnapshot(s)}
                       className="inline-flex items-center gap-1 rounded-lg bg-secondary px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-white transition-colors border border-border"
                     >
-                      <Eye className="h-3.5 w-3.5" /> View
+                      <Eye className="h-3.5 w-3.5" /> {t('matrix.viewSnapshotBtn')}
                     </button>
                   )}
                 </div>
@@ -180,7 +199,7 @@ export const SnapshotsModal: React.FC<SnapshotsModalProps> = ({
             onClick={onClose}
             className="rounded-xl border border-border bg-secondary/40 px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
           >
-            Close
+            {t('common.close')}
           </button>
         </div>
       </div>

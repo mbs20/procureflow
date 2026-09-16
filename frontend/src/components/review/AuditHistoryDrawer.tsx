@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { History, X, Clock, User, ArrowRight } from "lucide-react";
 import { AuditLogEntry } from "../../api/quotation";
 
@@ -13,24 +14,25 @@ export const AuditHistoryDrawer: React.FC<AuditHistoryDrawerProps> = ({
   onClose,
   logs,
 }) => {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   const formatEventName = (eventType: string) => {
     switch (eventType) {
       case "LINE_ITEM_CORRECTED":
-        return "Line Item Corrected";
+        return t('review.eventLineItemCorrected');
       case "LINE_ITEM_ADDED":
-        return "Line Item Added";
+        return t('review.eventLineItemAdded');
       case "LINE_ITEM_EXCLUDED":
-        return "Line Item Excluded";
+        return t('review.eventLineItemExcluded');
       case "LINE_ITEM_RESTORED":
-        return "Line Item Restored";
+        return t('review.eventLineItemRestored');
       case "QUOTATION_FIELD_CORRECTED":
-        return "Header Field Corrected";
+        return t('review.eventQuotationFieldCorrected');
       case "QUOTATION_EXTRACTION_APPROVED":
-        return "Extraction Approved";
+        return t('review.eventExtractionApproved');
       case "QUOTATION_EXTRACTION_REJECTED":
-        return "Extraction Rejected";
+        return t('review.eventExtractionRejected');
       default:
         return eventType;
     }
@@ -48,12 +50,14 @@ export const AuditHistoryDrawer: React.FC<AuditHistoryDrawerProps> = ({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/60">
           <div className="flex items-center gap-2 text-white font-bold text-sm">
             <History className="w-4 h-4 text-blue-400" />
-            <h2 id="audit-drawer-title">Immutable Audit Trail ({logs.length})</h2>
+            <h2 id="audit-drawer-title">
+              {t('review.auditDrawerTitle', { count: logs.length })}
+            </h2>
           </div>
           <button
             onClick={onClose}
             className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition"
-            aria-label="Close audit drawer"
+            aria-label={t('common.close')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -63,7 +67,7 @@ export const AuditHistoryDrawer: React.FC<AuditHistoryDrawerProps> = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {logs.length === 0 ? (
             <div className="text-center text-xs text-slate-500 py-12">
-              No audit events recorded for this quotation yet.
+              {t('review.noAuditEvents')}
             </div>
           ) : (
             logs.map((log) => {
@@ -91,7 +95,9 @@ export const AuditHistoryDrawer: React.FC<AuditHistoryDrawerProps> = ({
 
                   <div className="flex items-center gap-1 text-[11px] text-slate-400">
                     <User className="w-3 h-3 text-slate-500" />
-                    <span>Actor: {log.actor_id} ({log.actor_type})</span>
+                    <span>
+                      {t('review.actorLabel', { id: log.actor_id, actor: log.actor_id, type: log.actor_type })}
+                    </span>
                   </div>
 
                   {/* Value diff display */}
@@ -114,13 +120,13 @@ export const AuditHistoryDrawer: React.FC<AuditHistoryDrawerProps> = ({
 
                   {payload.reason && (
                     <div className="text-[11px] text-amber-300/90 italic">
-                      Reason: "{payload.reason}"
+                      {t('review.reasonPrefix', { reason: payload.reason })}
                     </div>
                   )}
 
                   {payload.rejection_reason && (
                     <div className="text-[11px] text-rose-300/90 italic">
-                      Rejection Reason: "{payload.rejection_reason}"
+                      {t('review.rejectionReasonPrefix', { reason: payload.rejection_reason })}
                     </div>
                   )}
                 </div>

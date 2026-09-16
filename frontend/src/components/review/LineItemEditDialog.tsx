@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { X, Save, AlertTriangle, Calculator } from "lucide-react";
 import { ExtractedLineItem } from "../../api/quotation";
 import { RFQLineItem } from "../../api/rfq";
+import { formatCurrency } from "../../lib/formatters";
+import { translateBackendError } from "../../lib/errorMessageMap";
 
 interface LineItemEditDialogProps {
   item: ExtractedLineItem | null;
@@ -18,30 +21,34 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
   onClose,
   onSave,
 }) => {
-  if (!isOpen || !item) return null;
+  const { t } = useTranslation();
 
-  const [description, setDescription] = useState<string>(item.description_raw);
-  const [quantity, setQuantity] = useState<number>(item.quantity);
-  const [unit, setUnit] = useState<string>(item.unit || "units");
-  const [unitPrice, setUnitPrice] = useState<number>(item.unit_price);
-  const [quotedTotal, setQuotedTotal] = useState<number>(item.total_price);
-  const [leadTime, setLeadTime] = useState<number | undefined>(item.lead_time_days ?? undefined);
-  const [rfqItemId, setRfqItemId] = useState<string>(item.rfq_line_item_id || "");
+  const [description, setDescription] = useState<string>(item?.description_raw || "");
+  const [quantity, setQuantity] = useState<number>(item?.quantity || 0);
+  const [unit, setUnit] = useState<string>(item?.unit || "units");
+  const [unitPrice, setUnitPrice] = useState<number>(item?.unit_price || 0);
+  const [quotedTotal, setQuotedTotal] = useState<number>(item?.total_price || 0);
+  const [leadTime, setLeadTime] = useState<number | undefined>(item?.lead_time_days ?? undefined);
+  const [rfqItemId, setRfqItemId] = useState<string>(item?.rfq_line_item_id || "");
   const [reason, setReason] = useState<string>("");
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setDescription(item.description_raw);
-    setQuantity(item.quantity);
-    setUnit(item.unit || "units");
-    setUnitPrice(item.unit_price);
-    setQuotedTotal(item.total_price);
-    setLeadTime(item.lead_time_days ?? undefined);
-    setRfqItemId(item.rfq_line_item_id || "");
-    setReason("");
-    setError(null);
+    if (item) {
+      setDescription(item.description_raw);
+      setQuantity(item.quantity);
+      setUnit(item.unit || "units");
+      setUnitPrice(item.unit_price);
+      setQuotedTotal(item.total_price);
+      setLeadTime(item.lead_time_days ?? undefined);
+      setRfqItemId(item.rfq_line_item_id || "");
+      setReason("");
+      setError(null);
+    }
   }, [item]);
+
+  if (!isOpen || !item) return null;
 
   const calculatedTotal = Number((quantity * unitPrice).toFixed(4));
   const mathDiscrepancy = Math.abs(quotedTotal - calculatedTotal) > 0.01;
@@ -69,7 +76,7 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
       await onSave(item.id, patch, reason);
       onClose();
     } catch (err: any) {
-      setError(err.message || "Failed to save line item correction");
+      setError(translateBackendError(err, t));
     } finally {
       setSaving(false);
     }
@@ -87,21 +94,21 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/60">
           <div>
             <h2 id="edit-item-title" className="text-base font-bold text-white flex items-center gap-2">
-              <span>Edit Line Item (Preserves Quoted vs Calculated)</span>
+              <span>{t('review.editDialogTitle')}</span>
               {item.human_corrected && (
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-800">
-                  Previously Corrected
+                  {t('review.previouslyCorrected')}
                 </span>
               )}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Auditable human-in-the-loop correction. Original extraction values remain preserved in audit history.
+              {t('review.editDialogSubtitle')}
             </p>
           </div>
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
-            aria-label="Close dialog"
+            aria-label={t('common.close')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -110,7 +117,7 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
         {/* Body Form */}
         <form onSubmit={handleSave} className="p-6 space-y-4">
           <div className="p-3 bg-blue-950/40 border border-blue-800/60 rounded-lg text-xs text-blue-300">
-            <strong>Phase 3 Audit Safeguard:</strong> Changes are recorded with reviewer timestamp and reason. Original supplier-quoted extraction is retained.
+            <strong>{t('review.phase3Safeguard')}</strong>
           </div>
 
           {error && (
@@ -122,7 +129,7 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
           {/* Reason for Change */}
           <div>
             <label htmlFor="edit-reason" className="block text-xs font-semibold text-slate-300 mb-1">
-              Reason for Change *
+              {t('review.reasonForChange')}
             </label>
             <input
               id="edit-reason"
@@ -130,7 +137,7 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               required
-              placeholder="e.g. Corrected OCR typo in unit price based on invoice page 1"
+              placeholder={t('review.reasonPlaceholder')}
               className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 transition"
             />
           </div>
@@ -138,9 +145,10 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
           {/* Description */}
           <div>
             <label htmlFor="edit-description" className="block text-xs font-semibold text-slate-300 mb-1">
-              Item Raw Description
+              {t('review.rawDescriptionLabel')}
             </label>
             <input
+              id="edit-description"
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -152,14 +160,14 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
           {/* RFQ Line Item Matching */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Match with RFQ Line Item
+              {t('review.matchRfqLabel')}
             </label>
             <select
               value={rfqItemId}
               onChange={(e) => setRfqItemId(e.target.value)}
               className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500 transition"
             >
-              <option value="">-- Select matching RFQ requirement --</option>
+              <option value="">{t('review.selectRfqPrompt')}</option>
               {rfqLineItems.map((rfqItem) => (
                 <option key={rfqItem.id} value={rfqItem.id}>
                   Item #{rfqItem.position}: {rfqItem.description} ({rfqItem.quantity} {rfqItem.unit})
@@ -171,7 +179,7 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
           {/* Qty, Unit, Unit Price */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Quantity</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('review.quantityLabel')}</label>
               <input
                 type="number"
                 step="any"
@@ -184,7 +192,7 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Unit</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('review.unitLabel')}</label>
               <input
                 type="text"
                 value={unit}
@@ -196,7 +204,7 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Unit Price ({item.currency})
+                {t('review.unitPriceLabel', { currency: item.currency })}
               </label>
               <input
                 type="number"
@@ -215,18 +223,18 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
             <div className="flex items-center justify-between text-xs">
               <span className="font-semibold text-slate-300 flex items-center gap-1.5">
                 <Calculator className="w-4 h-4 text-blue-400" />
-                <span>Price Preservation & Verification</span>
+                <span>{t('review.pricePreservationTitle')}</span>
               </span>
               <span className="text-[11px] text-slate-400 font-mono">
-                Calculated ({quantity} × {unitPrice}):{" "}
-                <strong className="text-white">${calculatedTotal.toFixed(2)}</strong>
+                {t('review.calculatedFormula', { qty: quantity, price: formatCurrency(unitPrice, item.currency) })}{" "}
+                <strong className="text-white">{formatCurrency(calculatedTotal, item.currency)}</strong>
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3 items-end">
               <div>
                 <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                  Supplier-Quoted Total ({item.currency})
+                  {t('review.supplierQuotedTotal', { currency: item.currency })}
                 </label>
                 <input
                   type="number"
@@ -244,7 +252,7 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
                   onClick={handleApplyCalculatedToQuoted}
                   className="px-3 py-2 text-xs rounded-lg bg-blue-900/40 hover:bg-blue-800/60 border border-blue-700/60 text-blue-200 transition font-medium text-left"
                 >
-                  Set Quoted to Calculated (${calculatedTotal.toFixed(2)})
+                  {t('review.setQuotedToCalculated', { amount: formatCurrency(calculatedTotal, item.currency) })}
                 </button>
               )}
             </div>
@@ -253,7 +261,10 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
               <div className="flex items-center gap-2 text-[11px] text-amber-300 bg-amber-950/30 border border-amber-800/40 p-2 rounded">
                 <AlertTriangle className="w-4 h-4 flex-shrink-0 text-amber-400" />
                 <span>
-                  Mathematical discrepancy detected: Quoted total (${quotedTotal.toFixed(2)}) differs from calculated total (${calculatedTotal.toFixed(2)}).
+                  {t('review.mathDiscrepancy', {
+                    quoted: formatCurrency(quotedTotal, item.currency),
+                    calculated: formatCurrency(calculatedTotal, item.currency)
+                  })}
                 </span>
               </div>
             )}
@@ -262,7 +273,7 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
           {/* Lead Time */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Lead Time (Calendar Days)
+              {t('review.leadTimeDaysLabel')}
             </label>
             <input
               type="number"
@@ -281,7 +292,7 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
               onClick={onClose}
               className="px-4 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -289,7 +300,7 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
               className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg shadow-lg shadow-blue-500/20 transition"
             >
               <Save className="w-4 h-4" />
-              <span>{saving ? "Saving Changes..." : "Save Correction"}</span>
+              <span>{saving ? t('review.savingChanges') : t('review.saveCorrection')}</span>
             </button>
           </div>
         </form>

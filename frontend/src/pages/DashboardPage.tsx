@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Activity,
   CheckCircle2,
@@ -13,8 +14,10 @@ import {
   Scale,
 } from "lucide-react";
 import { fetchHealth, HealthResponse } from "../api/client";
+import { translateBackendError } from "../lib/errorMessageMap";
 
 export const DashboardPage: React.FC = () => {
+  const { t } = useTranslation();
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,14 +47,13 @@ export const DashboardPage: React.FC = () => {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-400">
               <Sparkles className="h-3.5 w-3.5" />
-              Transparent & Explainable Procurement Intelligence
+              {t("dashboard.welcomePill", "Transparent & Explainable Procurement Intelligence")}
             </div>
             <h1 className="text-3xl font-extrabold tracking-tight text-white md:text-4xl">
-              ProcureFlow <span className="gradient-text">Decision Engine</span>
+              ProcureFlow <span className="gradient-text">{t("dashboard.titleHighlight", "Decision Engine")}</span>
             </h1>
             <p className="max-w-2xl text-sm text-slate-300">
-              Transform messy, unstructured vendor quotations (PDF, Excel, CSV) into standardized,
-              transparent, and audit-compliant procurement awards.
+              {t("dashboard.subtitle", "Transform messy, unstructured vendor quotations (PDF, Excel, CSV) into standardized, transparent, and audit-compliant procurement awards.")}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -61,7 +63,7 @@ export const DashboardPage: React.FC = () => {
               className="flex items-center gap-2 rounded-xl border border-border bg-card/80 px-4 py-2 text-xs font-medium text-foreground hover:bg-secondary transition-all"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-              Refresh Health
+              {t("dashboard.refreshHealth", "Refresh Health")}
             </button>
           </div>
         </div>
@@ -73,18 +75,18 @@ export const DashboardPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-blue-400" />
             <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">
-              Core Engine Health & Subsystems
+              {t("dashboard.healthTitle", "Core Engine Health & Subsystems")}
             </h2>
           </div>
           <span className="text-xs text-muted-foreground">
-            Version: {health?.version || "0.1.0"} ({health?.environment || "development"})
+            {t("dashboard.version", "Version")}: {health?.version || "0.1.0"} ({health?.environment || "development"})
           </span>
         </div>
 
         {error ? (
           <div className="flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-xs text-red-400">
             <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>Backend service connectivity notice: {error} (verify FastAPI server is listening on port 8000)</span>
+            <span>{t("dashboard.connectivityNotice", { error: translateBackendError(error) })}</span>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -95,13 +97,13 @@ export const DashboardPage: React.FC = () => {
                   <Database className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-foreground">Relational Storage</div>
-                  <div className="text-[11px] text-muted-foreground">PostgreSQL / Async SQLite</div>
+                  <div className="text-xs font-semibold text-foreground">{t("dashboard.relationalStorage", "Relational Storage")}</div>
+                  <div className="text-[11px] text-muted-foreground">{t("dashboard.relationalTech", "PostgreSQL / Async SQLite")}</div>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-400">
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>{health?.database.status === "healthy" ? "Online" : "Ready"}</span>
+                <span>{health?.database.status === "healthy" ? t("dashboard.online", "Online") : t("dashboard.ready", "Ready")}</span>
               </div>
             </div>
 
@@ -112,13 +114,13 @@ export const DashboardPage: React.FC = () => {
                   <Cpu className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-foreground">Ingestion Pipeline</div>
-                  <div className="text-[11px] text-muted-foreground">Celery + Redis Broker</div>
+                  <div className="text-xs font-semibold text-foreground">{t("dashboard.ingestionPipeline", "Ingestion Pipeline")}</div>
+                  <div className="text-[11px] text-muted-foreground">{t("dashboard.ingestionTech", "Celery + Redis Broker")}</div>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-400">
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>Active</span>
+                <span>{t("dashboard.active", "Active")}</span>
               </div>
             </div>
 
@@ -129,13 +131,13 @@ export const DashboardPage: React.FC = () => {
                   <Sparkles className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-foreground">Structured AI Engine</div>
-                  <div className="text-[11px] text-muted-foreground">OpenAI & Local Ollama Support</div>
+                  <div className="text-xs font-semibold text-foreground">{t("dashboard.aiEngine", "Structured AI Engine")}</div>
+                  <div className="text-[11px] text-muted-foreground">{t("dashboard.aiTech", "OpenAI & Local Ollama Support")}</div>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-400">
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>Configured</span>
+                <span>{t("dashboard.configured", "Configured")}</span>
               </div>
             </div>
           </div>
@@ -146,45 +148,45 @@ export const DashboardPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="glass-card rounded-xl p-5 space-y-2">
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs uppercase font-semibold">1. Multi-Format Intake</span>
+            <span className="text-xs uppercase font-semibold">{t("dashboard.pillar1Title", "1. Multi-Format Intake")}</span>
             <FileSpreadsheet className="h-4 w-4 text-blue-400" />
           </div>
-          <div className="text-lg font-bold text-white">PDF, Excel, CSV</div>
+          <div className="text-lg font-bold text-white">{t("dashboard.pillar1Subtitle", "PDF, Excel, CSV")}</div>
           <p className="text-xs text-muted-foreground">
-            Automatic structure detection and layout-aware table extraction.
+            {t("dashboard.pillar1Desc", "Automatic structure detection and layout-aware table extraction.")}
           </p>
         </div>
 
         <div className="glass-card rounded-xl p-5 space-y-2">
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs uppercase font-semibold">2. Source Citations</span>
+            <span className="text-xs uppercase font-semibold">{t("dashboard.pillar2Title", "2. Source Citations")}</span>
             <CheckCircle2 className="h-4 w-4 text-emerald-400" />
           </div>
-          <div className="text-lg font-bold text-white">Zero Black-Box</div>
+          <div className="text-lg font-bold text-white">{t("dashboard.pillar2Subtitle", "Zero Black-Box")}</div>
           <p className="text-xs text-muted-foreground">
-            Every extracted line item links directly to its source page and coordinate.
+            {t("dashboard.pillar2Desc", "Every extracted line item links directly to its source page and coordinate.")}
           </p>
         </div>
 
         <div className="glass-card rounded-xl p-5 space-y-2">
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs uppercase font-semibold">3. Weighted Scoring</span>
+            <span className="text-xs uppercase font-semibold">{t("dashboard.pillar3Title", "3. Weighted Scoring")}</span>
             <Scale className="h-4 w-4 text-amber-400" />
           </div>
-          <div className="text-lg font-bold text-white">Deterministic Math</div>
+          <div className="text-lg font-bold text-white">{t("dashboard.pillar3Subtitle", "Deterministic Math")}</div>
           <p className="text-xs text-muted-foreground">
-            Configurable criteria weights, knockout conditions, and full score breakdowns.
+            {t("dashboard.pillar3Desc", "Configurable criteria weights, knockout conditions, and full score breakdowns.")}
           </p>
         </div>
 
         <div className="glass-card rounded-xl p-5 space-y-2">
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs uppercase font-semibold">4. Audit Philosophy</span>
+            <span className="text-xs uppercase font-semibold">{t("dashboard.pillar4Title", "4. Audit Philosophy")}</span>
             <TrendingUp className="h-4 w-4 text-purple-400" />
           </div>
-          <div className="text-lg font-bold text-white">Append-Only Logs</div>
+          <div className="text-lg font-bold text-white">{t("dashboard.pillar4Subtitle", "Append-Only Logs")}</div>
           <p className="text-xs text-muted-foreground">
-            Soft-delete archiving and full provenance on every decision override.
+            {t("dashboard.pillar4Desc", "Soft-delete archiving and full provenance on every decision override.")}
           </p>
         </div>
       </div>
@@ -194,21 +196,21 @@ export const DashboardPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <Layers className="h-4 w-4 text-blue-400" />
-            Standard Procurement Decision Journey
+            {t("dashboard.journeyTitle", "Standard Procurement Decision Journey")}
           </h2>
           <span className="text-xs font-medium text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-md border border-blue-500/20">
-            Phase 0 Foundation Validated
+            {t("dashboard.journeyBadge", "Phase 0 Foundation Validated")}
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-6 gap-3 pt-2">
           {[
-            { step: "01", title: "Create RFQ", desc: "Define items & weighted criteria" },
-            { step: "02", title: "Upload Quotes", desc: "PDF, XLSX, CSV from vendors" },
-            { step: "03", title: "Human Review", desc: "Side-by-side verification & audit" },
-            { step: "04", title: "Normalization", desc: "Currency & unit alignment" },
-            { step: "05", title: "Scoring Engine", desc: "Transparent ranking calculation" },
-            { step: "06", title: "Award & Export", desc: "Decision record & PDF archive" },
+            { step: "01", title: t("dashboard.step1Title", "Create RFQ"), desc: t("dashboard.step1Desc", "Define items & weighted criteria") },
+            { step: "02", title: t("dashboard.step2Title", "Upload Quotes"), desc: t("dashboard.step2Desc", "PDF, XLSX, CSV from vendors") },
+            { step: "03", title: t("dashboard.step3Title", "Human Review"), desc: t("dashboard.step3Desc", "Side-by-side verification & audit") },
+            { step: "04", title: t("dashboard.step4Title", "Normalization"), desc: t("dashboard.step4Desc", "Currency & unit alignment") },
+            { step: "05", title: t("dashboard.step5Title", "Scoring Engine"), desc: t("dashboard.step5Desc", "Transparent ranking calculation") },
+            { step: "06", title: t("dashboard.step6Title", "Award & Export"), desc: t("dashboard.step6Desc", "Decision record & PDF archive") },
           ].map((item) => (
             <div
               key={item.step}

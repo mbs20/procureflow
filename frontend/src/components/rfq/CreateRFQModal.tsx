@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   X,
   Plus,
@@ -10,6 +11,7 @@ import {
   Layers,
 } from "lucide-react";
 import { Criterion, LineItem, createRFQ } from "../../api/rfq";
+import { translateBackendError } from "../../lib/errorMessageMap";
 
 interface CreateRFQModalProps {
   isOpen: boolean;
@@ -22,6 +24,7 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Industrial Valves & Equipment");
@@ -88,11 +91,11 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      setError("Please specify an RFQ title");
+      setError(t("rfq.specifyTitleError", "Please specify an RFQ title"));
       return;
     }
     if (!isWeightValid) {
-      setError(`Criteria weights must sum to exactly 100% (currently ${totalWeightPercent}%)`);
+      setError(t("rfq.weightsError", { percent: totalWeightPercent, defaultValue: `Criteria weights must sum to exactly 100% (currently ${totalWeightPercent}%)` }));
       return;
     }
 
@@ -125,12 +128,13 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
               <Layers className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Create Procurement Request (RFQ)</h2>
-              <p className="text-xs text-muted-foreground">Define required line items and evaluation criteria</p>
+              <h2 className="text-lg font-bold text-white">{t("rfq.createModalTitle", "Create Procurement Request (RFQ)")}</h2>
+              <p className="text-xs text-muted-foreground">{t("rfq.createModalDesc", "Define required line items and evaluation criteria")}</p>
             </div>
           </div>
           <button
             onClick={onClose}
+            aria-label={t("common.close", "Close")}
             className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-white transition-colors"
           >
             <X className="h-5 w-5" />
@@ -140,21 +144,21 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
         {error && (
           <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
             <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{error}</span>
+            <span>{translateBackendError(error) || error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* General Information */}
           <div className="space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">1. RFQ Overview</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("rfq.modalOverview", "1. RFQ Overview")}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-xs font-medium text-foreground">RFQ Title *</label>
+                <label className="text-xs font-medium text-foreground">{t("rfq.modalTitleLabel", "RFQ Title *")}</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Q4 2026 Stainless Steel Piping & Valves"
+                  placeholder={t("rfq.rfqTitlePlaceholder", "e.g., High-Pressure Valves Sourcing 2026")}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full rounded-lg border border-border bg-secondary/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -162,7 +166,7 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground">Category</label>
+                <label className="text-xs font-medium text-foreground">{t("rfq.modalCategoryLabel", "Category")}</label>
                 <input
                   type="text"
                   placeholder="e.g. Industrial Valves"
@@ -173,7 +177,7 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground">Reference Currency</label>
+                <label className="text-xs font-medium text-foreground">{t("rfq.modalCurrencyLabel", "Reference Currency")}</label>
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
@@ -188,10 +192,10 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
               </div>
 
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-xs font-medium text-foreground">Scope / Description</label>
+                <label className="text-xs font-medium text-foreground">{t("rfq.modalScopeLabel", "Scope / Description")}</label>
                 <textarea
                   rows={2}
-                  placeholder="Additional context or technical specifications..."
+                  placeholder={t("rfq.descriptionPlaceholder", "Detailed specifications, delivery conditions, and vendor guidelines...")}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full rounded-lg border border-border bg-secondary/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -203,14 +207,14 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
           {/* Line Items Builder */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">2. Required Line Items</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("rfq.modalLineItems", "2. Required Line Items")}</h3>
               <button
                 type="button"
                 onClick={handleAddLineItem}
                 className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/50 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-secondary"
               >
                 <Plus className="h-3 w-3" />
-                Add Item
+                {t("rfq.addItem", "Add Item")}
               </button>
             </div>
 
@@ -221,7 +225,7 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
                   <input
                     type="text"
                     required
-                    placeholder="Product or service description"
+                    placeholder={t("rfq.itemDescriptionPlaceholder", "Description / Specification")}
                     value={item.description}
                     onChange={(e) => handleLineItemChange(idx, "description", e.target.value)}
                     className="flex-1 rounded-md border border-border bg-secondary/50 px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -230,14 +234,14 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
                     type="number"
                     min="1"
                     required
-                    placeholder="Qty"
+                    placeholder={t("rfq.qty", "Qty")}
                     value={item.quantity}
                     onChange={(e) => handleLineItemChange(idx, "quantity", parseFloat(e.target.value) || 0)}
                     className="w-20 rounded-md border border-border bg-secondary/50 px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                   <input
                     type="text"
-                    placeholder="Unit"
+                    placeholder={t("rfq.unit", "Unit")}
                     value={item.unit}
                     onChange={(e) => handleLineItemChange(idx, "unit", e.target.value)}
                     className="w-20 rounded-md border border-border bg-secondary/50 px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -247,6 +251,7 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
                       type="button"
                       onClick={() => handleRemoveLineItem(idx)}
                       className="text-muted-foreground hover:text-red-400 p-1"
+                      aria-label={t("common.delete", "Delete")}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -262,7 +267,7 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <Scale className="h-3.5 w-3.5 text-blue-400" />
-                  3. Weighted Evaluation Criteria
+                  {t("rfq.modalCriteria", "3. Weighted Evaluation Criteria")}
                 </h3>
               </div>
               <div className="flex items-center gap-2">
@@ -272,7 +277,7 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
                   className="flex items-center gap-1 rounded-lg border border-purple-500/30 bg-purple-500/10 px-2.5 py-1 text-xs font-medium text-purple-300 hover:bg-purple-500/20"
                 >
                   <Sparkles className="h-3 w-3" />
-                  Balanced Preset (40/30/20/10)
+                  {t("rfq.balancedPreset", "Balanced Preset (40/30/20/10)")}
                 </button>
                 <button
                   type="button"
@@ -280,7 +285,7 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
                   className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/50 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-secondary"
                 >
                   <Plus className="h-3 w-3" />
-                  Add Criterion
+                  {t("rfq.addCriterion", "Add Criterion")}
                 </button>
               </div>
             </div>
@@ -288,10 +293,10 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
             {/* Total Weight Live Status Meter */}
             <div className="rounded-xl border border-border bg-secondary/30 p-3.5 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-medium text-muted-foreground">Total Weight Sum</span>
+                <span className="font-medium text-muted-foreground">{t("rfq.totalWeightSum", "Total Weight Sum")}</span>
                 <span className={`font-bold flex items-center gap-1 ${isWeightValid ? "text-emerald-400" : "text-amber-400"}`}>
                   {isWeightValid ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
-                  {totalWeightPercent}% {isWeightValid ? "(Valid 100%)" : "(Must equal 100%)"}
+                  {totalWeightPercent}% {isWeightValid ? t("rfq.valid100", "(Valid 100%)") : t("rfq.mustEqual100", "(Must equal 100%)")}
                 </span>
               </div>
               <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
@@ -308,7 +313,7 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
                   <input
                     type="text"
                     required
-                    placeholder="Criterion name"
+                    placeholder={t("rfq.criterionNamePlaceholder", "Criterion Name")}
                     value={crit.name}
                     onChange={(e) => handleCriterionChange(idx, "name", e.target.value)}
                     className="flex-1 rounded-md border border-border bg-secondary/50 px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -328,16 +333,17 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
                   <select
                     value={crit.direction}
                     onChange={(e) => handleCriterionChange(idx, "direction", e.target.value)}
-                    className="w-36 rounded-md border border-border bg-secondary/50 px-2 py-1.5 text-xs text-foreground focus:outline-none"
+                    className="w-48 rounded-md border border-border bg-secondary/50 px-2 py-1.5 text-xs text-foreground focus:outline-none"
                   >
-                    <option value="lower_is_better">Lower is Better (e.g. Price)</option>
-                    <option value="higher_is_better">Higher is Better (e.g. Warranty)</option>
+                    <option value="lower_is_better">{t("rfq.lowerBetterOption", "Lower is Better (e.g. Price)")}</option>
+                    <option value="higher_is_better">{t("rfq.higherBetterOption", "Higher is Better (e.g. Warranty)")}</option>
                   </select>
                   {criteria.length > 1 && (
                     <button
                       type="button"
                       onClick={() => handleRemoveCriterion(idx)}
                       className="text-muted-foreground hover:text-red-400 p-1"
+                      aria-label={t("common.delete", "Delete")}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -353,7 +359,7 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
               onClick={onClose}
               className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
             >
-              Cancel
+              {t("common.cancel", "Cancel")}
             </button>
             <button
               type="submit"
@@ -364,7 +370,7 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
                   : "bg-muted cursor-not-allowed opacity-60"
               }`}
             >
-              {loading ? "Creating..." : "Create RFQ"}
+              {loading ? t("common.loading", "Creating...") : t("rfq.createRfqNow", "Create RFQ")}
             </button>
           </div>
         </form>

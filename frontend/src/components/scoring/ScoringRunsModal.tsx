@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ScoringRunResponse, ScoringConfigurationResponse } from "../../api/scoring";
 import { ComparisonSnapshotRead } from "../../api/matrix";
 import { X, History, CheckCircle2, Play, Hash, Calendar } from "lucide-react";
+import { formatDateTime } from "../../lib/formatters";
 
 interface ScoringRunsModalProps {
   isOpen: boolean;
@@ -26,6 +28,7 @@ export const ScoringRunsModal: React.FC<ScoringRunsModalProps> = ({
   onSelectRun,
   selectedRunId,
 }) => {
+  const { t } = useTranslation();
   const [snapshotToRun, setSnapshotToRun] = useState<string>(selectedSnapshotId || (snapshots[0]?.id || ""));
   const [notes, setNotes] = useState<string>("");
   const [isExecuting, setIsExecuting] = useState(false);
@@ -35,7 +38,7 @@ export const ScoringRunsModal: React.FC<ScoringRunsModalProps> = ({
 
   const handleCreateRun = async () => {
     if (!snapshotToRun) {
-      setErrorMsg("Please select a frozen comparison snapshot to evaluate");
+      setErrorMsg(t("scoring.selectSnapshotError"));
       return;
     }
     setErrorMsg(null);
@@ -44,7 +47,7 @@ export const ScoringRunsModal: React.FC<ScoringRunsModalProps> = ({
       await onExecuteRun(snapshotToRun, notes);
       setNotes("");
     } catch (err: any) {
-      setErrorMsg(err.message || "Failed to execute scoring run");
+      setErrorMsg(err.message || t("scoring.failedExecuteRunError"));
     } finally {
       setIsExecuting(false);
     }
@@ -63,10 +66,10 @@ export const ScoringRunsModal: React.FC<ScoringRunsModalProps> = ({
           <div>
             <h2 id="scoring-runs-modal-title" className="text-xl font-bold text-white flex items-center gap-2">
               <History className="h-5 w-5 text-primary" />
-              Historical Scoring Runs & Executions
+              {t("scoring.runsModalTitle")}
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Append-only audit trail binding immutable ComparisonSnapshots to versioned ScoringConfigurations.
+              {t("scoring.runsModalDesc")}
             </p>
           </div>
           <button
@@ -84,7 +87,7 @@ export const ScoringRunsModal: React.FC<ScoringRunsModalProps> = ({
           <div className="glass-card rounded-xl p-5 space-y-4 border border-border/80 bg-secondary/20">
             <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
               <Play className="h-4 w-4 text-emerald-400" />
-              Execute New Scoring Run
+              {t("scoring.executeNewRunTitle")}
             </h3>
 
             {errorMsg && (
@@ -96,7 +99,7 @@ export const ScoringRunsModal: React.FC<ScoringRunsModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-semibold text-muted-foreground mb-1 block">
-                  Target Comparison Snapshot
+                  {t("scoring.targetSnapshotLabel")}
                 </label>
                 <select
                   value={snapshotToRun}
@@ -113,20 +116,20 @@ export const ScoringRunsModal: React.FC<ScoringRunsModalProps> = ({
 
               <div>
                 <label className="text-xs font-semibold text-muted-foreground mb-1 block">
-                  Active Scoring Configuration
+                  {t("scoring.activeScoringConfigLabel")}
                 </label>
                 <div className="rounded-xl border border-border bg-card/60 px-3.5 py-2 text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>{activeConfig ? `${activeConfig.name} (v${activeConfig.version})` : "No active config"}</span>
-                  <span className="text-[10px] text-emerald-400 uppercase font-mono">Active</span>
+                  <span>{activeConfig ? `${activeConfig.name} (v${activeConfig.version})` : t("scoring.noActiveConfig")}</span>
+                  <span className="text-[10px] text-emerald-400 uppercase font-mono">{t("common.active")}</span>
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1 block">Run Notes (Optional)</label>
+              <label className="text-xs font-semibold text-muted-foreground mb-1 block">{t("scoring.runNotesLabel")}</label>
               <input
                 type="text"
-                placeholder="e.g. Formal Phase 5 baseline evaluation run"
+                placeholder={t("scoring.runNotesPlaceholder")}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full rounded-xl border border-border bg-card px-3.5 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
@@ -140,7 +143,7 @@ export const ScoringRunsModal: React.FC<ScoringRunsModalProps> = ({
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
               >
                 <Play className={`h-3.5 w-3.5 ${isExecuting ? "animate-spin" : ""}`} />
-                {isExecuting ? "Executing & Freezing Run..." : "Execute & Freeze Scoring Run"}
+                {isExecuting ? t("scoring.executingRunBtn") : t("scoring.executeAndFreezeBtn")}
               </button>
             </div>
           </div>
@@ -148,18 +151,18 @@ export const ScoringRunsModal: React.FC<ScoringRunsModalProps> = ({
           {/* Historical Runs List */}
           <div className="space-y-3">
             <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-              Frozen Evaluation Runs ({runs.length})
+              {t("scoring.frozenRunsCount", { count: runs.length })}
             </h3>
 
             {runs.length === 0 ? (
               <div className="p-6 text-center text-xs text-muted-foreground glass-card rounded-xl">
-                No scoring runs executed yet. Select a snapshot and execute a run above.
+                {t("scoring.noRunsYet")}
               </div>
             ) : (
               <div className="space-y-2.5">
                 {runs.map((r) => {
                   const isSelected = selectedRunId === r.id;
-                  const dateStr = new Date(r.created_at).toLocaleString();
+                  const dateStr = formatDateTime(r.created_at);
 
                   return (
                     <div
@@ -180,7 +183,7 @@ export const ScoringRunsModal: React.FC<ScoringRunsModalProps> = ({
                           </span>
                           {isSelected && (
                             <span className="text-[10px] uppercase font-bold text-primary flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3" /> Active View
+                              <CheckCircle2 className="h-3 w-3" /> {t("scoring.activeView")}
                             </span>
                           )}
                         </div>
@@ -213,7 +216,7 @@ export const ScoringRunsModal: React.FC<ScoringRunsModalProps> = ({
                               : "border border-border bg-secondary/50 text-foreground hover:bg-secondary hover:text-white"
                           }`}
                         >
-                          {isSelected ? "Currently Viewing" : "Load Frozen View"}
+                          {isSelected ? t("scoring.currentlyViewing") : t("scoring.loadFrozenView")}
                         </button>
                       </div>
                     </div>
@@ -230,7 +233,7 @@ export const ScoringRunsModal: React.FC<ScoringRunsModalProps> = ({
             onClick={onClose}
             className="px-4 py-2 rounded-xl bg-secondary text-sm font-semibold text-foreground hover:bg-secondary/80 transition-colors"
           >
-            Close
+            {t("common.close")}
           </button>
         </div>
       </div>

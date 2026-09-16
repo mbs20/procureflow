@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
 import { FileSpreadsheet, RefreshCw, AlertCircle } from "lucide-react";
@@ -25,6 +26,7 @@ export const SpreadsheetViewer: React.FC<SpreadsheetViewerProps> = ({
   filename = "",
   activeEvidence,
 }) => {
+  const { t } = useTranslation();
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Map<number, HTMLTableRowElement>>(new Map());
 
@@ -186,7 +188,7 @@ export const SpreadsheetViewer: React.FC<SpreadsheetViewerProps> = ({
         <div className="flex items-center gap-2">
           <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
           <span className="font-semibold text-slate-200">
-            Read-Only Document Source: {filename || "Spreadsheet"}
+            {t('review.readOnlySource', { filename: filename || "Spreadsheet" })}
           </span>
         </div>
 
@@ -214,13 +216,13 @@ export const SpreadsheetViewer: React.FC<SpreadsheetViewerProps> = ({
         ref={tableContainerRef}
         tabIndex={0}
         role="region"
-        aria-label="Spreadsheet Grid Table Container"
+        aria-label={t('review.spreadsheetContainerAria')}
         className="flex-1 overflow-auto bg-slate-950 p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500"
       >
         {loading && (
           <div className="flex flex-col items-center justify-center h-64 gap-2 text-slate-400">
             <RefreshCw className="w-6 h-6 animate-spin text-emerald-500" />
-            <span className="text-xs">Parsing spreadsheet grid...</span>
+            <span className="text-xs">{t('review.parsingGrid')}</span>
           </div>
         )}
 
