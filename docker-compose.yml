@@ -50,7 +50,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - STORAGE_BACKEND=local
       - STORAGE_LOCAL_DIR=/app/data/storage
-      - PROCUREFLOW_LLM_PROVIDER=${PROCUREFLOW_LLM_PROVIDER:-openai}
+      - PROCUREFLOW_LLM_PROVIDER=${PROCUREFLOW_LLM_PROVIDER:-mock}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     volumes:
       - ./backend:/app
@@ -78,7 +78,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - STORAGE_BACKEND=local
       - STORAGE_LOCAL_DIR=/app/data/storage
-      - PROCUREFLOW_LLM_PROVIDER=${PROCUREFLOW_LLM_PROVIDER:-openai}
+      - PROCUREFLOW_LLM_PROVIDER=${PROCUREFLOW_LLM_PROVIDER:-mock}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     volumes:
       - ./backend:/app

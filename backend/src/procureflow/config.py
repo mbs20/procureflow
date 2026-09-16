@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -66,6 +66,15 @@ class Settings(BaseSettings):
 
     # External APIs
     exchange_rate_api_url: str = "https://open.er-api.com/v6/latest"
+
+    @model_validator(mode="after")
+    def validate_llm_provider(self) -> "Settings":
+        if self.environment == "production" and self.llm_provider == "mock":
+            raise ValueError(
+                "PROCUREFLOW_LLM_PROVIDER='mock' is only permitted in development and test environments; "
+                "it cannot be used when PROCUREFLOW_ENV='production'."
+            )
+        return self
 
 
 @lru_cache

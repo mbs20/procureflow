@@ -66,7 +66,19 @@ test.describe("Live Docker Comparison Matrix Workflow", () => {
       multipart: { file: { name: "quote_a.csv", mimeType: "text/csv", buffer: Buffer.from(csvA) } },
     });
     await request.post(`${API_BASE}/api/v1/quotations/${qidA}/extract`, { headers });
-    const extA = (await (await request.get(`${API_BASE}/api/v1/quotations/${qidA}/extractions/latest`, { headers })).json());
+    let extA: any = null;
+    for (let i = 0; i < 20; i++) {
+      const res = await request.get(`${API_BASE}/api/v1/quotations/${qidA}/extractions/latest`, { headers });
+      if (res.status() === 200) {
+        const body = await res.json();
+        if (body.line_items && body.line_items.length >= 2) {
+          extA = body;
+          break;
+        }
+      }
+      await page.waitForTimeout(500);
+    }
+    expect(extA).not.toBeNull();
     await request.patch(`${API_BASE}/api/v1/quotations/${qidA}/line-items/${extA.line_items[0].id}`, {
       headers,
       data: { rfq_line_item_id: rfq.line_items[0].id },
@@ -95,7 +107,19 @@ test.describe("Live Docker Comparison Matrix Workflow", () => {
       multipart: { file: { name: "quote_b.csv", mimeType: "text/csv", buffer: Buffer.from(csvB) } },
     });
     await request.post(`${API_BASE}/api/v1/quotations/${qidB}/extract`, { headers });
-    const extB = (await (await request.get(`${API_BASE}/api/v1/quotations/${qidB}/extractions/latest`, { headers })).json());
+    let extB: any = null;
+    for (let i = 0; i < 20; i++) {
+      const res = await request.get(`${API_BASE}/api/v1/quotations/${qidB}/extractions/latest`, { headers });
+      if (res.status() === 200) {
+        const body = await res.json();
+        if (body.line_items && body.line_items.length >= 2) {
+          extB = body;
+          break;
+        }
+      }
+      await page.waitForTimeout(500);
+    }
+    expect(extB).not.toBeNull();
     await request.patch(`${API_BASE}/api/v1/quotations/${qidB}/line-items/${extB.line_items[0].id}`, {
       headers,
       data: { rfq_line_item_id: rfq.line_items[0].id },

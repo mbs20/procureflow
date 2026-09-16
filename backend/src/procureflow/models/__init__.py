@@ -40,8 +40,13 @@ from procureflow.models.rfq import (
     RFQStatus,
 )
 from procureflow.models.scoring import (
+    AINarrative,
+    CriterionScore,
+    ProcurementDecision,
+    ScoreResult,
     ScoringConfiguration,
     ScoringRun,
+    SupplierScore,
 )
 
 __all__ = [
@@ -62,6 +67,11 @@ __all__ = [
     "ComparisonSnapshot",
     "ScoringConfiguration",
     "ScoringRun",
+    "ScoreResult",
+    "SupplierScore",
+    "CriterionScore",
+    "AINarrative",
+    "ProcurementDecision",
     "AuditLog",
     "ActorType",
     "DecisionContext",

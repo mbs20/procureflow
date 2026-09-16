@@ -743,6 +743,28 @@ class TestPrivacyProjection:
         assert "raw_spreadsheet_data" not in proj_str
         assert "JVBERi0xLjQK" not in proj_str
         assert "raw_quotation_pdf" not in proj_str
-        # Only allowlisted summary fields exist
         assert "rfq_title" in projection
         assert "suppliers" in projection
+
+
+class TestMockModeEnvironmentSemantics:
+    """Mock mode is strictly for dev/test/demo and blocked in production."""
+
+    def test_mock_provider_blocked_in_production(self):
+        from procureflow.config import Settings
+
+        with pytest.raises(ValueError, match="PROCUREFLOW_LLM_PROVIDER='mock' is only permitted in development and test"):
+            Settings(environment="production", llm_provider="mock")
+
+    def test_mock_provider_permitted_in_development(self):
+        from procureflow.config import Settings
+
+        s = Settings(environment="development", llm_provider="mock")
+        assert s.llm_provider == "mock"
+
+    def test_mock_provider_permitted_in_test(self):
+        from procureflow.config import Settings
+
+        s = Settings(environment="test", llm_provider="mock")
+        assert s.llm_provider == "mock"
+
