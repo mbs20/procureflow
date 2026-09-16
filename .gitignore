@@ -67,3 +67,6 @@ Thumbs.db
 
 # Docker
 *.docker.log
+
+# Intermediate generated demo assets
+docs/assets/frames/

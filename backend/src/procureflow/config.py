@@ -68,12 +68,21 @@ class Settings(BaseSettings):
     exchange_rate_api_url: str = "https://open.er-api.com/v6/latest"
 
     @model_validator(mode="after")
-    def validate_llm_provider(self) -> "Settings":
-        if self.environment == "production" and self.llm_provider == "mock":
-            raise ValueError(
-                "PROCUREFLOW_LLM_PROVIDER='mock' is only permitted in development and test environments; "
-                "it cannot be used when PROCUREFLOW_ENV='production'."
-            )
+    def validate_production_settings(self) -> "Settings":
+        if self.environment == "production":
+            if self.llm_provider == "mock":
+                raise ValueError(
+                    "PROCUREFLOW_LLM_PROVIDER='mock' is only permitted in development and test environments; "
+                    "it cannot be used when PROCUREFLOW_ENV='production'."
+                )
+            if self.debug:
+                raise ValueError("PROCUREFLOW_DEBUG must be False in production.")
+            if self.secret_key == "dev_secret_key_change_in_production_32chars_min" or len(self.secret_key) < 32:
+                raise ValueError("A secure SECRET_KEY of at least 32 characters is required in production.")
+            if self.api_key == "procureflow_dev_api_key_12345":
+                raise ValueError("PROCUREFLOW_API_KEY must be changed from the default development key in production.")
+            if "*" in self.cors_origins:
+                raise ValueError("Wildcard CORS origins ('*') are strictly prohibited in production.")
         return self
 
 

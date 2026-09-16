@@ -60,6 +60,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     command: >
       sh -c "alembic upgrade head && uvicorn procureflow.main:app --host 0.0.0.0 --port 8000 --reload"
 
@@ -101,11 +106,35 @@ services:
     environment:
       - VITE_API_BASE_URL=
       - BACKEND_URL=http://backend:8000
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:5173/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  seed-demo:
+    profiles: ["demo"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: procureflow-seed-demo
+    environment:
+      - PROCUREFLOW_ENV=development
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgrespassword@postgres:5432/procureflow
+      - DATABASE_URL_SYNC=postgresql+psycopg2://postgres:postgrespassword@postgres:5432/procureflow
+      - STORAGE_BACKEND=local
+      - STORAGE_LOCAL_DIR=/app/data/storage
+      - PROCUREFLOW_LLM_PROVIDER=${PROCUREFLOW_LLM_PROVIDER:-mock}
+    volumes:
+      - ./backend:/app
+      - backend_storage:/app/data/storage
+    depends_on:
+      backend:
+        condition: service_healthy
+    command: python -m procureflow.scripts.seed_demo
 
 volumes:
   postgres_data:

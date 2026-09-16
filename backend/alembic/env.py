@@ -26,12 +26,13 @@ target_metadata = Base.metadata
 
 settings = get_settings()
 
-# Dynamically set sqlalchemy.url from sync URL settings
-# or adapt async URL to sync driver for migrations
-sync_url = settings.database_url_sync
-if not sync_url:
-    sync_url = settings.database_url.replace("+asyncpg", "+psycopg2").replace("+aiosqlite", "")
-config.set_main_option("sqlalchemy.url", sync_url)
+# Dynamically set sqlalchemy.url from sync URL settings if not explicitly configured with a custom URL
+configured_url = config.get_main_option("sqlalchemy.url")
+if not configured_url or configured_url == "sqlite:///./procureflow.db":
+    sync_url = settings.database_url_sync
+    if not sync_url:
+        sync_url = settings.database_url.replace("+asyncpg", "+psycopg2").replace("+aiosqlite", "")
+    config.set_main_option("sqlalchemy.url", sync_url)
 
 
 def run_migrations_offline() -> None:

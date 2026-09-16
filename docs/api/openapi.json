@@ -1,0 +1,7249 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ProcureFlow OSS",
+    "description": "Open-source AI-assisted RFQ comparison and procurement decision engine.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health Check",
+        "description": "Comprehensive health check endpoint checking DB, Redis, and Celery.",
+        "operationId": "health_check_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs": {
+      "post": {
+        "tags": [
+          "RFQs"
+        ],
+        "summary": "Create a new RFQ",
+        "description": "Create a new RFQ with its required line items and weighted evaluation criteria.",
+        "operationId": "create_rfq_endpoint_api_v1_rfqs_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RFQCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RFQRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "RFQs"
+        ],
+        "summary": "List all RFQs",
+        "description": "List and search RFQs with pagination, status filters, and soft-delete exclusions.",
+        "operationId": "list_rfqs_endpoint_api_v1_rfqs_get",
+        "parameters": [
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Whether to include soft-deleted/archived RFQs",
+              "default": false,
+              "title": "Include Archived"
+            },
+            "description": "Whether to include soft-deleted/archived RFQs"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RFQStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by RFQ status",
+              "title": "Status"
+            },
+            "description": "Filter by RFQ status"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search by category",
+              "title": "Category"
+            },
+            "description": "Search by category"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number (1-indexed)",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number (1-indexed)"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Items per page",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "Items per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_RFQRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}": {
+      "get": {
+        "tags": [
+          "RFQs"
+        ],
+        "summary": "Get RFQ by ID",
+        "description": "Get complete details of a specific RFQ including all line items and criteria.",
+        "operationId": "get_rfq_endpoint_api_v1_rfqs__rfq_id__get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RFQRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "RFQs"
+        ],
+        "summary": "Update RFQ metadata",
+        "description": "Update title, description, category, currency, or status of an RFQ.",
+        "operationId": "update_rfq_endpoint_api_v1_rfqs__rfq_id__patch",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RFQUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RFQRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/archive": {
+      "post": {
+        "tags": [
+          "RFQs"
+        ],
+        "summary": "Archive RFQ (soft delete)",
+        "description": "Soft-delete an RFQ. Preserves historical quotations, extractions, and decisions in the audit log.",
+        "operationId": "archive_rfq_endpoint_api_v1_rfqs__rfq_id__archive_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RFQRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/unarchive": {
+      "post": {
+        "tags": [
+          "RFQs"
+        ],
+        "summary": "Restore archived RFQ",
+        "description": "Restore an archived RFQ back to active status.",
+        "operationId": "unarchive_rfq_endpoint_api_v1_rfqs__rfq_id__unarchive_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RFQRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/clone": {
+      "post": {
+        "tags": [
+          "RFQs"
+        ],
+        "summary": "Clone RFQ template",
+        "description": "Clone an existing RFQ structure, line items, and criteria to a new draft RFQ.",
+        "operationId": "clone_rfq_endpoint_api_v1_rfqs__rfq_id__clone_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "new_title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Title for cloned RFQ",
+              "title": "New Title"
+            },
+            "description": "Title for cloned RFQ"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RFQRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/criteria": {
+      "put": {
+        "tags": [
+          "RFQs"
+        ],
+        "summary": "Update evaluation criteria",
+        "description": "Replace all evaluation criteria. Enforces that weights sum to exactly 1.00 (100%).",
+        "operationId": "update_criteria_endpoint_api_v1_rfqs__rfq_id__criteria_put",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CriterionCreate"
+                },
+                "title": "Criteria In"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RFQRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quotations": {
+      "post": {
+        "tags": [
+          "quotations"
+        ],
+        "summary": "Create a new supplier quotation container",
+        "operationId": "create_quotation_api_v1_quotations_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierQuotationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierQuotationRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "quotations"
+        ],
+        "summary": "List supplier quotations with optional filtering",
+        "operationId": "list_quotations_api_v1_quotations_get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by RFQ ID",
+              "title": "Rfq Id"
+            },
+            "description": "Filter by RFQ ID"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/QuotationStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SupplierQuotationRead"
+                  },
+                  "title": "Response List Quotations Api V1 Quotations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quotations/{quotation_id}": {
+      "get": {
+        "tags": [
+          "quotations"
+        ],
+        "summary": "Get quotation details and attached documents",
+        "operationId": "get_quotation_api_v1_quotations__quotation_id__get",
+        "parameters": [
+          {
+            "name": "quotation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Quotation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierQuotationRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quotations/{quotation_id}/documents": {
+      "post": {
+        "tags": [
+          "quotations"
+        ],
+        "summary": "Upload and immutably attach a quotation document (PDF, XLSX, CSV)",
+        "operationId": "upload_quotation_document_api_v1_quotations__quotation_id__documents_post",
+        "parameters": [
+          {
+            "name": "quotation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Quotation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_quotation_document_api_v1_quotations__quotation_id__documents_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quotations/{quotation_id}/documents/{document_id}/download": {
+      "get": {
+        "tags": [
+          "quotations"
+        ],
+        "summary": "Download the original immutable supplier quotation document",
+        "operationId": "download_quotation_document_api_v1_quotations__quotation_id__documents__document_id__download_get",
+        "parameters": [
+          {
+            "name": "quotation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Quotation Id"
+            }
+          },
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quotations/{quotation_id}/extract": {
+      "post": {
+        "tags": [
+          "quotations"
+        ],
+        "summary": "Trigger or retry asynchronous document extraction",
+        "operationId": "trigger_extraction_api_v1_quotations__quotation_id__extract_post",
+        "parameters": [
+          {
+            "name": "quotation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Quotation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quotations/{quotation_id}/extractions/latest": {
+      "get": {
+        "tags": [
+          "quotations"
+        ],
+        "summary": "Get current authoritative extraction result with line items, coordinates, and warnings",
+        "operationId": "get_latest_extraction_api_v1_quotations__quotation_id__extractions_latest_get",
+        "parameters": [
+          {
+            "name": "quotation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Quotation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractedQuotationRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quotations/{quotation_id}/line-items": {
+      "post": {
+        "tags": [
+          "quotations"
+        ],
+        "summary": "Add a missed line item to an extraction",
+        "operationId": "create_line_item_api_v1_quotations__quotation_id__line_items_post",
+        "parameters": [
+          {
+            "name": "quotation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Quotation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractedLineItemCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractedLineItemRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quotations/{quotation_id}/line-items/{line_item_id}": {
+      "patch": {
+        "tags": [
+          "quotations"
+        ],
+        "summary": "Human-in-the-loop correction of an extracted line item",
+        "operationId": "correct_line_item_api_v1_quotations__quotation_id__line_items__line_item_id__patch",
+        "parameters": [
+          {
+            "name": "quotation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Quotation Id"
+            }
+          },
+          {
+            "name": "line_item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Line Item Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractedLineItemUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractedLineItemRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "quotations"
+        ],
+        "summary": "Soft-delete/exclude an extracted line item (never hard-deletes parser items)",
+        "operationId": "soft_delete_line_item_api_v1_quotations__quotation_id__line_items__line_item_id__delete",
+        "parameters": [
+          {
+            "name": "quotation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Quotation Id"
+            }
+          },
+          {
+            "name": "line_item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Line Item Id"
+            }
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reason for exclusion",
+              "title": "Reason"
+            },
+            "description": "Reason for exclusion"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractedLineItemRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quotations/{quotation_id}/line-items/{line_item_id}/restore": {
+      "post": {
+        "tags": [
+          "quotations"
+        ],
+        "summary": "Restore a previously excluded line item",
+        "operationId": "restore_line_item_api_v1_quotations__quotation_id__line_items__line_item_id__restore_post",
+        "parameters": [
+          {
+            "name": "quotation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Quotation Id"
+            }
+          },
+          {
+            "name": "line_item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Line Item Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractedLineItemRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quotations/{quotation_id}/fields/{field_id}": {
+      "patch": {
+        "tags": [
+          "quotations"
+        ],
+        "summary": "Human-in-the-loop correction of a quotation header field",
+        "operationId": "correct_quotation_field_api_v1_quotations__quotation_id__fields__field_id__patch",
+        "parameters": [
+          {
+            "name": "quotation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Quotation Id"
+            }
+          },
+          {
+            "name": "field_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Field Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractedFieldUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractedFieldRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quotations/{quotation_id}/validation-status": {
+      "get": {
+        "tags": [
+          "quotations"
+        ],
+        "summary": "Get server-side validation breakdown for approval eligibility",
+        "operationId": "get_validation_status_api_v1_quotations__quotation_id__validation_status_get",
+        "parameters": [
+          {
+            "name": "quotation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Quotation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionValidationStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quotations/{quotation_id}/audit-logs": {
+      "get": {
+        "tags": [
+          "quotations"
+        ],
+        "summary": "Get append-only audit trail for this quotation",
+        "operationId": "get_quotation_audit_logs_api_v1_quotations__quotation_id__audit_logs_get",
+        "parameters": [
+          {
+            "name": "quotation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Quotation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Get Quotation Audit Logs Api V1 Quotations  Quotation Id  Audit Logs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quotations/{quotation_id}/status": {
+      "patch": {
+        "tags": [
+          "quotations"
+        ],
+        "summary": "Explicit human review decision (approve or reject extraction with server-side validation)",
+        "operationId": "update_quotation_status_api_v1_quotations__quotation_id__status_patch",
+        "parameters": [
+          {
+            "name": "quotation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Quotation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuotationStatusUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierQuotationRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/matrix": {
+      "get": {
+        "tags": [
+          "Comparison Matrix"
+        ],
+        "summary": "Get normalized comparison matrix for an RFQ",
+        "description": "Returns the normalized apples-to-apples comparison matrix across all approved supplier quotations.\nProvides dual values (quoted vs normalized), UOM and currency conversions, alignment to RFQ line items,\ntraceability evidence coordinates, and data quality warnings.",
+        "operationId": "get_comparison_matrix_api_v1_rfqs__rfq_id__matrix_get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "fx_rate_set_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional specific FX rate set version ID",
+              "title": "Fx Rate Set Id"
+            },
+            "description": "Optional specific FX rate set version ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonMatrixResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/matrix/fx-rates": {
+      "get": {
+        "tags": [
+          "Comparison Matrix"
+        ],
+        "summary": "Get active FX rates for RFQ comparison",
+        "operationId": "get_rfq_fx_rates_api_v1_rfqs__rfq_id__matrix_fx_rates_get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RFQFXRateSetRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Comparison Matrix"
+        ],
+        "summary": "Configure new versioned FX rate set for RFQ",
+        "description": "Creates a new rate-set version for the RFQ.\nPreserves historical comparison snapshots by keeping prior rate-set versions immutable.",
+        "operationId": "update_rfq_fx_rates_api_v1_rfqs__rfq_id__matrix_fx_rates_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RFQFXRateSetCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RFQFXRateSetRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/matrix/overrides": {
+      "post": {
+        "tags": [
+          "Comparison Matrix"
+        ],
+        "summary": "Apply a human normalization override with audit trail",
+        "description": "Applies a human correction to a normalized value (e.g., custom UOM conversion factor or custom FX rate).\nMaintains append-only audit trail and supersedes prior active overrides for the same cell.",
+        "operationId": "apply_override_api_v1_rfqs__rfq_id__matrix_overrides_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NormalizationOverrideCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NormalizationOverrideRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Comparison Matrix"
+        ],
+        "summary": "List active normalization overrides for an RFQ",
+        "operationId": "list_overrides_api_v1_rfqs__rfq_id__matrix_overrides_get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NormalizationOverrideRead"
+                  },
+                  "title": "Response List Overrides Api V1 Rfqs  Rfq Id  Matrix Overrides Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/matrix/overrides/{override_id}": {
+      "delete": {
+        "tags": [
+          "Comparison Matrix"
+        ],
+        "summary": "Revert a normalization override back to deterministic default",
+        "description": "Reverts a human override back to the deterministic default.\nPreserves the override row with is_active=False and records revert reason and timestamp.",
+        "operationId": "revert_override_api_v1_rfqs__rfq_id__matrix_overrides__override_id__delete",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "override_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Override Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/NormalizationOverrideRevert"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NormalizationOverrideRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/matrix/snapshots": {
+      "post": {
+        "tags": [
+          "Comparison Matrix"
+        ],
+        "summary": "Freeze an immutable comparison snapshot",
+        "description": "Freezes the current comparison matrix into a versioned, immutable snapshot.\nGuarantees reproducibility of past comparison states even if rates or rules change later.",
+        "operationId": "create_snapshot_api_v1_rfqs__rfq_id__matrix_snapshots_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ComparisonSnapshotCreate"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonSnapshotRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Comparison Matrix"
+        ],
+        "summary": "List historical comparison snapshots for an RFQ",
+        "operationId": "list_snapshots_api_v1_rfqs__rfq_id__matrix_snapshots_get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ComparisonSnapshotRead"
+                  },
+                  "title": "Response List Snapshots Api V1 Rfqs  Rfq Id  Matrix Snapshots Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/matrix/snapshots/{snapshot_id}": {
+      "get": {
+        "tags": [
+          "Comparison Matrix"
+        ],
+        "summary": "Get a specific comparison snapshot",
+        "operationId": "get_snapshot_api_v1_rfqs__rfq_id__matrix_snapshots__snapshot_id__get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonSnapshotRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/scoring/configurations": {
+      "post": {
+        "tags": [
+          "scoring"
+        ],
+        "summary": "Create a new versioned ScoringConfiguration for an RFQ",
+        "operationId": "create_scoring_configuration_api_v1_rfqs__rfq_id__scoring_configurations_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoringConfigurationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringConfigurationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "scoring"
+        ],
+        "summary": "List all ScoringConfigurations for an RFQ",
+        "operationId": "list_scoring_configurations_api_v1_rfqs__rfq_id__scoring_configurations_get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScoringConfigurationResponse"
+                  },
+                  "title": "Response List Scoring Configurations Api V1 Rfqs  Rfq Id  Scoring Configurations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/scoring/configurations/active": {
+      "get": {
+        "tags": [
+          "scoring"
+        ],
+        "summary": "Get currently active ScoringConfiguration for an RFQ",
+        "operationId": "get_active_scoring_configuration_api_v1_rfqs__rfq_id__scoring_configurations_active_get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringConfigurationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/scoring/configurations/{configuration_id}": {
+      "get": {
+        "tags": [
+          "scoring"
+        ],
+        "summary": "Get specific ScoringConfiguration by ID",
+        "operationId": "get_scoring_configuration_api_v1_rfqs__rfq_id__scoring_configurations__configuration_id__get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "configuration_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Configuration Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringConfigurationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/scoring/runs": {
+      "post": {
+        "tags": [
+          "scoring"
+        ],
+        "summary": "Execute scoring against an immutable ComparisonSnapshot and freeze as an immutable ScoringRun",
+        "operationId": "execute_scoring_run_api_v1_rfqs__rfq_id__scoring_runs_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoringRunCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "scoring"
+        ],
+        "summary": "List all historical ScoringRuns for an RFQ",
+        "operationId": "list_scoring_runs_api_v1_rfqs__rfq_id__scoring_runs_get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScoringRunResponse"
+                  },
+                  "title": "Response List Scoring Runs Api V1 Rfqs  Rfq Id  Scoring Runs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/scoring/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "scoring"
+        ],
+        "summary": "Get specific historical ScoringRun by ID",
+        "operationId": "get_scoring_run_api_v1_rfqs__rfq_id__scoring_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/scoring/simulate": {
+      "post": {
+        "tags": [
+          "scoring"
+        ],
+        "summary": "In-memory simulation of scoring against a ComparisonSnapshot without persisting",
+        "operationId": "simulate_scoring_api_v1_rfqs__rfq_id__scoring_simulate_post",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoringSimulationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SupplierScore"
+                  },
+                  "title": "Response Simulate Scoring Api V1 Rfqs  Rfq Id  Scoring Simulate Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/scoring/sensitivity": {
+      "post": {
+        "tags": [
+          "scoring"
+        ],
+        "summary": "Run in-memory sensitivity sweeps and bisection breakeven analysis against a ComparisonSnapshot",
+        "operationId": "run_sensitivity_analysis_api_v1_rfqs__rfq_id__scoring_sensitivity_post",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SensitivityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensitivityResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/decisions/narratives": {
+      "post": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Generate AI decision narrative from a ScoringRun",
+        "operationId": "generate_narrative_api_v1_rfqs__rfq_id__decisions_narratives_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NarrativeGenerationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NarrativeGenerationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "List all narratives for an RFQ",
+        "operationId": "list_narratives_api_v1_rfqs__rfq_id__decisions_narratives_get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "scoring_run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Scoring Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NarrativeGenerationResponse"
+                  },
+                  "title": "Response List Narratives Api V1 Rfqs  Rfq Id  Decisions Narratives Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/decisions/narratives/{narrative_id}": {
+      "get": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Get specific narrative",
+        "operationId": "get_narrative_api_v1_rfqs__rfq_id__decisions_narratives__narrative_id__get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "narrative_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Narrative Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NarrativeGenerationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/decisions/narratives/{narrative_id}/revisions": {
+      "post": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Create append-only human revision of a narrative",
+        "operationId": "create_revision_api_v1_rfqs__rfq_id__decisions_narratives__narrative_id__revisions_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "narrative_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Narrative Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NarrativeRevisionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NarrativeRevisionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/decisions/contexts/{context_id}": {
+      "get": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Get a specific DecisionContext",
+        "operationId": "get_decision_context_api_v1_rfqs__rfq_id__decisions_contexts__context_id__get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "context_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Context Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionContextResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/decisions/awards": {
+      "post": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Create draft award decision",
+        "operationId": "create_draft_award_api_v1_rfqs__rfq_id__decisions_awards_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AwardDecisionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AwardDecisionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "List all award decisions for an RFQ",
+        "operationId": "list_awards_api_v1_rfqs__rfq_id__decisions_awards_get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AwardDecisionResponse"
+                  },
+                  "title": "Response List Awards Api V1 Rfqs  Rfq Id  Decisions Awards Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/decisions/awards/current": {
+      "get": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Get current confirmed award for an RFQ",
+        "operationId": "get_current_award_api_v1_rfqs__rfq_id__decisions_awards_current_get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AwardDecisionResponse"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Current Award Api V1 Rfqs  Rfq Id  Decisions Awards Current Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/decisions/awards/{award_id}": {
+      "get": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Get specific award decision",
+        "operationId": "get_award_api_v1_rfqs__rfq_id__decisions_awards__award_id__get",
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "award_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Award Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AwardDecisionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/decisions/awards/{award_id}/confirm": {
+      "post": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Human confirms the draft award \u2014 the ONLY path to a final decision",
+        "operationId": "confirm_award_api_v1_rfqs__rfq_id__decisions_awards__award_id__confirm_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "award_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Award Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AwardConfirm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AwardDecisionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/decisions/awards/{award_id}/revoke": {
+      "post": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Revoke a confirmed award with reason",
+        "operationId": "revoke_award_api_v1_rfqs__rfq_id__decisions_awards__award_id__revoke_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rfq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "name": "award_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Award Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AwardRevoke"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AwardDecisionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "tags": [
+          "Root"
+        ],
+        "summary": "Root",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Root  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AwardConfirm": {
+        "properties": {
+          "final_justification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Justification"
+          }
+        },
+        "type": "object",
+        "title": "AwardConfirm"
+      },
+      "AwardDecisionCreate": {
+        "properties": {
+          "scoring_run_id": {
+            "type": "string",
+            "title": "Scoring Run Id"
+          },
+          "narrative_generation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Narrative Generation Id"
+          },
+          "awarded_supplier_id": {
+            "type": "string",
+            "title": "Awarded Supplier Id"
+          },
+          "award_justification": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Award Justification"
+          },
+          "non_rank1_rationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Non Rank1 Rationale"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scoring_run_id",
+          "awarded_supplier_id",
+          "award_justification"
+        ],
+        "title": "AwardDecisionCreate"
+      },
+      "AwardDecisionEventResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "award_decision_id": {
+            "type": "string",
+            "title": "Award Decision Id"
+          },
+          "event_type": {
+            "$ref": "#/components/schemas/AwardEventType"
+          },
+          "event_number": {
+            "type": "integer",
+            "title": "Event Number"
+          },
+          "event_payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Event Payload"
+          },
+          "actor_principal": {
+            "type": "string",
+            "title": "Actor Principal"
+          },
+          "actor_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Display Name"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "award_decision_id",
+          "event_type",
+          "event_number",
+          "event_payload",
+          "actor_principal",
+          "created_at"
+        ],
+        "title": "AwardDecisionEventResponse"
+      },
+      "AwardDecisionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "rfq_id": {
+            "type": "string",
+            "title": "Rfq Id"
+          },
+          "scoring_run_id": {
+            "type": "string",
+            "title": "Scoring Run Id"
+          },
+          "narrative_generation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Narrative Generation Id"
+          },
+          "awarded_supplier_id": {
+            "type": "string",
+            "title": "Awarded Supplier Id"
+          },
+          "awarded_supplier_name": {
+            "type": "string",
+            "title": "Awarded Supplier Name"
+          },
+          "awarded_supplier_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Awarded Supplier Rank"
+          },
+          "non_rank1_rationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Non Rank1 Rationale"
+          },
+          "current_status": {
+            "$ref": "#/components/schemas/AwardStatus"
+          },
+          "provenance_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provenance Hash"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/AwardDecisionEventResponse"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "is_based_on_latest_run": {
+            "type": "boolean",
+            "title": "Is Based On Latest Run",
+            "default": true
+          },
+          "latest_scoring_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Scoring Run Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "rfq_id",
+          "scoring_run_id",
+          "awarded_supplier_id",
+          "awarded_supplier_name",
+          "current_status",
+          "created_by",
+          "created_at"
+        ],
+        "title": "AwardDecisionResponse"
+      },
+      "AwardEventType": {
+        "type": "string",
+        "enum": [
+          "draft_created",
+          "confirmed",
+          "revoked"
+        ],
+        "title": "AwardEventType"
+      },
+      "AwardRevoke": {
+        "properties": {
+          "revocation_reason": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Revocation Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "revocation_reason"
+        ],
+        "title": "AwardRevoke"
+      },
+      "AwardStatus": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "confirmed",
+          "revoked"
+        ],
+        "title": "AwardStatus"
+      },
+      "Body_upload_quotation_document_api_v1_quotations__quotation_id__documents_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_quotation_document_api_v1_quotations__quotation_id__documents_post"
+      },
+      "BreakevenResult": {
+        "properties": {
+          "candidate_id": {
+            "type": "string",
+            "title": "Candidate Id"
+          },
+          "candidate_name": {
+            "type": "string",
+            "title": "Candidate Name"
+          },
+          "target_rank": {
+            "type": "integer",
+            "title": "Target Rank",
+            "default": 1
+          },
+          "current_price": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Current Price"
+          },
+          "required_price": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required Price"
+          },
+          "tie_price": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tie Price"
+          },
+          "beat_price": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beat Price"
+          },
+          "target_achievement_type": {
+            "type": "string",
+            "title": "Target Achievement Type",
+            "default": "tie_or_better"
+          },
+          "delta_price": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta Price"
+          },
+          "delta_pct": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta Pct"
+          },
+          "feasible": {
+            "type": "boolean",
+            "title": "Feasible"
+          },
+          "convergence_steps": {
+            "type": "integer",
+            "title": "Convergence Steps"
+          },
+          "evaluated_scores": {
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+            },
+            "type": "object",
+            "title": "Evaluated Scores"
+          },
+          "notes": {
+            "type": "string",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "candidate_id",
+          "candidate_name",
+          "current_price",
+          "feasible",
+          "convergence_steps",
+          "evaluated_scores",
+          "notes"
+        ],
+        "title": "BreakevenResult"
+      },
+      "ClaimType": {
+        "type": "string",
+        "enum": [
+          "deterministic_fact",
+          "interpretation",
+          "limitation"
+        ],
+        "title": "ClaimType"
+      },
+      "ComparisonMatrixResponse": {
+        "properties": {
+          "rfq_id": {
+            "type": "string",
+            "title": "Rfq Id"
+          },
+          "rfq_title": {
+            "type": "string",
+            "title": "Rfq Title"
+          },
+          "reference_currency": {
+            "type": "string",
+            "title": "Reference Currency"
+          },
+          "normalization_engine_version": {
+            "type": "string",
+            "title": "Normalization Engine Version",
+            "default": "1.0.0"
+          },
+          "fx_rate_set": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RFQFXRateSetRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "suppliers": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixSupplierHeader"
+            },
+            "type": "array",
+            "title": "Suppliers"
+          },
+          "required_line_items": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixRequiredRow"
+            },
+            "type": "array",
+            "title": "Required Line Items"
+          },
+          "extra_line_items": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixExtraItem"
+            },
+            "type": "array",
+            "title": "Extra Line Items"
+          },
+          "active_overrides_count": {
+            "type": "integer",
+            "title": "Active Overrides Count",
+            "default": 0
+          },
+          "snapshots_count": {
+            "type": "integer",
+            "title": "Snapshots Count",
+            "default": 0
+          },
+          "warnings_summary": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings Summary"
+          },
+          "computed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Computed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rfq_id",
+          "rfq_title",
+          "reference_currency"
+        ],
+        "title": "ComparisonMatrixResponse"
+      },
+      "ComparisonSnapshotCreate": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "type": "object",
+        "title": "ComparisonSnapshotCreate"
+      },
+      "ComparisonSnapshotRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "rfq_id": {
+            "type": "string",
+            "title": "Rfq Id"
+          },
+          "snapshot_version": {
+            "type": "integer",
+            "title": "Snapshot Version"
+          },
+          "normalization_engine_version": {
+            "type": "string",
+            "title": "Normalization Engine Version"
+          },
+          "reference_currency": {
+            "type": "string",
+            "title": "Reference Currency"
+          },
+          "fx_rate_set_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fx Rate Set Id"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "matrix_data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Matrix Data"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "rfq_id",
+          "snapshot_version",
+          "normalization_engine_version",
+          "reference_currency",
+          "matrix_data",
+          "created_by",
+          "created_at"
+        ],
+        "title": "ComparisonSnapshotRead"
+      },
+      "CriterionConfig": {
+        "properties": {
+          "criterion_id": {
+            "type": "string",
+            "title": "Criterion Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Weight"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/CriterionDirection",
+            "default": "lower_is_better"
+          },
+          "source_type": {
+            "type": "string",
+            "title": "Source Type",
+            "default": "price"
+          },
+          "source_field": {
+            "type": "string",
+            "title": "Source Field",
+            "default": "normalized_comparable_total"
+          },
+          "is_knockout": {
+            "type": "boolean",
+            "title": "Is Knockout",
+            "default": false
+          },
+          "knockout_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Knockout Threshold"
+          },
+          "categorical_map": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Categorical Map"
+          }
+        },
+        "type": "object",
+        "required": [
+          "criterion_id",
+          "name",
+          "weight"
+        ],
+        "title": "CriterionConfig"
+      },
+      "CriterionCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Weight"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/CriterionDirection",
+            "default": "lower_is_better"
+          },
+          "is_knockout": {
+            "type": "boolean",
+            "title": "Is Knockout",
+            "default": false
+          },
+          "data_type": {
+            "$ref": "#/components/schemas/CriterionDataType",
+            "default": "price"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "weight"
+        ],
+        "title": "CriterionCreate"
+      },
+      "CriterionDataType": {
+        "type": "string",
+        "enum": [
+          "price",
+          "days",
+          "percentage",
+          "enum",
+          "boolean",
+          "text"
+        ],
+        "title": "CriterionDataType"
+      },
+      "CriterionDirection": {
+        "type": "string",
+        "enum": [
+          "lower_is_better",
+          "higher_is_better"
+        ],
+        "title": "CriterionDirection"
+      },
+      "CriterionRead": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "weight": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Weight"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/CriterionDirection",
+            "default": "lower_is_better"
+          },
+          "is_knockout": {
+            "type": "boolean",
+            "title": "Is Knockout",
+            "default": false
+          },
+          "data_type": {
+            "$ref": "#/components/schemas/CriterionDataType",
+            "default": "price"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "rfq_id": {
+            "type": "string",
+            "title": "Rfq Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "weight",
+          "id",
+          "rfq_id"
+        ],
+        "title": "CriterionRead"
+      },
+      "CriterionScoreBreakdown": {
+        "properties": {
+          "criterion_id": {
+            "type": "string",
+            "title": "Criterion Id"
+          },
+          "criterion_name": {
+            "type": "string",
+            "title": "Criterion Name"
+          },
+          "raw_value": {
+            "title": "Raw Value"
+          },
+          "exact_raw_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exact Raw Value"
+          },
+          "source_path": {
+            "type": "string",
+            "title": "Source Path"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/CriterionDirection"
+          },
+          "min_value": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Value"
+          },
+          "max_value": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Value"
+          },
+          "exact_min_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exact Min Value"
+          },
+          "exact_max_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exact Max Value"
+          },
+          "normalized_score": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Normalized Score"
+          },
+          "exact_normalized_score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exact Normalized Score"
+          },
+          "weight": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Weight"
+          },
+          "weighted_contribution": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Weighted Contribution"
+          },
+          "exact_weighted_contribution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exact Weighted Contribution"
+          },
+          "formula_audit": {
+            "type": "string",
+            "title": "Formula Audit"
+          },
+          "is_knockout_applied": {
+            "type": "boolean",
+            "title": "Is Knockout Applied",
+            "default": false
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "criterion_id",
+          "criterion_name",
+          "raw_value",
+          "source_path",
+          "direction",
+          "normalized_score",
+          "weight",
+          "weighted_contribution",
+          "formula_audit"
+        ],
+        "title": "CriterionScoreBreakdown"
+      },
+      "CrossoverPoint": {
+        "properties": {
+          "weight": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Weight"
+          },
+          "supplier_a": {
+            "type": "string",
+            "title": "Supplier A"
+          },
+          "supplier_b": {
+            "type": "string",
+            "title": "Supplier B"
+          },
+          "score_at_crossover": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Score At Crossover"
+          }
+        },
+        "type": "object",
+        "required": [
+          "weight",
+          "supplier_a",
+          "supplier_b",
+          "score_at_crossover"
+        ],
+        "title": "CrossoverPoint"
+      },
+      "DecisionContextResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "rfq_id": {
+            "type": "string",
+            "title": "Rfq Id"
+          },
+          "scoring_run_id": {
+            "type": "string",
+            "title": "Scoring Run Id"
+          },
+          "context_schema_version": {
+            "type": "string",
+            "title": "Context Schema Version"
+          },
+          "context_payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Context Payload"
+          },
+          "context_hash": {
+            "type": "string",
+            "title": "Context Hash"
+          },
+          "includes_sensitivity": {
+            "type": "boolean",
+            "title": "Includes Sensitivity"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "rfq_id",
+          "scoring_run_id",
+          "context_schema_version",
+          "context_payload",
+          "context_hash",
+          "includes_sensitivity",
+          "created_by",
+          "created_at"
+        ],
+        "title": "DecisionContextResponse"
+      },
+      "DocumentRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "quotation_id": {
+            "type": "string",
+            "title": "Quotation Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "mime_type": {
+            "type": "string",
+            "title": "Mime Type"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          },
+          "uploaded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Uploaded At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "quotation_id",
+          "filename",
+          "mime_type",
+          "size_bytes",
+          "uploaded_at"
+        ],
+        "title": "DocumentRead"
+      },
+      "EligibilityStatus": {
+        "type": "string",
+        "enum": [
+          "eligible",
+          "ineligible",
+          "knockout_failed",
+          "missing_value_blocked"
+        ],
+        "title": "EligibilityStatus"
+      },
+      "ExtractedFieldRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "field_name": {
+            "type": "string",
+            "title": "Field Name"
+          },
+          "raw_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Value"
+          },
+          "normalised_value": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalised Value"
+          },
+          "confidence": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Confidence"
+          },
+          "source_page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Page"
+          },
+          "source_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Evidence"
+          },
+          "source_bbox": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Bbox"
+          },
+          "human_corrected": {
+            "type": "boolean",
+            "title": "Human Corrected"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "field_name",
+          "confidence",
+          "human_corrected"
+        ],
+        "title": "ExtractedFieldRead"
+      },
+      "ExtractedFieldUpdate": {
+        "properties": {
+          "raw_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Value"
+          },
+          "normalised_value": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalised Value"
+          }
+        },
+        "type": "object",
+        "title": "ExtractedFieldUpdate"
+      },
+      "ExtractedLineItemCreate": {
+        "properties": {
+          "description_raw": {
+            "type": "string",
+            "title": "Description Raw"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit",
+            "default": "units"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Unit Price"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "default": "USD"
+          },
+          "total_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Price"
+          },
+          "lead_time_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Time Days"
+          },
+          "rfq_line_item_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rfq Line Item Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "description_raw",
+          "quantity",
+          "unit_price"
+        ],
+        "title": "ExtractedLineItemCreate"
+      },
+      "ExtractedLineItemRead": {
+        "properties": {
+          "description_raw": {
+            "type": "string",
+            "title": "Description Raw"
+          },
+          "quantity": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Quantity"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit",
+            "default": "units"
+          },
+          "unit_price": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Unit Price"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "default": "USD"
+          },
+          "total_price": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Price"
+          },
+          "calculated_total_price": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calculated Total Price"
+          },
+          "has_discrepancy": {
+            "type": "boolean",
+            "title": "Has Discrepancy",
+            "default": false
+          },
+          "lead_time_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Time Days"
+          },
+          "confidence": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Confidence",
+            "default": "1.0"
+          },
+          "source_page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Page"
+          },
+          "source_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Evidence"
+          },
+          "source_bbox": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Bbox"
+          },
+          "is_removed": {
+            "type": "boolean",
+            "title": "Is Removed",
+            "default": false
+          },
+          "removal_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removal Reason"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "extracted_quotation_id": {
+            "type": "string",
+            "title": "Extracted Quotation Id"
+          },
+          "rfq_line_item_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rfq Line Item Id"
+          },
+          "human_corrected": {
+            "type": "boolean",
+            "title": "Human Corrected"
+          }
+        },
+        "type": "object",
+        "required": [
+          "description_raw",
+          "quantity",
+          "unit_price",
+          "total_price",
+          "id",
+          "extracted_quotation_id",
+          "human_corrected"
+        ],
+        "title": "ExtractedLineItemRead"
+      },
+      "ExtractedLineItemUpdate": {
+        "properties": {
+          "description_raw": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description Raw"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "total_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Price"
+          },
+          "lead_time_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Time Days"
+          },
+          "rfq_line_item_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rfq Line Item Id"
+          },
+          "is_removed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Removed"
+          },
+          "removal_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removal Reason"
+          }
+        },
+        "type": "object",
+        "title": "ExtractedLineItemUpdate"
+      },
+      "ExtractedQuotationRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "quotation_id": {
+            "type": "string",
+            "title": "Quotation Id"
+          },
+          "extraction_model": {
+            "type": "string",
+            "title": "Extraction Model"
+          },
+          "extraction_version": {
+            "type": "string",
+            "title": "Extraction Version"
+          },
+          "extracted_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Extracted At"
+          },
+          "overall_confidence": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Overall Confidence"
+          },
+          "is_current": {
+            "type": "boolean",
+            "title": "Is Current",
+            "default": true
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "raw_llm_output": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Llm Output"
+          },
+          "acknowledged_warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Acknowledged Warnings"
+          },
+          "line_items": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractedLineItemRead"
+            },
+            "type": "array",
+            "title": "Line Items"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractedFieldRead"
+            },
+            "type": "array",
+            "title": "Fields"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "quotation_id",
+          "extraction_model",
+          "extraction_version",
+          "extracted_at",
+          "overall_confidence"
+        ],
+        "title": "ExtractedQuotationRead"
+      },
+      "ExtractionValidationStatus": {
+        "properties": {
+          "can_approve": {
+            "type": "boolean",
+            "title": "Can Approve"
+          },
+          "critical_issues": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Critical Issues"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "acknowledged_warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Acknowledged Warnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "can_approve"
+        ],
+        "title": "ExtractionValidationStatus"
+      },
+      "GroundingStatus": {
+        "type": "string",
+        "enum": [
+          "verified",
+          "unsupported",
+          "unverifiable"
+        ],
+        "title": "GroundingStatus"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "examples": [
+              "ok"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "examples": [
+              "0.1.0"
+            ]
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment",
+            "examples": [
+              "development"
+            ]
+          },
+          "database": {
+            "$ref": "#/components/schemas/ServiceStatus"
+          },
+          "redis": {
+            "$ref": "#/components/schemas/ServiceStatus"
+          },
+          "celery": {
+            "$ref": "#/components/schemas/ServiceStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "version",
+          "environment",
+          "database",
+          "redis",
+          "celery"
+        ],
+        "title": "HealthResponse"
+      },
+      "JobStatusResponse": {
+        "properties": {
+          "quotation_id": {
+            "type": "string",
+            "title": "Quotation Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/QuotationStatus"
+          },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          },
+          "progress_percent": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Progress Percent",
+            "default": 0
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quotation_id",
+          "status"
+        ],
+        "title": "JobStatusResponse"
+      },
+      "LineItemCreate": {
+        "properties": {
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Description"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 50,
+            "title": "Unit",
+            "default": "units"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          }
+        },
+        "type": "object",
+        "required": [
+          "description",
+          "quantity"
+        ],
+        "title": "LineItemCreate"
+      },
+      "LineItemRead": {
+        "properties": {
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Description"
+          },
+          "quantity": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Quantity"
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 50,
+            "title": "Unit",
+            "default": "units"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "rfq_id": {
+            "type": "string",
+            "title": "Rfq Id"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          }
+        },
+        "type": "object",
+        "required": [
+          "description",
+          "quantity",
+          "id",
+          "rfq_id",
+          "position"
+        ],
+        "title": "LineItemRead"
+      },
+      "MatrixExtraItem": {
+        "properties": {
+          "line_item_id": {
+            "type": "string",
+            "title": "Line Item Id"
+          },
+          "quotation_id": {
+            "type": "string",
+            "title": "Quotation Id"
+          },
+          "supplier_name": {
+            "type": "string",
+            "title": "Supplier Name"
+          },
+          "description_raw": {
+            "type": "string",
+            "title": "Description Raw"
+          },
+          "quantity": {
+            "type": "number",
+            "title": "Quantity"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "unit_price": {
+            "type": "number",
+            "title": "Unit Price"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "total_price": {
+            "type": "number",
+            "title": "Total Price"
+          },
+          "lead_time_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Time Days"
+          },
+          "source_page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "line_item_id",
+          "quotation_id",
+          "supplier_name",
+          "description_raw",
+          "quantity",
+          "unit",
+          "unit_price",
+          "currency",
+          "total_price"
+        ],
+        "title": "MatrixExtraItem"
+      },
+      "MatrixLineItemCell": {
+        "properties": {
+          "is_quoted": {
+            "type": "boolean",
+            "title": "Is Quoted",
+            "default": true
+          },
+          "line_item_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Item Id"
+          },
+          "quoted_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quoted Description"
+          },
+          "quoted_quantity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quoted Quantity"
+          },
+          "quoted_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quoted Unit"
+          },
+          "quoted_unit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quoted Unit Price"
+          },
+          "quoted_total_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quoted Total Price"
+          },
+          "calculated_total_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calculated Total Price"
+          },
+          "has_math_discrepancy": {
+            "type": "boolean",
+            "title": "Has Math Discrepancy",
+            "default": false
+          },
+          "math_discrepancy_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Math Discrepancy Amount"
+          },
+          "original_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Currency"
+          },
+          "canonical_quantity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canonical Quantity"
+          },
+          "canonical_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canonical Unit"
+          },
+          "uom_conversion_factor": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uom Conversion Factor"
+          },
+          "uom_status": {
+            "$ref": "#/components/schemas/NormalizationStatus",
+            "default": "normalized"
+          },
+          "uom_warning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uom Warning"
+          },
+          "fx_rate_used": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fx Rate Used"
+          },
+          "fx_effective_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fx Effective Date"
+          },
+          "fx_provider_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fx Provider Id"
+          },
+          "fx_status": {
+            "$ref": "#/components/schemas/NormalizationStatus",
+            "default": "normalized"
+          },
+          "fx_warning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fx Warning"
+          },
+          "normalized_unit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalized Unit Price"
+          },
+          "normalized_extended_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalized Extended Price"
+          },
+          "line_lead_time_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Lead Time Days"
+          },
+          "line_lead_time_display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Lead Time Display"
+          },
+          "line_lead_time_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Lead Time Type"
+          },
+          "overall_cell_status": {
+            "$ref": "#/components/schemas/NormalizationStatus",
+            "default": "normalized"
+          },
+          "is_human_overridden": {
+            "type": "boolean",
+            "title": "Is Human Overridden",
+            "default": false
+          },
+          "override_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Override Id"
+          },
+          "override_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Override Reason"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "source_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Evidence"
+          },
+          "source_page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Page"
+          }
+        },
+        "type": "object",
+        "title": "MatrixLineItemCell"
+      },
+      "MatrixRequiredRow": {
+        "properties": {
+          "rfq_line_item_id": {
+            "type": "string",
+            "title": "Rfq Line Item Id"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "required_quantity": {
+            "type": "number",
+            "title": "Required Quantity"
+          },
+          "required_unit": {
+            "type": "string",
+            "title": "Required Unit"
+          },
+          "supplier_cells": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/MatrixLineItemCell"
+            },
+            "type": "object",
+            "title": "Supplier Cells"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rfq_line_item_id",
+          "position",
+          "description",
+          "required_quantity",
+          "required_unit"
+        ],
+        "title": "MatrixRequiredRow"
+      },
+      "MatrixSupplierHeader": {
+        "properties": {
+          "quotation_id": {
+            "type": "string",
+            "title": "Quotation Id"
+          },
+          "supplier_name": {
+            "type": "string",
+            "title": "Supplier Name"
+          },
+          "supplier_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Reference"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "extraction_version": {
+            "type": "string",
+            "title": "Extraction Version",
+            "default": "1.0"
+          },
+          "original_currency": {
+            "type": "string",
+            "title": "Original Currency",
+            "default": "USD"
+          },
+          "rfq_coverage_pct": {
+            "type": "number",
+            "title": "Rfq Coverage Pct",
+            "default": 0.0
+          },
+          "quoted_items_count": {
+            "type": "integer",
+            "title": "Quoted Items Count",
+            "default": 0
+          },
+          "total_rfq_items": {
+            "type": "integer",
+            "title": "Total Rfq Items",
+            "default": 0
+          },
+          "quoted_grand_total": {
+            "type": "number",
+            "title": "Quoted Grand Total",
+            "default": 0.0
+          },
+          "normalized_line_item_subtotal": {
+            "type": "number",
+            "title": "Normalized Line Item Subtotal",
+            "default": 0.0
+          },
+          "normalized_comparable_total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalized Comparable Total"
+          },
+          "has_unknown_commercial_components": {
+            "type": "boolean",
+            "title": "Has Unknown Commercial Components",
+            "default": false
+          },
+          "payment_terms_original": {
+            "type": "string",
+            "title": "Payment Terms Original",
+            "default": "Not specified"
+          },
+          "payment_terms_normalized": {
+            "type": "string",
+            "title": "Payment Terms Normalized",
+            "default": "Not specified"
+          },
+          "payment_terms_code": {
+            "type": "string",
+            "title": "Payment Terms Code",
+            "default": "CUSTOM"
+          },
+          "overall_lead_time_original": {
+            "type": "string",
+            "title": "Overall Lead Time Original",
+            "default": "Not specified"
+          },
+          "overall_lead_time_normalized": {
+            "type": "string",
+            "title": "Overall Lead Time Normalized",
+            "default": "Not specified"
+          },
+          "overall_lead_time_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overall Lead Time Days"
+          },
+          "unresolved_count": {
+            "type": "integer",
+            "title": "Unresolved Count",
+            "default": 0
+          },
+          "warnings_count": {
+            "type": "integer",
+            "title": "Warnings Count",
+            "default": 0
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quotation_id",
+          "supplier_name",
+          "status"
+        ],
+        "title": "MatrixSupplierHeader"
+      },
+      "MissingValuePolicy": {
+        "type": "string",
+        "enum": [
+          "block_scoring"
+        ],
+        "title": "MissingValuePolicy"
+      },
+      "NarrativeClaimSchema": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "claim_index": {
+            "type": "integer",
+            "title": "Claim Index"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "claim_type": {
+            "$ref": "#/components/schemas/ClaimType"
+          },
+          "grounding_status": {
+            "$ref": "#/components/schemas/GroundingStatus"
+          },
+          "referenced_supplier_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Referenced Supplier Ids"
+          },
+          "referenced_criterion_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Referenced Criterion Ids"
+          },
+          "referenced_evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Referenced Evidence Ids"
+          },
+          "fact_references": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fact References"
+          },
+          "grounding_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grounding Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "claim_index",
+          "text",
+          "claim_type",
+          "grounding_status"
+        ],
+        "title": "NarrativeClaimSchema"
+      },
+      "NarrativeGenerationRequest": {
+        "properties": {
+          "scoring_run_id": {
+            "type": "string",
+            "title": "Scoring Run Id"
+          },
+          "narrative_type": {
+            "$ref": "#/components/schemas/NarrativeType",
+            "default": "comparison_summary"
+          },
+          "include_sensitivity": {
+            "type": "boolean",
+            "title": "Include Sensitivity",
+            "default": false
+          },
+          "human_unverified_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Human Unverified Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scoring_run_id"
+        ],
+        "title": "NarrativeGenerationRequest"
+      },
+      "NarrativeGenerationResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "rfq_id": {
+            "type": "string",
+            "title": "Rfq Id"
+          },
+          "decision_context_id": {
+            "type": "string",
+            "title": "Decision Context Id"
+          },
+          "narrative_type": {
+            "$ref": "#/components/schemas/NarrativeType"
+          },
+          "generation_number": {
+            "type": "integer",
+            "title": "Generation Number"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/NarrativeOrigin"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "model_identifier": {
+            "type": "string",
+            "title": "Model Identifier"
+          },
+          "prompt_template_version": {
+            "type": "string",
+            "title": "Prompt Template Version"
+          },
+          "prompt_template_hash": {
+            "type": "string",
+            "title": "Prompt Template Hash"
+          },
+          "rendered_prompt_hash": {
+            "type": "string",
+            "title": "Rendered Prompt Hash"
+          },
+          "response_schema_version": {
+            "type": "string",
+            "title": "Response Schema Version"
+          },
+          "generation_parameters": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Generation Parameters"
+          },
+          "raw_structured_output": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Raw Structured Output"
+          },
+          "output_hash": {
+            "type": "string",
+            "title": "Output Hash"
+          },
+          "grounding_validation_result": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Grounding Validation Result"
+          },
+          "is_superseded": {
+            "type": "boolean",
+            "title": "Is Superseded"
+          },
+          "superseded_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded Reason"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "claims": {
+            "items": {
+              "$ref": "#/components/schemas/NarrativeClaimSchema"
+            },
+            "type": "array",
+            "title": "Claims"
+          },
+          "revisions": {
+            "items": {
+              "$ref": "#/components/schemas/NarrativeRevisionResponse"
+            },
+            "type": "array",
+            "title": "Revisions"
+          },
+          "current_origin": {
+            "$ref": "#/components/schemas/NarrativeOrigin",
+            "default": "ai_generated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "rfq_id",
+          "decision_context_id",
+          "narrative_type",
+          "generation_number",
+          "origin",
+          "provider",
+          "model_identifier",
+          "prompt_template_version",
+          "prompt_template_hash",
+          "rendered_prompt_hash",
+          "response_schema_version",
+          "generation_parameters",
+          "raw_structured_output",
+          "output_hash",
+          "grounding_validation_result",
+          "is_superseded",
+          "generated_at",
+          "created_by"
+        ],
+        "title": "NarrativeGenerationResponse"
+      },
+      "NarrativeOrigin": {
+        "type": "string",
+        "enum": [
+          "ai_generated",
+          "ai_generated_human_revised",
+          "human_authored"
+        ],
+        "title": "NarrativeOrigin"
+      },
+      "NarrativeRevisionCreate": {
+        "properties": {
+          "revised_text": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Revised Text"
+          },
+          "revision_rationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Rationale"
+          }
+        },
+        "type": "object",
+        "required": [
+          "revised_text"
+        ],
+        "title": "NarrativeRevisionCreate"
+      },
+      "NarrativeRevisionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "narrative_generation_id": {
+            "type": "string",
+            "title": "Narrative Generation Id"
+          },
+          "revision_number": {
+            "type": "integer",
+            "title": "Revision Number"
+          },
+          "revised_text": {
+            "type": "string",
+            "title": "Revised Text"
+          },
+          "revision_rationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Rationale"
+          },
+          "revised_by": {
+            "type": "string",
+            "title": "Revised By"
+          },
+          "revised_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Revised At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "narrative_generation_id",
+          "revision_number",
+          "revised_text",
+          "revised_by",
+          "revised_at"
+        ],
+        "title": "NarrativeRevisionResponse"
+      },
+      "NarrativeType": {
+        "type": "string",
+        "enum": [
+          "comparison_summary",
+          "tradeoff_analysis",
+          "sensitivity_summary",
+          "decision_support_memo",
+          "decision_considerations"
+        ],
+        "title": "NarrativeType"
+      },
+      "NormalizationMethod": {
+        "type": "string",
+        "enum": [
+          "min_max"
+        ],
+        "title": "NormalizationMethod"
+      },
+      "NormalizationOverrideCreate": {
+        "properties": {
+          "quotation_id": {
+            "type": "string",
+            "title": "Quotation Id"
+          },
+          "line_item_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Item Id"
+          },
+          "field_name": {
+            "type": "string",
+            "title": "Field Name"
+          },
+          "override_value": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Override Value"
+          },
+          "override_reason": {
+            "type": "string",
+            "title": "Override Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quotation_id",
+          "field_name",
+          "override_value",
+          "override_reason"
+        ],
+        "title": "NormalizationOverrideCreate"
+      },
+      "NormalizationOverrideRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "rfq_id": {
+            "type": "string",
+            "title": "Rfq Id"
+          },
+          "quotation_id": {
+            "type": "string",
+            "title": "Quotation Id"
+          },
+          "line_item_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Item Id"
+          },
+          "field_name": {
+            "type": "string",
+            "title": "Field Name"
+          },
+          "original_value": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Original Value"
+          },
+          "previous_normalized_value": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Normalized Value"
+          },
+          "override_value": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Override Value"
+          },
+          "override_reason": {
+            "type": "string",
+            "title": "Override Reason"
+          },
+          "actor_id": {
+            "type": "string",
+            "title": "Actor Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "reverted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reverted At"
+          },
+          "reverted_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reverted By"
+          },
+          "revert_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revert Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "rfq_id",
+          "quotation_id",
+          "field_name",
+          "original_value",
+          "override_value",
+          "override_reason",
+          "actor_id",
+          "created_at",
+          "is_active"
+        ],
+        "title": "NormalizationOverrideRead"
+      },
+      "NormalizationOverrideRevert": {
+        "properties": {
+          "revert_reason": {
+            "type": "string",
+            "title": "Revert Reason",
+            "default": "Reverted to deterministic calculation"
+          }
+        },
+        "type": "object",
+        "title": "NormalizationOverrideRevert"
+      },
+      "NormalizationStatus": {
+        "type": "string",
+        "enum": [
+          "normalized",
+          "identical",
+          "unresolved",
+          "human_overridden",
+          "not_quoted"
+        ],
+        "title": "NormalizationStatus"
+      },
+      "PaginatedResponse_RFQRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RFQRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "pages": {
+            "type": "integer",
+            "title": "Pages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size",
+          "pages"
+        ],
+        "title": "PaginatedResponse[RFQRead]"
+      },
+      "QuotationStatus": {
+        "type": "string",
+        "enum": [
+          "uploaded",
+          "queued",
+          "extracting",
+          "needs_review",
+          "approved",
+          "rejected",
+          "failed"
+        ],
+        "title": "QuotationStatus"
+      },
+      "QuotationStatusUpdate": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/QuotationStatus",
+            "description": "Target status (approved or rejected)"
+          },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          },
+          "acknowledged_warnings": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged Warnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "QuotationStatusUpdate"
+      },
+      "RFQCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Category",
+            "default": "General"
+          },
+          "reference_currency": {
+            "type": "string",
+            "maxLength": 3,
+            "minLength": 3,
+            "title": "Reference Currency",
+            "default": "USD"
+          },
+          "line_items": {
+            "items": {
+              "$ref": "#/components/schemas/LineItemCreate"
+            },
+            "type": "array",
+            "title": "Line Items"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/CriterionCreate"
+            },
+            "type": "array",
+            "title": "Criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "RFQCreate"
+      },
+      "RFQFXRateSetCreate": {
+        "properties": {
+          "base_currency": {
+            "type": "string",
+            "title": "Base Currency",
+            "default": "USD"
+          },
+          "effective_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Effective Date"
+          },
+          "provider_id": {
+            "type": "string",
+            "title": "Provider Id",
+            "default": "rfq_custom"
+          },
+          "is_synthetic": {
+            "type": "boolean",
+            "title": "Is Synthetic",
+            "default": false
+          },
+          "rates": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Rates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rates"
+        ],
+        "title": "RFQFXRateSetCreate"
+      },
+      "RFQFXRateSetRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "rfq_id": {
+            "type": "string",
+            "title": "Rfq Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "base_currency": {
+            "type": "string",
+            "title": "Base Currency"
+          },
+          "effective_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Effective Date"
+          },
+          "provider_id": {
+            "type": "string",
+            "title": "Provider Id"
+          },
+          "is_synthetic": {
+            "type": "boolean",
+            "title": "Is Synthetic"
+          },
+          "rates": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Rates"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "is_current": {
+            "type": "boolean",
+            "title": "Is Current"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "rfq_id",
+          "version",
+          "base_currency",
+          "effective_date",
+          "provider_id",
+          "is_synthetic",
+          "rates",
+          "created_by",
+          "created_at",
+          "is_current"
+        ],
+        "title": "RFQFXRateSetRead"
+      },
+      "RFQRead": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Category",
+            "default": "General"
+          },
+          "reference_currency": {
+            "type": "string",
+            "maxLength": 3,
+            "minLength": 3,
+            "title": "Reference Currency",
+            "default": "USD"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RFQStatus"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "is_archived": {
+            "type": "boolean",
+            "title": "Is Archived"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "line_items": {
+            "items": {
+              "$ref": "#/components/schemas/LineItemRead"
+            },
+            "type": "array",
+            "title": "Line Items"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/CriterionRead"
+            },
+            "type": "array",
+            "title": "Criteria"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "id",
+          "status",
+          "created_by",
+          "is_archived",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "RFQRead"
+      },
+      "RFQStatus": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "active",
+          "evaluating",
+          "decided",
+          "archived"
+        ],
+        "title": "RFQStatus"
+      },
+      "RFQUpdate": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RFQStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reference_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Currency"
+          },
+          "is_archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Archived"
+          }
+        },
+        "type": "object",
+        "title": "RFQUpdate"
+      },
+      "ScoringConfigurationCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/CriterionConfig"
+            },
+            "type": "array",
+            "title": "Criteria"
+          },
+          "normalization_method": {
+            "$ref": "#/components/schemas/NormalizationMethod",
+            "default": "min_max"
+          },
+          "missing_value_policy": {
+            "$ref": "#/components/schemas/MissingValuePolicy",
+            "default": "block_scoring"
+          },
+          "tie_policy": {
+            "$ref": "#/components/schemas/TiePolicy",
+            "default": "standard_competitive"
+          },
+          "engine_version": {
+            "type": "string",
+            "title": "Engine Version",
+            "default": "1.0"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "criteria"
+        ],
+        "title": "ScoringConfigurationCreate"
+      },
+      "ScoringConfigurationResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "rfq_id": {
+            "type": "string",
+            "title": "Rfq Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "engine_version": {
+            "type": "string",
+            "title": "Engine Version"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "config_payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Config Payload"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "rfq_id",
+          "version",
+          "name",
+          "engine_version",
+          "is_active",
+          "config_payload",
+          "created_by",
+          "created_at"
+        ],
+        "title": "ScoringConfigurationResponse"
+      },
+      "ScoringRunCreate": {
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "title": "Snapshot Id"
+          },
+          "configuration_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Configuration Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "snapshot_id",
+          "name"
+        ],
+        "title": "ScoringRunCreate"
+      },
+      "ScoringRunResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "rfq_id": {
+            "type": "string",
+            "title": "Rfq Id"
+          },
+          "configuration_id": {
+            "type": "string",
+            "title": "Configuration Id"
+          },
+          "snapshot_id": {
+            "type": "string",
+            "title": "Snapshot Id"
+          },
+          "run_number": {
+            "type": "integer",
+            "title": "Run Number"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "provenance_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provenance Hash"
+          },
+          "results_payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Results Payload"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "rfq_id",
+          "configuration_id",
+          "snapshot_id",
+          "run_number",
+          "name",
+          "results_payload",
+          "created_by",
+          "created_at"
+        ],
+        "title": "ScoringRunResponse"
+      },
+      "ScoringSimulationRequest": {
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "title": "Snapshot Id"
+          },
+          "configuration_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Configuration Id"
+          },
+          "custom_configuration": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScoringConfigurationCreate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "snapshot_id"
+        ],
+        "title": "ScoringSimulationRequest"
+      },
+      "SensitivityPoint": {
+        "properties": {
+          "weight": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Weight"
+          },
+          "redistributed_weights": {
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+            },
+            "type": "object",
+            "title": "Redistributed Weights"
+          },
+          "supplier_scores": {
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+            },
+            "type": "object",
+            "title": "Supplier Scores"
+          },
+          "rankings": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Rankings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "weight",
+          "redistributed_weights",
+          "supplier_scores",
+          "rankings"
+        ],
+        "title": "SensitivityPoint"
+      },
+      "SensitivityRequest": {
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "title": "Snapshot Id"
+          },
+          "configuration_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Configuration Id"
+          },
+          "swept_criterion_id": {
+            "type": "string",
+            "title": "Swept Criterion Id"
+          },
+          "locked_criterion_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Locked Criterion Ids"
+          },
+          "step_size": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 0.5,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Step Size",
+            "default": "0.05"
+          },
+          "include_breakeven": {
+            "type": "boolean",
+            "title": "Include Breakeven",
+            "default": false
+          },
+          "breakeven_candidate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Breakeven Candidate Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "snapshot_id",
+          "swept_criterion_id"
+        ],
+        "title": "SensitivityRequest"
+      },
+      "SensitivityResponse": {
+        "properties": {
+          "swept_criterion_id": {
+            "type": "string",
+            "title": "Swept Criterion Id"
+          },
+          "weight_redistribution_rule": {
+            "type": "string",
+            "title": "Weight Redistribution Rule"
+          },
+          "redistribution_policy": {
+            "type": "string",
+            "title": "Redistribution Policy",
+            "default": "proportional_unlocked_v1"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/SensitivityPoint"
+            },
+            "type": "array",
+            "title": "Points"
+          },
+          "crossover_points": {
+            "items": {
+              "$ref": "#/components/schemas/CrossoverPoint"
+            },
+            "type": "array",
+            "title": "Crossover Points"
+          },
+          "breakeven": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BreakevenResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "swept_criterion_id",
+          "weight_redistribution_rule",
+          "points",
+          "crossover_points"
+        ],
+        "title": "SensitivityResponse"
+      },
+      "ServiceStatus": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "examples": [
+              "healthy"
+            ]
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms",
+            "examples": [
+              2.5
+            ]
+          },
+          "details": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ServiceStatus"
+      },
+      "SupplierQuotationCreate": {
+        "properties": {
+          "supplier_name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Supplier Name"
+          },
+          "supplier_reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Reference"
+          },
+          "rfq_id": {
+            "type": "string",
+            "title": "Rfq Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "supplier_name",
+          "rfq_id"
+        ],
+        "title": "SupplierQuotationCreate"
+      },
+      "SupplierQuotationRead": {
+        "properties": {
+          "supplier_name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Supplier Name"
+          },
+          "supplier_reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Reference"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "rfq_id": {
+            "type": "string",
+            "title": "Rfq Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/QuotationStatus"
+          },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentRead"
+            },
+            "type": "array",
+            "title": "Documents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "supplier_name",
+          "id",
+          "rfq_id",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SupplierQuotationRead"
+      },
+      "SupplierScore": {
+        "properties": {
+          "quotation_id": {
+            "type": "string",
+            "title": "Quotation Id"
+          },
+          "supplier_name": {
+            "type": "string",
+            "title": "Supplier Name"
+          },
+          "eligibility_status": {
+            "$ref": "#/components/schemas/EligibilityStatus"
+          },
+          "knockout_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Knockout Reasons"
+          },
+          "total_score": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Score",
+            "default": "0.0000"
+          },
+          "exact_total_score": {
+            "type": "string",
+            "title": "Exact Total Score",
+            "default": "0.0000"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
+          },
+          "criteria_breakdown": {
+            "items": {
+              "$ref": "#/components/schemas/CriterionScoreBreakdown"
+            },
+            "type": "array",
+            "title": "Criteria Breakdown"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quotation_id",
+          "supplier_name",
+          "eligibility_status"
+        ],
+        "title": "SupplierScore"
+      },
+      "TiePolicy": {
+        "type": "string",
+        "enum": [
+          "standard_competitive"
+        ],
+        "title": "TiePolicy"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      }
+    }
+  }
+}

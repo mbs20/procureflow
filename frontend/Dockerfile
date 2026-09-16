@@ -1,3 +1,6 @@
+# Multi-stage Dockerfile for ProcureFlow Frontend
+
+# Stage 1: Build the React application
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -8,16 +11,18 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Production server using lightweight Caddy / Nginx or Node preview
-FROM node:20-alpine AS runner
+# Stage 2: Production release image using unprivileged Nginx (non-root)
+FROM nginxinc/nginx-unprivileged:alpine AS production
 
-WORKDIR /app
+# Copy custom Nginx server configuration
+COPY --chown=nginx:nginx nginx.conf /etc/nginx/conf.d/default.conf
 
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY package*.json ./
-COPY vite.config.ts ./
+# Copy compiled static assets from builder stage
+COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
 
 EXPOSE 5173
 
-CMD ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "5173"]
+HEALTHCHECK --interval=15s --timeout=5s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://127.0.0.1:5173/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]
