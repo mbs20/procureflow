@@ -4,7 +4,8 @@ import {
   AwardDecisionResponse,
   revokeAward,
 } from "../../api/decision";
-import { formatDateTime } from "../../lib/formatters";
+import { formatActor, formatDateTime } from "../../lib/formatters";
+
 import {
   History,
   CheckCircle2,
@@ -124,8 +125,9 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
                   {getEventBadge(evt.event_type)}
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <User className="w-3 h-3" />
-                    <strong>{evt.actor_principal}</strong>
+                    <strong>{formatActor(evt.actor_principal)}</strong>
                   </span>
+
                 </div>
                 <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                   <Clock className="w-3 h-3" />

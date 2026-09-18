@@ -5,7 +5,8 @@ import {
   NarrativeClaim,
   createNarrativeRevision,
 } from "../../api/decision";
-import { formatDateTime } from "../../lib/formatters";
+import { formatActor, formatDateTime } from "../../lib/formatters";
+
 import { translateGroundingStatus, translateClaimType } from "../../lib/statusTranslations";
 import {
   Sparkles,
@@ -168,9 +169,10 @@ export const NarrativeCard: React.FC<NarrativeCardProps> = ({
             </span>
             <span className="text-muted-foreground">
               {t("decision.revisedBy", {
-                user: narrative.revisions[narrative.revisions.length - 1].revised_by,
+                user: formatActor(narrative.revisions[narrative.revisions.length - 1].revised_by),
               })}
             </span>
+
           </div>
           <p className="text-sm text-foreground whitespace-pre-wrap">
             {narrative.revisions[narrative.revisions.length - 1].revised_text}

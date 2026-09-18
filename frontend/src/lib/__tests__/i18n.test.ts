@@ -8,8 +8,10 @@ import {
   formatDate,
   formatDateTime,
   formatPercent,
+  formatActor,
   getCurrentLocale,
 } from "../formatters";
+
 import {
   translateQuotationStatus,
   translateRFQStatus,
@@ -87,38 +89,33 @@ describe("i18n System & Translation Dictionaries", () => {
       }
     });
 
-    it("verifies all keys in English exist in French dictionary", () => {
-      for (const [ns, enDict] of Object.entries(en)) {
-        const frDict = (fr as any)[ns];
-        expect(frDict).toBeDefined();
+    function verifyParity(source: any, target: any, path: string = "") {
+      for (const key of Object.keys(source)) {
+        const fullPath = path ? `${path}.${key}` : key;
+        expect(
+          target[key],
+          `Missing translation for key "${fullPath}"`
+        ).toBeDefined();
 
-        for (const key of Object.keys(enDict)) {
-          expect(
-            frDict[key],
-            `Missing French translation for namespace "${ns}", key "${key}"`
-          ).toBeDefined();
-          expect(typeof frDict[key]).toBe("string");
-          expect(frDict[key].trim().length).toBeGreaterThan(0);
+        if (typeof source[key] === "object" && source[key] !== null) {
+          expect(typeof target[key]).toBe("object");
+          verifyParity(source[key], target[key], fullPath);
+        } else {
+          expect(typeof target[key]).toBe("string");
+          expect(target[key].trim().length).toBeGreaterThan(0);
         }
       }
+    }
+
+    it("verifies all keys in English exist in French dictionary", () => {
+      verifyParity(en, fr);
     });
 
     it("verifies all keys in French exist in English dictionary", () => {
-      for (const [ns, frDict] of Object.entries(fr)) {
-        const enDict = (en as any)[ns];
-        expect(enDict).toBeDefined();
-
-        for (const key of Object.keys(frDict)) {
-          expect(
-            enDict[key],
-            `Missing English translation for namespace "${ns}", key "${key}"`
-          ).toBeDefined();
-          expect(typeof enDict[key]).toBe("string");
-          expect(enDict[key].trim().length).toBeGreaterThan(0);
-        }
-      }
+      verifyParity(fr, en);
     });
   });
+
 
   describe("Locale Detection & Language Switching", () => {
     it("detects saved language from localStorage", () => {
@@ -305,4 +302,83 @@ describe("i18n System & Translation Dictionaries", () => {
       expect(translateBackendError("Failed to reach backend API")).toBe("Impossible de contacter l'API du serveur.");
     });
   });
+
+  describe("Actor & Credential Protection", () => {
+    it("redacts secret dev API key values to Development API Principal", () => {
+      expect(formatActor("procureflow_dev_api_key_12345")).toBe("Development API Principal");
+      expect(formatActor("dev_api_key_abc")).toBe("Development API Principal");
+      expect(formatActor("sk_live_123456789")).toBe("Development API Principal");
+      expect(formatActor("pk_test_987654321")).toBe("Development API Principal");
+    });
+
+    it("redacts generic secret API keys to Authenticated API Principal", () => {
+      expect(formatActor("procureflow_sec_9999")).toBe("Authenticated API Principal");
+      expect(formatActor("prod_api_key_secret")).toBe("Authenticated API Principal");
+    });
+
+    it("preserves standard user names and handles missing actors", () => {
+      expect(formatActor("buyer_admin")).toBe("buyer_admin");
+      expect(formatActor("officer_1")).toBe("officer_1");
+      expect(formatActor("")).toBe("System User");
+      expect(formatActor(null)).toBe("System User");
+      expect(formatActor(undefined)).toBe("System User");
+    });
+  });
+
+  describe("Regression: Specific Keys and Clean Formatting", () => {
+    it("resolves specific QA keys in English and French", () => {
+      changeLanguage("en");
+      expect(i18n.t("scoring.supplierHeader")).toBe("Supplier");
+      expect(i18n.t("scoring.activeBadge")).toBe("Active");
+      expect(i18n.t("scoring.eligible")).toBe("Eligible");
+      expect(i18n.t("matrix.referenceCurrency")).toBe("Reference Currency");
+      expect(i18n.t("matrix.paymentTerms")).toBe("Payment Terms");
+      expect(i18n.t("matrix.coverageLabel")).toBe("Coverage");
+      expect(i18n.t("matrix.quotedOriginal")).toBe("Quoted:");
+      expect(i18n.t("matrix.sourcePage")).toBe("Source Page");
+      expect(i18n.t("review.leadTimeDays")).toBe("Lead Time (Days)");
+      expect(i18n.t("review.addItem")).toBe("Add Item");
+
+      changeLanguage("fr");
+      expect(i18n.t("scoring.supplierHeader")).toBe("Fournisseur");
+      expect(i18n.t("scoring.activeBadge")).toBe("Actif");
+      expect(i18n.t("scoring.eligible")).toBe("Éligible");
+      expect(i18n.t("matrix.referenceCurrency")).toBe("Devise de référence");
+      expect(i18n.t("matrix.paymentTerms")).toBe("Conditions de paiement");
+      expect(i18n.t("matrix.coverageLabel")).toBe("Couverture");
+      expect(i18n.t("matrix.quotedOriginal")).toBe("Offert :");
+      expect(i18n.t("matrix.sourcePage")).toBe("Page source");
+      expect(i18n.t("review.leadTimeDays")).toBe("Délai de livraison (jours)");
+      expect(i18n.t("review.addItem")).toBe("Ajouter l'article");
+    });
+
+    it("correctly interpolates placeholders without leftover brackets", () => {
+      changeLanguage("en");
+      const frozenEn = i18n.t("scoring.frozenRunPrefix", { version: "1.0" });
+      expect(frozenEn).toBe("Frozen Run v1.0");
+      expect(frozenEn).not.toContain("{{");
+
+      const snapEn = i18n.t("scoring.snapshotOption", { version: 1, title: "Baseline" });
+      expect(snapEn).toBe("Snapshot v1 (Baseline)");
+      expect(snapEn).not.toContain("{{");
+
+      const calcEn = i18n.t("review.defaultCalculated", { amount: "100.00 USD" });
+      expect(calcEn).toBe("Default: 100.00 USD");
+      expect(calcEn).not.toContain("{{");
+
+      changeLanguage("fr");
+      const frozenFr = i18n.t("scoring.frozenRunPrefix", { version: "1.0" });
+      expect(frozenFr).toBe("Évaluation figée v1.0");
+      expect(frozenFr).not.toContain("{{");
+
+      const snapFr = i18n.t("scoring.snapshotOption", { version: 1, title: "Référence" });
+      expect(snapFr).toBe("Instantané v1 (Référence)");
+      expect(snapFr).not.toContain("{{");
+
+      const calcFr = i18n.t("review.defaultCalculated", { amount: "100,00 USD" });
+      expect(calcFr).toBe("Par défaut : 100,00 USD");
+      expect(calcFr).not.toContain("{{");
+    });
+  });
 });
+

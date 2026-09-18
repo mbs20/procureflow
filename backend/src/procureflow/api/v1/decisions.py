@@ -11,7 +11,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from procureflow.api.deps import get_db, verify_api_key
+from procureflow.api.deps import get_db, get_safe_principal, verify_api_key
 from procureflow.schemas.decision import (
     AwardConfirm,
     AwardDecisionCreate,
@@ -63,7 +63,7 @@ async def generate_narrative(
 ) -> NarrativeGenerationResponse:
     try:
         return await narrative_service.generate_narrative(
-            session=db, rfq_id=rfq_id, request=data, actor_id=api_key
+            session=db, rfq_id=rfq_id, request=data, actor_id=get_safe_principal(api_key)
         )
     except NarrativeScoringRunNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
@@ -127,7 +127,7 @@ async def create_revision(
             rfq_id=rfq_id,
             narrative_id=narrative_id,
             data=data,
-            actor_id=api_key,
+            actor_id=get_safe_principal(api_key),
         )
     except NarrativeGenerationNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
@@ -175,7 +175,7 @@ async def create_draft_award(
             session=db,
             rfq_id=rfq_id,
             data=data,
-            actor_principal=api_key,
+            actor_principal=get_safe_principal(api_key),
         )
     except AwardNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
@@ -249,7 +249,7 @@ async def confirm_award(
             rfq_id=rfq_id,
             award_id=award_id,
             data=data,
-            actor_principal=api_key,
+            actor_principal=get_safe_principal(api_key),
         )
     except AwardNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
@@ -281,7 +281,7 @@ async def revoke_award(
             rfq_id=rfq_id,
             award_id=award_id,
             data=data,
-            actor_principal=api_key,
+            actor_principal=get_safe_principal(api_key),
         )
     except AwardNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
@@ -291,3 +291,4 @@ async def revoke_award(
         ) from e
     except AwardDomainError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+

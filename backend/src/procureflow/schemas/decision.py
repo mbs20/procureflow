@@ -12,7 +12,18 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+def _sanitize_actor_string(v: Any) -> str:
+    if not v or not isinstance(v, str):
+        return "System User"
+    if "dev_api_key" in v or v.startswith("procureflow_dev") or v.startswith("sk_") or v.startswith("pk_") or v.startswith("test_key_"):
+        return "Development API Principal"
+    if "api_key" in v or v.startswith("procureflow_sec"):
+        return "Authenticated API Principal"
+    return v
+
 
 
 # ---------------------------------------------------------------------------
@@ -147,6 +158,12 @@ class NarrativeRevisionResponse(BaseModel):
     revised_by: str
     revised_at: datetime
 
+    @field_validator("revised_by", mode="before")
+    @classmethod
+    def sanitize_revised_by(cls, v: Any) -> str:
+        return _sanitize_actor_string(v)
+
+
 
 # ---------------------------------------------------------------------------
 # NARRATIVE GENERATION — Request / Response
@@ -250,6 +267,12 @@ class AwardDecisionEventResponse(BaseModel):
     actor_principal: str
     actor_display_name: str | None = None
     created_at: datetime
+
+    @field_validator("actor_principal", mode="before")
+    @classmethod
+    def sanitize_principal(cls, v: Any) -> str:
+        return _sanitize_actor_string(v)
+
 
 
 class AwardDecisionResponse(BaseModel):

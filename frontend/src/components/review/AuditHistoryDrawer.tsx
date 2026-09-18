@@ -2,6 +2,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { History, X, Clock, User, ArrowRight } from "lucide-react";
 import { AuditLogEntry } from "../../api/quotation";
+import { formatActor } from "../../lib/formatters";
+
 
 interface AuditHistoryDrawerProps {
   isOpen: boolean;
@@ -96,9 +98,10 @@ export const AuditHistoryDrawer: React.FC<AuditHistoryDrawerProps> = ({
                   <div className="flex items-center gap-1 text-[11px] text-slate-400">
                     <User className="w-3 h-3 text-slate-500" />
                     <span>
-                      {t('review.actorLabel', { id: log.actor_id, actor: log.actor_id, type: log.actor_type })}
+                      {t('review.actorLabel', { id: formatActor(log.actor_id), actor: formatActor(log.actor_id), type: log.actor_type })}
                     </span>
                   </div>
+
 
                   {/* Value diff display */}
                   {hasDiff && (
