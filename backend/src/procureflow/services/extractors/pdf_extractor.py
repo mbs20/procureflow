@@ -223,17 +223,20 @@ class PDFExtractor(BaseExtractor):
 
         # Step 3: LLM-Assisted interpretation referencing authoritative evidence chunks
         llm_result = llm_extractor.extract_from_tagged_chunks(tagged_chunks, reference_currency)
+        fallback_warning = (
+            "Unstructured PDF extraction requires manual review against the source document."
+        )
+        validation_warnings.append(fallback_warning)
 
         line_items: list[RawLineItem] = []
         for item in llm_result.line_items:
             # Crucial: Resolve the returned evidence_id back to authoritative parser-generated SourceEvidence!
             matched_evidence = evidence_registry.get(item.evidence_id)
             if not matched_evidence:
-                # Default to first available chunk evidence rather than inventing coordinates
-                first_ev = next(
-                    iter(evidence_registry.values()), SourceEvidence(type="pdf", page=1)
+                validation_warnings.append(
+                    f"Skipped item with unknown source evidence: {item.evidence_id}"
                 )
-                matched_evidence = first_ev
+                continue
 
             qty_dec = Decimal(str(item.quantity)) if item.quantity is not None else Decimal("1.0")
             price_dec = (
@@ -245,8 +248,8 @@ class PDFExtractor(BaseExtractor):
                 else (qty_dec * price_dec)
             )
 
-            row_warnings = []
-            confidence = Decimal("0.90") if not is_scanned_doc else Decimal("0.80")
+            row_warnings = [fallback_warning]
+            confidence = Decimal("0.60")
 
             if price_dec <= Decimal("0.0"):
                 warning = (

@@ -78,10 +78,26 @@ class LLMExtractor:
 
         # Regex patterns to detect line items with numbers
         # e.g., "Ball Bearing 6204 | 500 pcs | 12.50 | 6250.00" or similar
+        table_pages = {
+            chunk.get("page", 1)
+            for chunk in tagged_chunks
+            if re.search(
+                r"description\s+qty\s+unit price\s+total price", chunk.get("text", ""), re.I
+            )
+        }
         for chunk in tagged_chunks:
             ev_id = chunk["evidence_id"]
             text = chunk.get("text", "")
             lines = text.split("\n")
+            # Native PDF blocks may contain one cell per line. Require a matching
+            # explicit table header and exactly three separate numeric cells.
+            cells = [line.strip() for line in lines if line.strip()]
+            if (
+                chunk.get("page", 1) in table_pages
+                and len(cells) == 4
+                and all(re.fullmatch(r"\d+(?:\.\d+)?", cell) for cell in cells[1:])
+            ):
+                lines = [" | ".join(cells)]
 
             for line in lines:
                 line_clean = line.strip()
@@ -98,6 +114,13 @@ class LLMExtractor:
                         supplier_ref = v
                     elif "terms" in k or "payment" in k:
                         payment_terms = v
+
+                if re.match(
+                    r"^(quotation|quote|reference|payment|terms|dimensions|subtotal|total|tax|vat|shipping|delivery)\b",
+                    line_clean,
+                    re.IGNORECASE,
+                ):
+                    continue
 
                 # 1. First check for labeled invoice lines (common in OCR output)
                 # e.g. "Heavy Duty Hydraulic Cylinder 50mm bore - Qty: 4 - Price: $320.00"
@@ -118,9 +141,9 @@ class LLMExtractor:
                             qty = float(qty_match.group(1))
                             price = float(price_match.group(1))
                             curr = reference_currency
-                            if "€" in line_clean or "EUR" in line_clean:
+                            if "â‚¬" in line_clean or "EUR" in line_clean:
                                 curr = "EUR"
-                            elif "£" in line_clean or "GBP" in line_clean:
+                            elif "Â£" in line_clean or "GBP" in line_clean:
                                 curr = "GBP"
                             elif "$" in line_clean or "USD" in line_clean:
                                 curr = "USD"
@@ -133,9 +156,7 @@ class LLMExtractor:
                                     unit_price=price,
                                     total_price=qty * price,
                                     currency=curr,
-                                    lead_time_days=14
-                                    if any(w in line_clean.lower() for w in ["lead", "day"])
-                                    else None,
+                                    lead_time_days=None,
                                     evidence_id=ev_id,
                                 )
                             )
@@ -145,7 +166,18 @@ class LLMExtractor:
 
                 # 2. Otherwise check for delimiter-separated line items with numbers
                 # e.g. "Bearing 6204 | 100 | 25.00" or tabular row
-                numbers = re.findall(r"[-+]?\d*\.?\d+", line_clean)
+                cells = [cell.strip() for cell in re.split(r"[\t|;]", line_clean)]
+                # Never interpret numbers inside descriptions, dates or dimensions as prices.
+                numbers = []
+                for cell in cells[1:]:
+                    match = re.fullmatch(
+                        r"(?:USD|EUR|GBP|[$\u20ac\u00a3])?\s*(\d+(?:\.\d+)?)\s*(?:pcs|units|USD|EUR|GBP)?",
+                        cell,
+                        re.IGNORECASE,
+                    )
+                    if not match:
+                        break
+                    numbers.append(match.group(1))
                 if len(numbers) >= 2:
                     # Clean words for description
                     words = [w for w in re.split(r"[\t,|;]", line_clean) if w.strip()]
@@ -164,11 +196,11 @@ class LLMExtractor:
 
                             # Detect currency symbols
                             curr = reference_currency
-                            if "€" in line_clean or "EUR" in line_clean:
+                            if "â‚¬" in line_clean or "EUR" in line_clean:
                                 curr = "EUR"
                             elif "$" in line_clean or "USD" in line_clean:
                                 curr = "USD"
-                            elif "£" in line_clean or "GBP" in line_clean:
+                            elif "Â£" in line_clean or "GBP" in line_clean:
                                 curr = "GBP"
 
                             line_items.append(
@@ -179,9 +211,7 @@ class LLMExtractor:
                                     unit_price=price,
                                     total_price=total,
                                     currency=curr,
-                                    lead_time_days=14
-                                    if "lead" in line_clean.lower() or "day" in line_clean.lower()
-                                    else None,
+                                    lead_time_days=None,
                                     evidence_id=ev_id,
                                 )
                             )
@@ -189,8 +219,8 @@ class LLMExtractor:
                             pass
 
         return LLMExtractedQuotation(
-            supplier_name=supplier_name or "Detected Supplier",
-            supplier_reference=supplier_ref or "Q-REF-001",
+            supplier_name=supplier_name,
+            supplier_reference=supplier_ref,
             payment_terms=payment_terms,
             line_items=line_items,
             notes="Extracted via heuristic offline extractor.",

@@ -1,7 +1,7 @@
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,6 +43,44 @@ async def create_quotation(
 ) -> SupplierQuotationRead:
     quotation = await quotation_service.create_quotation(db, payload)
     return SupplierQuotationRead.model_validate(quotation)
+
+
+@router.post("/upload", response_model=SupplierQuotationRead, status_code=201)
+async def upload_new_quotation(
+    rfq_id: str = Form(...),
+    supplier_name: str = Form(..., min_length=1, max_length=255),
+    supplier_reference: str | None = Form(None, max_length=100),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+) -> SupplierQuotationRead:
+    from procureflow.config import get_settings
+    from procureflow.models.rfq import RFQ
+
+    content = await file.read(get_settings().max_upload_size_bytes + 1)
+    try:
+        storage_service.validate_file(file.filename or "", content)
+        if not supplier_name.strip():
+            raise StorageValidationError("Supplier name must not be blank.")
+        if await db.get(RFQ, rfq_id) is None:
+            raise HTTPException(status_code=404, detail="RFQ not found")
+        quotation = await quotation_service.create_with_document(
+            db,
+            SupplierQuotationCreate(
+                rfq_id=rfq_id,
+                supplier_name=supplier_name.strip(),
+                supplier_reference=supplier_reference,
+            ),
+            file.filename or "",
+            content,
+        )
+        return SupplierQuotationRead.model_validate(quotation)
+    except StorageValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Atomic quotation upload failed", error=str(exc))
+        raise HTTPException(status_code=500, detail="Failed to store quotation document.") from exc
 
 
 @router.get(
@@ -96,7 +134,9 @@ async def upload_quotation_document(
         )
 
     try:
-        content = await file.read()
+        from procureflow.config import get_settings
+
+        content = await file.read(get_settings().max_upload_size_bytes + 1)
         filename = file.filename or "uploaded_quotation"
         doc = await quotation_service.attach_document(
             session=db,

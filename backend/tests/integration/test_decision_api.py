@@ -50,7 +50,12 @@ async def test_full_phase6_decision_and_award_lifecycle(async_client: AsyncClien
         ],
         "criteria": [
             {"name": "Price", "weight": 0.60, "direction": "lower_is_better", "data_type": "price"},
-            {"name": "Lead Time", "weight": 0.40, "direction": "lower_is_better", "data_type": "days"},
+            {
+                "name": "Lead Time",
+                "weight": 0.40,
+                "direction": "lower_is_better",
+                "data_type": "days",
+            },
         ],
     }
     rfq_resp = await async_client.post("/api/v1/rfqs", json=rfq_payload, headers=headers)
@@ -107,8 +112,8 @@ async def test_full_phase6_decision_and_award_lifecycle(async_client: AsyncClien
             f"/api/v1/quotations/{qid_a}/line-items/{extr_a['line_items'][2]['id']}",
             headers=headers,
         )
-        await async_client.post(
-            f"/api/v1/quotations/{qid_a}/review-decision",
+        await async_client.patch(
+            f"/api/v1/quotations/{qid_a}/status",
             json={"status": "approved", "decision_notes": "Approved Alpha"},
             headers=headers,
         )
@@ -159,8 +164,8 @@ async def test_full_phase6_decision_and_award_lifecycle(async_client: AsyncClien
                 f"/api/v1/quotations/{qid_b}/line-items/{extr_b['line_items'][2]['id']}",
                 headers=headers,
             )
-        await async_client.post(
-            f"/api/v1/quotations/{qid_b}/review-decision",
+        await async_client.patch(
+            f"/api/v1/quotations/{qid_b}/status",
             json={"status": "approved", "decision_notes": "Approved Beta"},
             headers=headers,
         )
@@ -486,9 +491,11 @@ async def test_stale_and_superseded_semantics_lifecycle(async_client: AsyncClien
         headers=headers,
     )
     for it in extr["line_items"][1:]:
-        await async_client.delete(f"/api/v1/quotations/{qid}/line-items/{it['id']}", headers=headers)
-    await async_client.post(
-        f"/api/v1/quotations/{qid}/review-decision",
+        await async_client.delete(
+            f"/api/v1/quotations/{qid}/line-items/{it['id']}", headers=headers
+        )
+    await async_client.patch(
+        f"/api/v1/quotations/{qid}/status",
         json={"status": "approved", "decision_notes": "Approved Alpha"},
         headers=headers,
     )
@@ -638,4 +645,3 @@ async def test_actor_identity_spoofing_via_api(async_client: AsyncClient):
     # Reaches 404 because narrative doesn't exist, but Pydantic did not crash on extra fields
     # and service uses authenticated api_key
     assert resp.status_code == 404
-

@@ -77,6 +77,7 @@ class MatrixLineItemCell(BaseModel):
 
     # Lead Time
     line_lead_time_days: int | None = None
+    line_lead_time_original_days: int | None = None
     line_lead_time_display: str | None = None
     line_lead_time_type: str | None = None
 
@@ -87,6 +88,7 @@ class MatrixLineItemCell(BaseModel):
     override_reason: str | None = None
     warnings: list[str] = Field(default_factory=list)
     source_evidence: dict[str, Any] | None = None
+    source_document_id: str | None = None
     source_page: int | None = None
 
 
