@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { X, Save, AlertTriangle, Calculator } from "lucide-react";
 import { ExtractedLineItem } from "../../api/quotation";
 import { RFQLineItem } from "../../api/rfq";
+import { parseReviewNumber } from "../../lib/reviewNumbers";
 import { formatCurrency } from "../../lib/formatters";
 import { translateBackendError } from "../../lib/errorMessageMap";
 
@@ -24,11 +25,11 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
   const { t } = useTranslation();
 
   const [description, setDescription] = useState<string>(item?.description_raw || "");
-  const [quantity, setQuantity] = useState<number>(item?.quantity || 0);
+  const [quantity, setQuantity] = useState<string>(String(item?.quantity ?? ""));
   const [unit, setUnit] = useState<string>(item?.unit || "units");
-  const [unitPrice, setUnitPrice] = useState<number>(item?.unit_price || 0);
-  const [quotedTotal, setQuotedTotal] = useState<number>(item?.total_price || 0);
-  const [leadTime, setLeadTime] = useState<number | undefined>(item?.lead_time_days ?? undefined);
+  const [unitPrice, setUnitPrice] = useState<string>(String(item?.unit_price ?? ""));
+  const [quotedTotal, setQuotedTotal] = useState<string>(String(item?.total_price ?? ""));
+  const [leadTime, setLeadTime] = useState<string>(String(item?.lead_time_days ?? ""));
   const [rfqItemId, setRfqItemId] = useState<string>(item?.rfq_line_item_id || "");
   const [reason, setReason] = useState<string>("");
   const [saving, setSaving] = useState<boolean>(false);
@@ -37,11 +38,11 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
   useEffect(() => {
     if (item) {
       setDescription(item.description_raw);
-      setQuantity(item.quantity);
+      setQuantity(String(item.quantity ?? ""));
       setUnit(item.unit || "units");
-      setUnitPrice(item.unit_price);
-      setQuotedTotal(item.total_price);
-      setLeadTime(item.lead_time_days ?? undefined);
+      setUnitPrice(String(item.unit_price ?? ""));
+      setQuotedTotal(String(item.total_price ?? ""));
+      setLeadTime(String(item.lead_time_days ?? ""));
       setRfqItemId(item.rfq_line_item_id || "");
       setReason("");
       setError(null);
@@ -50,30 +51,43 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
 
   if (!isOpen || !item) return null;
 
-  const calculatedTotal = Number((quantity * unitPrice).toFixed(4));
-  const mathDiscrepancy = Math.abs(quotedTotal - calculatedTotal) > 0.01;
+  const parsedQuantity = parseReviewNumber(quantity, { positive: true });
+  const parsedUnitPrice = parseReviewNumber(unitPrice);
+  const parsedTotal = parseReviewNumber(quotedTotal);
+  const parsedLeadTime = leadTime.trim() === "" ? null : parseReviewNumber(leadTime, { integer: true });
+  const product = parsedQuantity !== null && parsedUnitPrice !== null ? parsedQuantity * parsedUnitPrice : NaN;
+  const calculatedTotal = Number.isFinite(product) ? Number(product.toFixed(4)) : null;
+  const mathDiscrepancy = parsedTotal !== null && calculatedTotal !== null && Math.abs(parsedTotal - calculatedTotal) > 0.01;
 
   const handleApplyCalculatedToQuoted = () => {
-    setQuotedTotal(calculatedTotal);
+    if (calculatedTotal !== null) setQuotedTotal(String(calculatedTotal));
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (parsedQuantity === null || parsedUnitPrice === null || calculatedTotal === null || parsedTotal === null || (leadTime.trim() !== "" && parsedLeadTime === null)) {
+      setError(t('review.invalidNumericValues'));
+      return;
+    }
+    if (!reason.trim()) {
+      setError(t('review.reasonRequired'));
+      return;
+    }
     try {
       setSaving(true);
       setError(null);
 
       const patch: Partial<ExtractedLineItem> = {
         description_raw: description,
-        quantity,
+        quantity: parsedQuantity,
         unit,
-        unit_price: unitPrice,
-        total_price: quotedTotal,
-        lead_time_days: leadTime ? Number(leadTime) : null,
+        unit_price: parsedUnitPrice,
+        total_price: parsedTotal,
+        lead_time_days: parsedLeadTime,
         rfq_line_item_id: rfqItemId || null,
       };
 
-      await onSave(item.id, patch, reason);
+      await onSave(item.id, patch, reason.trim());
       onClose();
     } catch (err: any) {
       setError(translateBackendError(err, t));
@@ -185,7 +199,7 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
                 step="any"
                 min="0.0001"
                 value={quantity}
-                onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setQuantity(e.target.value)}
                 required
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-blue-500 transition"
               />
@@ -211,7 +225,7 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
                 step="any"
                 min="0"
                 value={unitPrice}
-                onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setUnitPrice(e.target.value)}
                 required
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-blue-500 transition"
               />
@@ -241,7 +255,7 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
                   step="any"
                   min="0"
                   value={quotedTotal}
-                  onChange={(e) => setQuotedTotal(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setQuotedTotal(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-blue-500 transition"
                 />
               </div>
@@ -279,7 +293,7 @@ export const LineItemEditDialog: React.FC<LineItemEditDialogProps> = ({
               type="number"
               min="0"
               value={leadTime ?? ""}
-              onChange={(e) => setLeadTime(e.target.value ? parseInt(e.target.value) : undefined)}
+              onChange={(e) => setLeadTime(e.target.value)}
               placeholder="e.g. 14"
               className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-blue-500 transition"
             />

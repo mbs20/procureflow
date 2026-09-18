@@ -1,0 +1,15 @@
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { fetchActiveScoringConfiguration, fetchScoringRuns, simulateScoring, createScoringConfiguration } from '../../api/scoring';
+
+const criterion = { criterion_id: 'price', name: 'Price', weight: '1.0000', direction: 'lower_is_better', source_type: 'price', source_field: 'normalized_comparable_total' };
+const supplier = { quotation_id: 'q1', supplier_name: 'Synthetic supplier', eligibility_status: 'eligible', total_score: '100.0000', exact_total_score: '100', rank: 1, knockout_reasons: [], criteria_breakdown: [{ criterion_id: 'price', criterion_name: 'Price', raw_value: '120.25', exact_raw_value: '120.25', source_path: 'suppliers.q1.normalized_comparable_total', normalized_score: '100', weight: '1', weighted_contribution: '100', is_knockout_applied: false, formula_audit: 'equal cohort', min_value: '120.25', max_value: '120.25' }] };
+function reply(data: unknown, status=200) { vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(data), {status}))); }
+afterEach(()=>vi.unstubAllGlobals());
+describe('actual backend scoring contract', ()=>{
+ it('reads criteria inside config_payload and decimal strings', async()=>{ reply({id:'c1',rfq_id:'r1',version:1,name:'Config',config_payload:{criteria:[criterion]}}); const c=await fetchActiveScoringConfiguration('r1'); expect(c?.criteria[0].weight).toBe(1); });
+ it('reads frozen suppliers without losing evidence',async()=>{ reply([{id:'run',rfq_id:'r1',snapshot_id:'s1',configuration_id:'c1',results_payload:{suppliers:[supplier]}}]); const [run]=await fetchScoringRuns('r1'); expect(run.scores[0].composite_score).toBe(100); expect(run.scores[0].breakdown.Price.source_path).toContain('q1'); expect(run.comparison_snapshot_id).toBe('s1'); });
+ it('uses actual simulation request and array response',async()=>{ reply([supplier]); const result=await simulateScoring('r1',{comparison_snapshot_id:'s1',scoring_configuration_id:'c1'}); expect(result.scores[0].composite_score).toBe(100); expect(JSON.parse((fetch as any).mock.calls[0][1].body)).toMatchObject({snapshot_id:'s1',configuration_id:'c1'}); });
+ it('sends backend criterion IDs and directions',async()=>{ reply({id:'c1',config_payload:{criteria:[criterion]}}); await createScoringConfiguration('r1',{name:'Config',criteria:[{name:'Price',weight:1,direction:'MINIMIZE',source_field:'normalized_comparable_total'}]}); const body=JSON.parse((fetch as any).mock.calls[0][1].body); expect(body.criteria[0].criterion_id).toBeTruthy(); expect(body.criteria[0].direction).toBe('lower_is_better'); });
+ it('rejects malformed results instead of exposing undefined scores',async()=>{ reply([{id:'run',results_payload:{}}]); await expect(fetchScoringRuns('r1')).rejects.toThrow(/scoring/i); });
+ it('does not stringify structured validation errors as object Object',async()=>{ reply({detail:[{loc:['body','snapshot_id'],msg:'Field required'}]},422); await expect(simulateScoring('r1',{comparison_snapshot_id:'s1'})).rejects.toThrow('Field required'); });
+});

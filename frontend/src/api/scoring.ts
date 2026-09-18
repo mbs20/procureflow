@@ -1,4 +1,8 @@
+import { errorDetail } from "../lib/errorMessageMap";
 export interface CriterionConfig {
+  criterion_id?: string;
+  source_type?: string;
+  is_knockout?: boolean;
   name: string;
   weight: number;
   direction: "MINIMIZE" | "MAXIMIZE";
@@ -115,12 +119,12 @@ export interface CrossoverPoint {
 export interface BreakevenResult {
   target_supplier_id: string;
   target_supplier_name: string;
-  current_rank: number;
-  current_score: number;
+  current_rank?: number;
+  current_score?: number;
   target_rank: number;
   incumbent_supplier_id?: string | null;
   incumbent_supplier_name?: string | null;
-  required_score: number;
+  required_score?: number;
   current_price?: number | null;
   required_price?: number | null;
   price_delta?: number | null;
@@ -138,7 +142,7 @@ export interface SensitivityResponse {
   breakeven?: BreakevenResult | null;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 const API_KEY = "procureflow_dev_api_key_12345";
 
 export async function fetchScoringConfigurations(rfqId: string): Promise<ScoringConfigurationResponse[]> {
@@ -147,9 +151,9 @@ export async function fetchScoringConfigurations(rfqId: string): Promise<Scoring
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || "Failed to fetch scoring configurations");
+    throw new Error(errorDetail(err.detail) || "Failed to fetch scoring configurations");
   }
-  return res.json();
+  return (await res.json()).map(readConfiguration);
 }
 
 export async function fetchActiveScoringConfiguration(rfqId: string): Promise<ScoringConfigurationResponse | null> {
@@ -159,9 +163,9 @@ export async function fetchActiveScoringConfiguration(rfqId: string): Promise<Sc
   if (res.status === 404) return null;
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || "Failed to fetch active scoring configuration");
+    throw new Error(errorDetail(err.detail) || "Failed to fetch active scoring configuration");
   }
-  return res.json();
+  return readConfiguration(await res.json());
 }
 
 export async function createScoringConfiguration(
@@ -174,13 +178,13 @@ export async function createScoringConfiguration(
       "Content-Type": "application/json",
       "X-API-Key": API_KEY,
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(writeConfiguration(data)),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || "Failed to create scoring configuration");
+    throw new Error(errorDetail(err.detail) || "Failed to create scoring configuration");
   }
-  return res.json();
+  return readConfiguration(await res.json());
 }
 
 export async function fetchScoringRuns(rfqId: string): Promise<ScoringRunResponse[]> {
@@ -189,9 +193,9 @@ export async function fetchScoringRuns(rfqId: string): Promise<ScoringRunRespons
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || "Failed to fetch scoring runs");
+    throw new Error(errorDetail(err.detail) || "Failed to fetch scoring runs");
   }
-  return res.json();
+  return (await res.json()).map(readRun);
 }
 
 export async function fetchScoringRun(rfqId: string, runId: string): Promise<ScoringRunResponse> {
@@ -200,9 +204,9 @@ export async function fetchScoringRun(rfqId: string, runId: string): Promise<Sco
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || "Failed to fetch scoring run");
+    throw new Error(errorDetail(err.detail) || "Failed to fetch scoring run");
   }
-  return res.json();
+  return readRun(await res.json());
 }
 
 export async function createScoringRun(
@@ -215,13 +219,13 @@ export async function createScoringRun(
       "Content-Type": "application/json",
       "X-API-Key": API_KEY,
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ snapshot_id: data.comparison_snapshot_id, configuration_id: data.scoring_configuration_id, name: data.notes || "Scoring run", notes: data.notes }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || "Failed to execute scoring run");
+    throw new Error(errorDetail(err.detail) || "Failed to execute scoring run");
   }
-  return res.json();
+  return readRun(await res.json());
 }
 
 export async function simulateScoring(
@@ -234,13 +238,14 @@ export async function simulateScoring(
       "Content-Type": "application/json",
       "X-API-Key": API_KEY,
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ snapshot_id: data.comparison_snapshot_id, configuration_id: data.scoring_configuration_id, custom_configuration: data.transient_criteria ? writeConfiguration({name: "Simulation", criteria: data.transient_criteria}) : undefined }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || "Failed to simulate scoring");
+    throw new Error(errorDetail(err.detail) || "Failed to simulate scoring");
   }
-  return res.json();
+  const raw = await res.json();
+  return { snapshot_id: data.comparison_snapshot_id, scores: readScores(Array.isArray(raw) ? raw : raw.scores), criteria: data.transient_criteria || [] };
 }
 
 export async function runSensitivityAnalysis(
@@ -253,11 +258,48 @@ export async function runSensitivityAnalysis(
       "Content-Type": "application/json",
       "X-API-Key": API_KEY,
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ snapshot_id: data.comparison_snapshot_id, configuration_id: data.scoring_configuration_id, swept_criterion_id: data.sweep_criterion, locked_criterion_ids: Object.keys(data.locked_criteria || {}), step_size: data.step || 0.05, include_breakeven: !!data.target_supplier_id, breakeven_candidate_id: data.target_supplier_id }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || "Failed to compute sensitivity analysis");
+    throw new Error(errorDetail(err.detail) || "Failed to compute sensitivity analysis");
   }
-  return res.json();
+  return readSensitivity(await res.json(), data);
+}
+
+
+// API boundary adapters: preserve the authoritative payload; convert only display values.
+function numeric(value: unknown): number {
+  if ((typeof value !== "number" && typeof value !== "string") || String(value).trim() === "" || !Number.isFinite(Number(value))) throw new Error("Invalid scoring data");
+  return Number(value);
+}
+function readConfiguration(raw: any): ScoringConfigurationResponse {
+  const payload = raw.config_payload || raw;
+  if (!Array.isArray(payload.criteria) || !payload.criteria.length) throw new Error("Invalid scoring configuration");
+  return {...raw, ...payload, criteria: payload.criteria.map((c: any) => ({...c, weight: numeric(c.weight), direction: c.direction === "lower_is_better" ? "MINIMIZE" : c.direction === "higher_is_better" ? "MAXIMIZE" : c.direction}))};
+}
+function writeConfiguration(data: ScoringConfigurationCreate) {
+  return {...data, missing_value_policy: "block_scoring", tie_policy: "standard_competitive", criteria: data.criteria.map((c, i) => ({...c, criterion_id: c.criterion_id || `criterion_${i + 1}`, source_type: c.source_type || (c.source_field.includes("lead_time") ? "lead_time" : c.source_field.includes("payment") ? "payment_terms" : "price"), direction: c.direction === "MINIMIZE" ? "lower_is_better" : "higher_is_better", is_knockout: c.is_knockout ?? (c.knockout_threshold != null)}))};
+}
+function readScores(raw: any): SupplierScore[] {
+  if (!Array.isArray(raw)) throw new Error("Invalid scoring results");
+  return raw.map((s: any) => {
+    const entries = Array.isArray(s.criteria_breakdown) ? s.criteria_breakdown.map((b: any) => [b.criterion_name, b]) : Object.entries(s.breakdown || {});
+    const breakdown = Object.fromEntries(entries.map(([name, b]: [string, any]) => [name, {...b, normalized_score: numeric(b.normalized_score), weight: numeric(b.weight), weighted_contribution: numeric(b.weighted_contribution), cohort_min: b.min_value == null ? b.cohort_min : numeric(b.min_value), cohort_max: b.max_value == null ? b.cohort_max : numeric(b.max_value), knockout_applied: b.is_knockout_applied ?? b.knockout_applied ?? false, notes: b.notes || b.formula_audit}]));
+    const status = s.eligibility_status || s.status;
+    if (!s.quotation_id || !s.supplier_name || !status) throw new Error("Invalid scoring supplier");
+    return {...s, status, is_eligible: status === "eligible", composite_score: numeric(s.total_score ?? s.composite_score), knockout_reasons: s.knockout_reasons || [], breakdown};
+  });
+}
+function readRun(raw: any): ScoringRunResponse {
+  return {...raw, comparison_snapshot_id: raw.snapshot_id || raw.comparison_snapshot_id, scores: readScores(raw.results_payload ? raw.results_payload.suppliers : raw.scores)};
+}
+function readSensitivity(raw: any, request: SensitivityRequest): SensitivityResponse {
+  if (!Array.isArray(raw.points) && Array.isArray(raw.data_points)) return raw;
+  if (!Array.isArray(raw.points)) throw new Error("Invalid scoring sensitivity results");
+  const b = raw.breakeven;
+  return {comparison_snapshot_id: request.comparison_snapshot_id, sweep_criterion: raw.swept_criterion_id,
+    data_points: raw.points.map((p: any) => ({weight: numeric(p.weight), weights_vector: p.redistributed_weights, supplier_scores: Object.fromEntries(Object.entries(p.supplier_scores).map(([k,v])=>[k,numeric(v)])), ranks: p.rankings})),
+    crossover_points: (raw.crossover_points || []).map((p: any)=>({...p, weight: numeric(p.weight), supplier_a_id:p.supplier_a, supplier_b_id:p.supplier_b, supplier_a_name:p.supplier_a, supplier_b_name:p.supplier_b, score_at_crossover:numeric(p.score_at_crossover), description:`${p.supplier_a} / ${p.supplier_b}`})),
+    breakeven: b ? {target_supplier_id:b.candidate_id, target_supplier_name:b.candidate_name, target_rank:b.target_rank, current_price:numeric(b.current_price), required_price:b.required_price == null ? null : numeric(b.required_price), price_delta:b.delta_price == null ? null : numeric(b.delta_price), percentage_reduction_needed:b.delta_pct == null ? null : numeric(b.delta_pct), is_feasible:b.feasible, bisection_iterations:b.convergence_steps, explanation:b.notes} : null};
 }

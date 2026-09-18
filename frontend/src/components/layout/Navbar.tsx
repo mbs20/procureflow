@@ -8,7 +8,7 @@ export const Navbar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 glass-panel">
-      <div className="container flex h-16 max-w-7xl items-center justify-between px-6">
+      <div className="container flex flex-wrap min-h-16 gap-2 py-2 max-w-7xl items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-lg shadow-blue-500/20">
             <ShieldCheck className="h-6 w-6 text-white" />
@@ -22,7 +22,7 @@ export const Navbar: React.FC = () => {
                 OSS v0.1
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="hidden sm:block text-xs text-muted-foreground">
               {t("nav.brandSubtitle", "Explainable RFQ Comparison & Decision Engine")}
             </p>
           </div>

@@ -5,12 +5,19 @@
 
 import i18n from "./i18n";
 
-export function translateBackendError(rawMessage: string | null | undefined, _t?: any): string {
+export function translateBackendError(rawMessage: unknown, _t?: any): string {
   if (!rawMessage) return "";
   const lang = (i18n.language || "en").substring(0, 2);
   const isFr = lang === "fr";
 
-  const msg = String(rawMessage).trim();
+  const msg = errorDetail(rawMessage).trim();
+
+  const known: Record<string, string> = {
+    "Failed to store quotation document.": "Échec de l’enregistrement du document de l’offre.",
+    "Supplier name must not be blank.": "Le nom du fournisseur ne peut pas être vide.",
+    "Unstructured PDF extraction requires manual review against the source document.": "L’extraction du PDF non structuré doit être vérifiée avec le document source.",
+  };
+  if (isFr && known[msg]) return known[msg];
 
   // Criteria weights validation
   if (
@@ -52,4 +59,16 @@ export function translateBackendError(rawMessage: string | null | undefined, _t?
 
   // Fallback to raw message if not in dictionary
   return msg;
+}
+
+
+export function errorDetail(value: unknown): string {
+  if (value instanceof Error) return value.message;
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.map(errorDetail).filter(Boolean).join("; ");
+  if (value && typeof value === "object") {
+    const v = value as Record<string, unknown>;
+    return errorDetail(v.detail ?? v.msg ?? v.message);
+  }
+  return "";
 }

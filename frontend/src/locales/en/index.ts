@@ -1,5 +1,9 @@
 export const en = {
+  stabilization: {"noConfiguration": "No scoring configuration is available.", "notReady": "Not ready", "noSnapshot": "No valid comparison snapshot is available.", "createSnapshot": "Create a comparison snapshot before scoring.", "price": "Comparable total", "priceModel": "Comparable price model", "createConfiguration": "Create a price-only configuration"},
   audit: {
+    noEvents: 'No audit events yet.',
+    previous: 'Previous',
+    next: 'Next',
     desc: "Append-only event stream tracking all extractions, modifications, and evaluations.",
     title: "Immutable Audit Trail",
   },
@@ -112,6 +116,7 @@ export const en = {
     welcomePill: "Transparent & Explainable Procurement Intelligence",
   },
   decision: {
+    scoringRequiredBeforeDecision: "Complete a scoring run before making an award decision.",
     ackBindingLabel: "I understand this human action transitions the RFQ to DECIDED and locks the award decision.",
     ackScoresLabel: "I have reviewed the deterministic scoring calculations and verified criterion weights.",
     ackTermsLabel: "I confirm that technical compliance and commercial quotation terms have been verified.",
@@ -447,6 +452,9 @@ export const en = {
     warrantyMonths: "Warranty: {{months}} months",
   },
   review: {
+    invalidNumericValues: "Enter valid numeric values. Quantity must be positive; prices cannot be negative; lead time must be a whole number.",
+    reasonRequired: "Enter a reason for this correction.",
+
     acknowledgeBtn: "Acknowledge",
     actorLabel: "Actor: {{actor}} ({{type}})",
     addItemModalDesc: "Manually register an item omitted during automated parsing.",

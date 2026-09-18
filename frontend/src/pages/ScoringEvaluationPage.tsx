@@ -17,7 +17,6 @@ import {
 import {
   listComparisonSnapshots,
   ComparisonSnapshotRead,
-  createComparisonSnapshot,
 } from "../api/matrix";
 import { RFQ, fetchRFQs, PaginatedRFQs } from "../api/rfq";
 import { useTranslation } from "react-i18next";
@@ -83,7 +82,8 @@ export const ScoringEvaluationPage: React.FC = () => {
           setSelectedRfqId(data.items[0].id);
         }
       })
-      .catch((err) => console.error("Failed to load RFQs", err));
+      .catch((err) => setErrorMessage(translateBackendError(err, t)))
+      .finally(() => setIsLoading(false));
   }, []);
 
   // Update selected RFQ if route param changes
@@ -98,53 +98,24 @@ export const ScoringEvaluationPage: React.FC = () => {
     if (!rfqId) return;
     setIsLoading(true);
     setErrorMessage(null);
+    setActiveConfig(null);
+    setDisplayedScores([]);
+    setSelectedRun(null);
+    setScoringRuns([]);
+    setSnapshots([]);
+    setSensitivityResult(null);
+    setBreakevenResult(null);
 
     try {
       // 1. Fetch snapshots
-      let snaps = await listComparisonSnapshots(rfqId);
-      if (snaps.length === 0) {
-        // Auto-create initial snapshot if none exists
-        try {
-          const initialSnap = await createComparisonSnapshot(rfqId, "Initial Baseline Snapshot");
-          snaps = [initialSnap];
-        } catch (snapErr) {
-          console.warn("Could not auto-create snapshot", snapErr);
-        }
-      }
+      const snaps = await listComparisonSnapshots(rfqId);
       setSnapshots(snaps);
 
       const targetSnapId = snaps.length > 0 ? snaps[0].id : "";
       setSelectedSnapshotId(targetSnapId);
 
       // 2. Fetch Active Scoring Configuration (or create default if none)
-      let cfg = await fetchActiveScoringConfiguration(rfqId);
-      if (!cfg) {
-        cfg = await createScoringConfiguration(rfqId, {
-          name: "Standard Procurement Model",
-          description: "Default commercial and technical weighted model",
-          criteria: [
-            {
-              name: "Commercial Price",
-              weight: 0.6,
-              direction: "MINIMIZE",
-              source_field: "normalized_comparable_total",
-            },
-            {
-              name: "Delivery Lead Time",
-              weight: 0.3,
-              direction: "MINIMIZE",
-              source_field: "overall_lead_time_days",
-            },
-            {
-              name: "Payment Terms",
-              weight: 0.1,
-              direction: "MAXIMIZE",
-              source_field: "payment_terms_code",
-              categorical_map: { NET_60: 100, NET_30: 75, ADVANCE: 20 },
-            },
-          ],
-        });
-      }
+      const cfg = await fetchActiveScoringConfiguration(rfqId);
       setActiveConfig(cfg);
 
       // 3. Fetch Historical Scoring Runs
@@ -226,7 +197,7 @@ export const ScoringEvaluationPage: React.FC = () => {
     criteria: CriterionConfig[],
     name: string
   ) => {
-    if (!selectedRfqId) return;
+    if (!selectedRfqId || !selectedSnapshotId) return;
     setIsLoading(true);
     setErrorMessage(null);
     try {
@@ -302,7 +273,7 @@ export const ScoringEvaluationPage: React.FC = () => {
       const res = await runSensitivityAnalysis(selectedRfqId, {
         comparison_snapshot_id: selectedSnapshotId,
         scoring_configuration_id: activeConfig?.id,
-        sweep_criterion: "Commercial Price",
+        sweep_criterion: activeConfig?.criteria.find(c => c.source_field === "normalized_comparable_total")?.criterion_id || "Commercial Price",
         target_supplier_id: targetSupplierId,
       });
       if (res.breakeven) {
@@ -318,7 +289,7 @@ export const ScoringEvaluationPage: React.FC = () => {
   // Automatically trigger sensitivity when switching to sensitivity tab if empty
   useEffect(() => {
     if (activeTab === "sensitivity" && !sensitivityResult && activeConfig) {
-      const firstCrit = activeConfig.criteria[0]?.name || "Commercial Price";
+      const firstCrit = activeConfig.criteria[0]?.criterion_id || activeConfig.criteria[0]?.name || "Commercial Price";
       setSelectedSweepCriterion(firstCrit);
       handleRunSensitivity(firstCrit);
     }
@@ -415,11 +386,11 @@ export const ScoringEvaluationPage: React.FC = () => {
           <div>
             <div className="text-[10px] uppercase font-bold text-muted-foreground">{t('scoring.scoringConfigCard')}</div>
             <div className="text-sm font-bold text-foreground">
-              {activeConfig ? `${activeConfig.name} (v${activeConfig.version})` : "Loading..."}
+              {activeConfig ? `${activeConfig.name} (v${activeConfig.version})` : t(isLoading ? "common.loading" : "stabilization.noConfiguration")}
             </div>
           </div>
           <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
-            {t('scoring.activeBadge')}
+            {activeConfig ? t('scoring.activeBadge') : t('stabilization.notReady')}
           </span>
         </div>
 
@@ -463,6 +434,8 @@ export const ScoringEvaluationPage: React.FC = () => {
         </div>
       )}
 
+      {!isLoading && !selectedSnapshotId && <div role="status" className="rounded-xl border p-4"><p>{t('stabilization.noSnapshot')}</p><Link className="text-primary underline" to={`/rfqs/${selectedRfqId}/matrix`}>{t('stabilization.createSnapshot')}</Link></div>}
+      {!isLoading && selectedSnapshotId && !activeConfig && !errorMessage && <div role="status" className="rounded-xl border p-4"><p>{t('stabilization.noConfiguration')}</p><button onClick={() => handleSaveNewConfigVersion([{criterion_id:'price',name:t('stabilization.price'),weight:1,direction:'MINIMIZE',source_type:'price',source_field:'normalized_comparable_total'}], t('stabilization.priceModel'))} className="text-primary underline">{t('stabilization.createConfiguration')}</button></div>}
       {/* Main Ranking Table */}
       <div className="space-y-2">
         <EvaluationRankTable
@@ -512,7 +485,7 @@ export const ScoringEvaluationPage: React.FC = () => {
         </div>
 
         {/* Tab 1: Weights Editor & Simulator */}
-        {activeTab === "weights" && activeConfig && (
+        {activeTab === "weights" && activeConfig && selectedSnapshotId && (
           <div className="pt-4">
             <CriteriaWeightSliders
               initialCriteria={activeConfig.criteria}
@@ -525,7 +498,7 @@ export const ScoringEvaluationPage: React.FC = () => {
         )}
 
         {/* Tab 2: Sensitivity Sweep */}
-        {activeTab === "sensitivity" && activeConfig && (
+        {activeTab === "sensitivity" && activeConfig && selectedSnapshotId && (
           <div className="pt-4 space-y-4">
             <div className="flex items-center gap-3 glass-card rounded-xl p-4 border border-border/70">
               <label htmlFor="sensitivity-sweep-criterion-select" className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
@@ -541,7 +514,7 @@ export const ScoringEvaluationPage: React.FC = () => {
                 className="rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground focus:outline-none focus:border-primary cursor-pointer"
               >
                 {activeConfig.criteria.map((c) => (
-                  <option key={c.name} value={c.name}>
+                  <option key={c.criterion_id || c.name} value={c.criterion_id || c.name}>
                     {c.name} (Direction: {c.direction})
                   </option>
                 ))}
@@ -565,7 +538,7 @@ export const ScoringEvaluationPage: React.FC = () => {
         )}
 
         {/* Tab 3: Breakeven Calculator */}
-        {activeTab === "breakeven" && (
+        {activeTab === "breakeven" && activeConfig && selectedSnapshotId && (
           <div className="pt-4">
             <BreakevenCalculatorCard
               scores={displayedScores}

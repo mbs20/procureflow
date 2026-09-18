@@ -1,3 +1,4 @@
+import { encodeCSV } from "../lib/csv";
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -77,6 +78,13 @@ export const ComparisonMatrixPage: React.FC = () => {
     try {
       const data = await fetchComparisonMatrix(rfqId);
       setMatrix(data);
+      setSelectedCellInfo(previous => {
+        if (!previous) return null;
+        const row = data.required_line_items.find(item => item.position === previous.row.position);
+        const supplier = data.suppliers.find(item => item.quotation_id === previous.supplier.quotation_id);
+        const cell = row?.supplier_cells[previous.supplier.quotation_id];
+        return row && supplier && cell ? {row, supplier, cell} : null;
+      });
     } catch (err: any) {
       setError(translateBackendError(err, t));
     } finally {
@@ -104,7 +112,7 @@ export const ComparisonMatrixPage: React.FC = () => {
     for (const r of matrix.required_line_items) {
       const rowData = [
         r.position.toString(),
-        `"${r.description}"`,
+        r.description,
         r.required_quantity.toString(),
         r.required_unit,
         ...matrix.suppliers.map(s => {
@@ -117,14 +125,14 @@ export const ComparisonMatrixPage: React.FC = () => {
       rows.push(rowData);
     }
 
-    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-    const encodedUri = encodeURI(csvContent);
+    const encodedUri = URL.createObjectURL(new Blob([encodeCSV(rows)], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
     link.setAttribute("download", `comparison_matrix_${matrix.rfq_id}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(encodedUri), 1000);
   };
 
   return (

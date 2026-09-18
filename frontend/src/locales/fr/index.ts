@@ -1,5 +1,9 @@
 export const fr = {
+  stabilization: {"noConfiguration": "Aucune configuration de notation disponible.", "notReady": "Non prêt", "noSnapshot": "Aucun instantané de comparaison valide disponible.", "createSnapshot": "Créez un instantané de comparaison avant la notation.", "price": "Total comparable", "priceModel": "Modèle du prix comparable", "createConfiguration": "Créer une configuration basée sur le prix"},
   audit: {
+    noEvents: 'Aucun événement pour le moment.',
+    previous: 'Précédent',
+    next: 'Suivant',
     desc: "Flux immuable d'événements retraçant l'ensemble des extractions, modifications et évaluations.",
     title: "Piste d'audit immuable",
   },
@@ -112,6 +116,7 @@ export const fr = {
     welcomePill: "Intelligence achats transparente et explicable",
   },
   decision: {
+    scoringRequiredBeforeDecision: 'Terminez une évaluation avant de prendre une décision d’attribution.',
     ackBindingLabel: "Je comprends que cette action humaine fait passer l'appel d'offres au statut DÉCIDÉ et verrouille l'attribution.",
     ackScoresLabel: "J'ai examiné les calculs de scoring déterministes et vérifié les pondérations des critères.",
     ackTermsLabel: "Je confirme que la conformité technique et les conditions commerciales des devis ont été vérifiées.",
@@ -447,6 +452,8 @@ export const fr = {
     warrantyMonths: "Garantie : {{months}} mois",
   },
   review: {
+    invalidNumericValues: 'Saisissez des valeurs numériques valides. La quantité doit être positive, les prix non négatifs et le délai un nombre entier.',
+    reasonRequired: 'Saisissez le motif de cette correction.',
     acknowledgeBtn: "Prendre acte",
     actorLabel: "Auteur : {{actor}} ({{type}})",
     addItemModalDesc: "Enregistrez manuellement une ligne omise lors de l'extraction automatique.",

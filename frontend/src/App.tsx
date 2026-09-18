@@ -1,5 +1,5 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
+import { AuditPage } from "./pages/AuditPage";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -10,18 +10,6 @@ import { ReviewWorkspacePage } from "./pages/ReviewWorkspacePage";
 import { ComparisonMatrixPage } from "./pages/ComparisonMatrixPage";
 import { ScoringEvaluationPage } from "./pages/ScoringEvaluationPage";
 import { DecisionWorkspacePage } from "./pages/DecisionWorkspacePage";
-
-const AuditPlaceholder: React.FC = () => {
-  const { t } = useTranslation();
-  return (
-    <div className="glass-card rounded-xl p-8 text-center space-y-3">
-      <h2 className="text-xl font-bold text-white">{t("audit.title")}</h2>
-      <p className="text-sm text-muted-foreground max-w-md mx-auto">
-        {t("audit.desc")}
-      </p>
-    </div>
-  );
-};
 
 export const App: React.FC = () => {
   return (
@@ -44,7 +32,7 @@ export const App: React.FC = () => {
           <Route path="scoring/:id" element={<ScoringEvaluationPage />} />
           <Route path="decisions" element={<DecisionWorkspacePage />} />
           <Route path="decisions/:id" element={<DecisionWorkspacePage />} />
-          <Route path="audit" element={<AuditPlaceholder />} />
+          <Route path="audit" element={<AuditPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
