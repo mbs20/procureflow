@@ -6,7 +6,7 @@ test('balanced RFQ preset satisfies native validation and submits', async ({ pag
     submitted = route.request().postDataJSON();
     await route.fulfill({ json: { id: 'created' } });
   });
-  await page.goto('/e2e/fixtures/forms.html');
+  await page.goto('http://localhost:5174/e2e/fixtures/forms.html');
   await page.getByPlaceholder(/High-Pressure/).fill('Preset regression');
   await page.getByRole('button', { name: /Balanced Preset/ }).click();
   expect(await page.locator('form').evaluate((form: HTMLFormElement) => form.checkValidity())).toBe(true);
@@ -15,7 +15,7 @@ test('balanced RFQ preset satisfies native validation and submits', async ({ pag
 });
 
 test('review decimal strings remain editable and zero lead time and audit reason are preserved', async ({ page }) => {
-  await page.goto('/e2e/fixtures/forms.html?kind=edit');
+  await page.goto('http://localhost:5174/e2e/fixtures/forms.html?kind=edit');
   await page.locator('#edit-reason').fill('Verify decimal extraction');
   await page.locator('button[type=submit]').click();
   await expect.poll(() => page.evaluate(() => (window as any).saved)).toEqual({ id: '1', reason: 'Verify decimal extraction', patch: expect.objectContaining({ quantity: 2.5, unit_price: 10.25, total_price: 25.625, lead_time_days: 0 }) });
@@ -23,7 +23,7 @@ test('review decimal strings remain editable and zero lead time and audit reason
 
 for (const kind of ['add', 'edit']) {
   test(`${kind} rejects missing quantity and fractional lead time without silently coercing`, async ({ page }) => {
-    await page.goto(`/e2e/fixtures/forms.html?kind=${kind}`);
+    await page.goto(`http://localhost:5174/e2e/fixtures/forms.html?kind=${kind}`);
     if (kind === 'edit') await page.locator('#edit-reason').fill('Correct extraction');
     else await page.locator('input[type=text]').first().fill('Valve');
     const numeric = page.locator('input[type=number]');
@@ -47,7 +47,7 @@ for (const kind of ['add', 'edit']) {
 }
 
 test('edit requires a meaningful audit reason', async ({ page }) => {
-  await page.goto('/e2e/fixtures/forms.html?kind=edit');
+  await page.goto('http://localhost:5174/e2e/fixtures/forms.html?kind=edit');
   await page.locator('#edit-reason').fill('   ');
   await page.locator('button[type=submit]').click();
   await expect(page.getByText('Enter a reason for this correction.')).toBeVisible();

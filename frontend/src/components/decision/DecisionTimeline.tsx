@@ -141,9 +141,9 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
                     <strong className="text-white">{award.awarded_supplier_name}</strong>{" "}
                     ({t("scoring.rankCol")} #{award.awarded_supplier_rank ?? "—"})
                   </div>
-                  {evt.event_payload?.justification && (
+                  {(evt.event_payload?.award_justification || evt.event_payload?.justification) && (
                     <p className="bg-secondary/40 p-2 rounded text-muted-foreground italic">
-                      "{evt.event_payload.justification}"
+                      "{evt.event_payload.award_justification || evt.event_payload.justification}"
                     </p>
                   )}
                   {evt.event_payload?.non_rank1_rationale && (

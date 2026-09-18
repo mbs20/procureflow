@@ -360,6 +360,7 @@ export const en = {
     uomFactorBtn: "UOM Conversion Factor",
     uomFactorHint: "Adjust unit-of-measure conversion factor",
     uomFactorLabel: "Unit-of-Measure Factor",
+    downloadOriginalDocument: "View Original Document",
     viewOriginalDocument: "View in Human Review Workspace",
     viewSnapshotBtn: "View Snapshot",
     viewSourceEvidence: "View Source Evidence",

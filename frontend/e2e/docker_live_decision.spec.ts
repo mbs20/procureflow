@@ -85,7 +85,7 @@ test.describe("Live Docker Phase 6 Decision & Award Workflow", () => {
       headers,
       data: { rfq_line_item_id: item2Id, unit_price: 50.0, quantity: 20, total_price: 1000.0, currency: "USD", lead_time_days: 14 },
     });
-    await request.post(`${API_BASE}/api/v1/quotations/${qid1}/review-decision`, {
+    await request.patch(`${API_BASE}/api/v1/quotations/${qid1}/status`, {
       headers,
       data: { status: "approved", decision_notes: "Approved Alpha" },
     });
@@ -126,7 +126,7 @@ test.describe("Live Docker Phase 6 Decision & Award Workflow", () => {
       headers,
       data: { rfq_line_item_id: item2Id, unit_price: 75.0, quantity: 20, total_price: 1500.0, currency: "USD", lead_time_days: 28 },
     });
-    await request.post(`${API_BASE}/api/v1/quotations/${qid2}/review-decision`, {
+    await request.patch(`${API_BASE}/api/v1/quotations/${qid2}/status`, {
       headers,
       data: { status: "approved", decision_notes: "Approved Beta" },
     });
@@ -249,6 +249,26 @@ test.describe("Live Docker Phase 6 Decision & Award Workflow", () => {
 
     // Verify Award status is now Confirmed
     await expect(page.getByText(/confirmed award/i)).toBeVisible();
+
+    const awardsUrl = `${API_BASE}/api/v1/rfqs/${rfqId}/decisions/awards`;
+    const oldAward = (await (await request.get(awardsUrl)).json())[0];
+    const oldEvents = oldAward.events;
+    const revoke = await request.post(`${awardsUrl}/${oldAward.id}/revoke`, {headers, data: {revocation_reason: 'Runtime regression: replacement after committee review'}});
+    expect(revoke.status()).toBe(200);
+    const draft = await request.post(awardsUrl, {headers, data: {scoring_run_id: run1Id, awarded_supplier_id: qid1, award_justification: 'Runtime regression: replacement award'}});
+    expect(draft.status()).toBe(201);
+    const newId = (await draft.json()).id;
+    expect((await request.post(`${awardsUrl}/${newId}/confirm`, {headers, data: {}})).status()).toBe(200);
+    const history = await (await request.get(awardsUrl)).json();
+    expect(history).toHaveLength(2);
+    const prior = history.find((a: any) => a.id === oldAward.id);
+    expect(prior.current_status).toBe('revoked');
+    expect(prior.events.slice(0, oldEvents.length)).toEqual(oldEvents);
+    expect(prior.events.some((e: any) => e.event_type === 'revoked')).toBe(true);
+    expect(history.find((a: any) => a.id === newId).current_status).toBe('confirmed');
+    await page.reload();
+    await expect(page.getByText('Runtime regression: replacement award', {exact: false})).toBeVisible();
+    await expect(page.getByText('Runtime regression: replacement after committee review', {exact: false})).toBeVisible();
 
     // 12. Create newer ScoringRun #2 on live backend to verify superseded warning
     const run2Res = await request.post(`${API_BASE}/api/v1/rfqs/${rfqId}/scoring/runs`, {

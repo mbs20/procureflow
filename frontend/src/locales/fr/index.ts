@@ -360,6 +360,7 @@ export const fr = {
     uomFactorBtn: "Facteur de conversion d'unité",
     uomFactorHint: "Ajuster le coefficient de conversion d'unité de mesure",
     uomFactorLabel: "Coefficient d'unité de mesure",
+    downloadOriginalDocument: "Voir le document original",
     viewOriginalDocument: "Consulter dans l'espace de révision",
     viewSnapshotBtn: "Consulter l'instantané",
     viewSourceEvidence: "Voir la source justificative",
