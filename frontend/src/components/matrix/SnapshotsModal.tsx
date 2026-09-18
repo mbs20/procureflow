@@ -151,7 +151,8 @@ export const SnapshotsModal: React.FC<SnapshotsModalProps> = ({
                         v{s.snapshot_version}
                       </span>
                       <span className="text-xs font-semibold text-white">
-                        {s.title || t('matrix.snapshotDefaultTitle', { version: s.snapshot_version })}
+                        {s.title || t('matrix.snapshotDefaultTitle', { count: s.snapshot_version, version: s.snapshot_version })}
+
                       </span>
                     </div>
                     <div className="flex items-center gap-3 text-[11px] text-muted-foreground">

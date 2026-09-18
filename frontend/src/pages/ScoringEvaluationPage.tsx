@@ -412,8 +412,9 @@ export const ScoringEvaluationPage: React.FC = () => {
           <div>
             <div className="text-[10px] uppercase font-bold text-muted-foreground">{t('scoring.executionStatusCard')}</div>
             <div className="text-sm font-bold text-foreground">
-              {selectedRun ? t('scoring.frozenRunPrefix', { id: selectedRun.id.slice(0, 8) }) : t('scoring.liveSimulation')}
+              {selectedRun ? t('scoring.frozenRunPrefix', { version: selectedRun.scoring_configuration_version || selectedRun.run_number || selectedRun.id.slice(0, 8), id: selectedRun.id.slice(0, 8) }) : t('scoring.liveSimulation')}
             </div>
+
           </div>
           <span
             className={`text-xs px-2 py-0.5 rounded-full font-mono ${
@@ -533,7 +534,9 @@ export const ScoringEvaluationPage: React.FC = () => {
             <SensitivitySweepChart
               sensitivityData={sensitivityResult}
               isLoading={isSensitivityLoading}
+              scores={displayedScores}
             />
+
           </div>
         )}
 

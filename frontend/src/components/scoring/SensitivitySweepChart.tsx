@@ -1,18 +1,23 @@
 import React from "react";
 import { useTranslation, Trans } from "react-i18next";
-import { SensitivityResponse } from "../../api/scoring";
+import { SensitivityResponse, SupplierScore } from "../../api/scoring";
 import { TrendingUp, GitCommit, Info } from "lucide-react";
 import { formatNumber } from "../../lib/formatters";
 
 interface SensitivitySweepChartProps {
   sensitivityData: SensitivityResponse | null;
   isLoading?: boolean;
+  scores?: SupplierScore[];
+  supplierNames?: Record<string, string>;
 }
 
 export const SensitivitySweepChart: React.FC<SensitivitySweepChartProps> = ({
   sensitivityData,
   isLoading = false,
+  scores,
+  supplierNames,
 }) => {
+
   const { t } = useTranslation();
   if (isLoading) {
     return (
@@ -188,11 +193,15 @@ export const SensitivitySweepChart: React.FC<SensitivitySweepChartProps> = ({
           <thead className="bg-secondary/40 border-b border-border text-[10px] uppercase text-muted-foreground">
             <tr>
               <th className="py-2 px-3">{t('scoring.weightCol')}</th>
-              {supplierIds.map((suppId, idx) => (
-                <th key={suppId} className="py-2 px-3">
-                  <span style={{ color: colors[idx % colors.length] }}>{t('scoring.supplierNum', { num: idx + 1 })}</span>
-                </th>
-              ))}
+              {supplierIds.map((suppId, idx) => {
+                const suppName = supplierNames?.[suppId] || scores?.find(s => s.quotation_id === suppId)?.supplier_name || t('scoring.supplierNum', { num: idx + 1 });
+                return (
+                  <th key={suppId} className="py-2 px-3">
+                    <span style={{ color: colors[idx % colors.length] }}>{suppName}</span>
+                  </th>
+                );
+              })}
+
             </tr>
           </thead>
           <tbody className="divide-y divide-border/40 text-muted-foreground">

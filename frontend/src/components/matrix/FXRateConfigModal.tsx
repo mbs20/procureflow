@@ -78,7 +78,7 @@ export const FXRateConfigModal: React.FC<FXRateConfigModalProps> = ({
     }
 
     try {
-      await updateRFQFXRates(rfqId, {
+      const result = await updateRFQFXRates(rfqId, {
         base_currency: baseCurrency,
         effective_date: effectiveDate,
         provider_id: providerId,
@@ -86,7 +86,8 @@ export const FXRateConfigModal: React.FC<FXRateConfigModalProps> = ({
         rates: ratesMap,
       });
 
-      setSuccessMsg(t('matrix.rateSetSavedSuccess'));
+      setSuccessMsg(t('matrix.rateSetSavedSuccess', { version: (result as any)?.version ?? 1 }));
+
       onSaved();
       setTimeout(() => {
         onClose();

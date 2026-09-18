@@ -70,3 +70,6 @@ Thumbs.db
 
 # Intermediate generated demo assets
 docs/assets/frames/
+
+# Agent scratch / temporary diagnostic scripts
+scratch/
