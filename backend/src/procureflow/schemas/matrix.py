@@ -4,7 +4,9 @@ import datetime as dt
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from procureflow.utils.actor import sanitize_actor_string
 
 
 class NormalizationStatus(str, Enum):
@@ -134,6 +136,11 @@ class RFQFXRateSetRead(BaseModel):
     created_at: dt.datetime
     is_current: bool
 
+    @field_validator("created_by", mode="before")
+    @classmethod
+    def sanitize_created_by(cls, v: Any) -> str:
+        return sanitize_actor_string(v)
+
 
 class RFQFXRateSetCreate(BaseModel):
     base_currency: str = "USD"
@@ -176,6 +183,18 @@ class NormalizationOverrideRead(BaseModel):
     reverted_by: str | None = None
     revert_reason: str | None = None
 
+    @field_validator("actor_id", mode="before")
+    @classmethod
+    def sanitize_actor_id(cls, v: Any) -> str:
+        return sanitize_actor_string(v)
+
+    @field_validator("reverted_by", mode="before")
+    @classmethod
+    def sanitize_reverted_by(cls, v: Any) -> str | None:
+        if v is None:
+            return None
+        return sanitize_actor_string(v)
+
 
 class ComparisonSnapshotCreate(BaseModel):
     title: str | None = None
@@ -194,6 +213,11 @@ class ComparisonSnapshotRead(BaseModel):
     matrix_data: dict[str, Any]
     created_by: str
     created_at: dt.datetime
+
+    @field_validator("created_by", mode="before")
+    @classmethod
+    def sanitize_created_by(cls, v: Any) -> str:
+        return sanitize_actor_string(v)
 
 
 class ComparisonMatrixResponse(BaseModel):

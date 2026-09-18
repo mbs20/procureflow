@@ -3,6 +3,7 @@ from fastapi.security import APIKeyHeader
 
 from procureflow.config import get_settings
 from procureflow.database import get_db
+from procureflow.utils.actor import sanitize_actor_string
 
 __all__ = ["get_db", "verify_api_key", "get_safe_principal", "sanitize_actor"]
 
@@ -13,18 +14,12 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 def get_safe_principal(token: str | None) -> str:
     """Map raw API key / credential token to a safe principal label to prevent leaking secrets."""
-    if not token:
-        return "System User"
-    if token == settings.api_key or "dev_api_key" in token or token.startswith("procureflow_dev"):
-        return "Development API Principal"
-    if token.startswith("sk_") or token.startswith("pk_") or token.startswith("procureflow_sec") or "api_key" in token:
-        return "Authenticated API Principal"
-    return token
+    return sanitize_actor_string(token)
 
 
 def sanitize_actor(actor: str | None) -> str:
     """Sanitize any actor/principal string so credentials/secrets are never exposed."""
-    return get_safe_principal(actor)
+    return sanitize_actor_string(actor)
 
 
 async def verify_api_key(

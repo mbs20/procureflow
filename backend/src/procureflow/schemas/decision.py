@@ -14,17 +14,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-
-def _sanitize_actor_string(v: Any) -> str:
-    if not v or not isinstance(v, str):
-        return "System User"
-    if "dev_api_key" in v or v.startswith("procureflow_dev") or v.startswith("sk_") or v.startswith("pk_") or v.startswith("test_key_"):
-        return "Development API Principal"
-    if "api_key" in v or v.startswith("procureflow_sec"):
-        return "Authenticated API Principal"
-    return v
-
-
+from procureflow.utils.actor import sanitize_actor_string as _sanitize_actor_string
 
 # ---------------------------------------------------------------------------
 # ENUMERATIONS
@@ -209,6 +199,11 @@ class NarrativeGenerationResponse(BaseModel):
     generated_at: datetime
     created_by: str
 
+    @field_validator("created_by", mode="before")
+    @classmethod
+    def sanitize_created_by(cls, v: Any) -> str:
+        return _sanitize_actor_string(v)
+
     # Derived — populated by service layer
     claims: list[NarrativeClaimSchema] = Field(default_factory=list)
     revisions: list[NarrativeRevisionResponse] = Field(default_factory=list)
@@ -232,6 +227,11 @@ class DecisionContextResponse(BaseModel):
     includes_sensitivity: bool
     created_by: str
     created_at: datetime
+
+    @field_validator("created_by", mode="before")
+    @classmethod
+    def sanitize_created_by(cls, v: Any) -> str:
+        return _sanitize_actor_string(v)
 
 
 # ---------------------------------------------------------------------------
@@ -291,6 +291,11 @@ class AwardDecisionResponse(BaseModel):
     created_by: str
     created_at: datetime
     events: list[AwardDecisionEventResponse] = Field(default_factory=list)
+
+    @field_validator("created_by", mode="before")
+    @classmethod
+    def sanitize_created_by(cls, v: Any) -> str:
+        return _sanitize_actor_string(v)
 
     # Derived — service layer populates
     is_based_on_latest_run: bool = True
