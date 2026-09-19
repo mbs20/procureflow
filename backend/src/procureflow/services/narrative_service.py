@@ -25,7 +25,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from procureflow.config import get_settings
 from procureflow.models.audit import ActorType
 from procureflow.models.decision import (
-    AwardStatus,
     ClaimType,
     DecisionContext,
     GroundingStatus,
@@ -35,11 +34,10 @@ from procureflow.models.decision import (
     NarrativeRevision,
 )
 from procureflow.models.normalization import ComparisonSnapshot
-from procureflow.models.scoring import ScoringConfiguration, ScoringRun
 from procureflow.models.rfq import RFQ
+from procureflow.models.scoring import ScoringConfiguration, ScoringRun
 from procureflow.schemas.decision import (
     DecisionContextResponse,
-    FactReference,
     NarrativeClaimSchema,
     NarrativeGenerationRequest,
     NarrativeGenerationResponse,
@@ -50,6 +48,7 @@ from procureflow.schemas.decision import (
     SupplierAnalysis,
 )
 from procureflow.services.audit_service import record_audit_event
+from procureflow.services.scoring_service import verify_scoring_run_integrity
 
 logger = structlog.get_logger(__name__)
 
@@ -163,6 +162,47 @@ def build_decision_context_payload(
     Mutable RFQ fields are snapshotted at creation time.
     """
     results = scoring_run.results_payload
+    try:
+        identities = {
+            "rfq_id": rfq.id,
+            "snapshot_id": snapshot.id,
+            "snapshot_version": snapshot.snapshot_version,
+            "configuration_id": config.id,
+            "configuration_version": config.version,
+        }
+        if (
+            scoring_run.rfq_id != rfq.id
+            or snapshot.rfq_id != rfq.id
+            or config.rfq_id != rfq.id
+            or scoring_run.snapshot_id != snapshot.id
+            or scoring_run.configuration_id != config.id
+            or any(results[key] != value for key, value in identities.items())
+        ):
+            raise ValueError("record identity mismatch")
+        suppliers = results["suppliers"]
+        cohort = [s["quotation_id"] for s in suppliers]
+        snapshot_cohort = [s["quotation_id"] for s in snapshot.matrix_data["suppliers"]]
+        if not cohort or len(set(cohort)) != len(cohort) or set(cohort) != set(snapshot_cohort):
+            raise ValueError("supplier cohort mismatch or empty scoring run")
+        eligible = sum(s["eligibility_status"] == "eligible" for s in suppliers)
+        knockout = sum(s["eligibility_status"] == "knockout_failed" for s in suppliers)
+        if (
+            eligible + knockout != len(suppliers)
+            or results["eligible_suppliers_count"] != eligible
+            or results["knockout_suppliers_count"] != knockout
+            or not scoring_run.provenance_hash
+            or results["provenance_hash"] != scoring_run.provenance_hash
+            or not results["comparison_snapshot_hash"]
+            or not results["scoring_configuration_hash"]
+            or not verify_scoring_run_integrity(
+                results, snapshot.matrix_data, config.config_payload, scoring_run.provenance_hash
+            )
+        ):
+            raise ValueError("scoring provenance mismatch")
+    except (KeyError, TypeError, ValueError, AttributeError) as exc:
+        raise NarrativeDomainError(
+            "Scoring run integrity could not be verified. Create a new scoring run before generating a narrative."
+        ) from exc
 
     # Snapshot mutable RFQ fields
     rfq_snapshot = {
@@ -459,7 +499,6 @@ def generate_mock_narrative(
             cname = bd.get("criterion_name", "")
             nscore = bd.get("normalized_score", "0.0000")
             weight = bd.get("weight", "0.0000")
-            wc = bd.get("weighted_contribution", "0.0000")
             try:
                 ns_val = float(nscore)
                 if ns_val >= 70:
@@ -538,9 +577,7 @@ def generate_mock_narrative(
         "Qualitative factors not captured in the scoring model are not considered.",
     ]
     if knockout_notes:
-        limitations.append(
-            f"{len(knockout)} supplier(s) were excluded due to knockout criteria."
-        )
+        limitations.append(f"{len(knockout)} supplier(s) were excluded due to knockout criteria.")
 
     # Add a limitation claim
     claims.append(
@@ -630,9 +667,7 @@ class NarrativeService:
         snap_result = await session.execute(snap_stmt)
         snapshot = snap_result.scalar_one_or_none()
         if not snapshot:
-            raise NarrativeDomainError(
-                f"ComparisonSnapshot '{scoring_run.snapshot_id}' not found"
-            )
+            raise NarrativeDomainError(f"ComparisonSnapshot '{scoring_run.snapshot_id}' not found")
 
         rfq_stmt = select(RFQ).where(RFQ.id == rfq_id)
         rfq_result = await session.execute(rfq_stmt)
@@ -652,9 +687,7 @@ class NarrativeService:
 
         # Build privacy-minimized provider projection
         is_local = settings.llm_provider in ("ollama", "mock")
-        provider_projection = build_provider_projection(
-            context_payload, expanded_context=is_local
-        )
+        provider_projection = build_provider_projection(context_payload, expanded_context=is_local)
 
         dc = DecisionContext(
             rfq_id=rfq_id,
@@ -703,12 +736,6 @@ class NarrativeService:
         existing_count = gen_count_result.scalar() or 0
         generation_number = existing_count + 1
 
-        # Also count across all contexts for this scoring run
-        all_gen_stmt = select(func.count(NarrativeGeneration.id)).where(
-            NarrativeGeneration.rfq_id == rfq_id,
-        )
-        all_gen_result = await session.execute(all_gen_stmt)
-
         # 3. Build prompt
         structured_data_json = json.dumps(
             dc.provider_projection or dc.context_payload, indent=2, default=str
@@ -720,9 +747,7 @@ class NarrativeService:
         )
 
         if request.human_unverified_note:
-            rendered_prompt += HUMAN_NOTE_SECTION.format(
-                human_note=request.human_unverified_note
-            )
+            rendered_prompt += HUMAN_NOTE_SECTION.format(human_note=request.human_unverified_note)
 
         prompt_template_hash = _get_prompt_template_hash()
         rendered_prompt_hash = _sha256(rendered_prompt)
@@ -746,9 +771,7 @@ class NarrativeService:
             model_id = "mock-deterministic-v1"
         else:
             try:
-                sections, claims_data = self._live_generate(
-                    dc, request, rendered_prompt
-                )
+                sections, claims_data = self._live_generate(dc, request, rendered_prompt)
                 model_id = self._get_model_identifier()
             except Exception as e:
                 # Explicit error — no silent fallback to mock in production
@@ -843,9 +866,7 @@ class NarrativeService:
 
         # Build response
         claims_response = []
-        claim_stmt = select(NarrativeClaim).where(
-            NarrativeClaim.narrative_generation_id == gen.id
-        )
+        claim_stmt = select(NarrativeClaim).where(NarrativeClaim.narrative_generation_id == gen.id)
         claim_result = await session.execute(claim_stmt)
         for nc in claim_result.scalars().all():
             claims_response.append(NarrativeClaimSchema.model_validate(nc))
@@ -1103,9 +1124,7 @@ class NarrativeService:
                         "reference_type": "supplier_score",
                         "supplier_id": sa.supplier_id,
                         "field_path": f"suppliers[quotation_id={sa.supplier_id}].total_score",
-                        "authoritative_value": str(
-                            matching_supplier.get("total_score", "")
-                        ),
+                        "authoritative_value": str(matching_supplier.get("total_score", "")),
                     }
                 )
                 if matching_supplier.get("rank"):
@@ -1154,16 +1173,20 @@ class NarrativeService:
         gen: NarrativeGeneration,
     ) -> NarrativeGenerationResponse:
         # Load claims
-        claim_stmt = select(NarrativeClaim).where(
-            NarrativeClaim.narrative_generation_id == gen.id
-        ).order_by(NarrativeClaim.claim_index)
+        claim_stmt = (
+            select(NarrativeClaim)
+            .where(NarrativeClaim.narrative_generation_id == gen.id)
+            .order_by(NarrativeClaim.claim_index)
+        )
         claim_result = await session.execute(claim_stmt)
         claims = [NarrativeClaimSchema.model_validate(c) for c in claim_result.scalars().all()]
 
         # Load revisions
-        rev_stmt = select(NarrativeRevision).where(
-            NarrativeRevision.narrative_generation_id == gen.id
-        ).order_by(NarrativeRevision.revision_number)
+        rev_stmt = (
+            select(NarrativeRevision)
+            .where(NarrativeRevision.narrative_generation_id == gen.id)
+            .order_by(NarrativeRevision.revision_number)
+        )
         rev_result = await session.execute(rev_stmt)
         revisions = [
             NarrativeRevisionResponse.model_validate(r) for r in rev_result.scalars().all()
@@ -1191,9 +1214,7 @@ class NarrativeService:
                 )
                 latest_run = (await session.execute(latest_run_stmt)).first()
                 if latest_run and latest_run[0] != dc_run_id:
-                    cur_run_stmt = select(ScoringRun.run_number).where(
-                        ScoringRun.id == dc_run_id
-                    )
+                    cur_run_stmt = select(ScoringRun.run_number).where(ScoringRun.id == dc_run_id)
                     cur_run_num = (await session.execute(cur_run_stmt)).scalar() or 0
                     if latest_run[1] > cur_run_num:
                         is_superseded = True

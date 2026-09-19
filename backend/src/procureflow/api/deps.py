@@ -3,12 +3,23 @@ from fastapi.security import APIKeyHeader
 
 from procureflow.config import get_settings
 from procureflow.database import get_db
+from procureflow.utils.actor import sanitize_actor_string
 
-__all__ = ["get_db", "verify_api_key"]
+__all__ = ["get_db", "verify_api_key", "get_safe_principal", "sanitize_actor"]
 
 settings = get_settings()
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+def get_safe_principal(token: str | None) -> str:
+    """Map raw API key / credential token to a safe principal label to prevent leaking secrets."""
+    return sanitize_actor_string(token)
+
+
+def sanitize_actor(actor: str | None) -> str:
+    """Sanitize any actor/principal string so credentials/secrets are never exposed."""
+    return sanitize_actor_string(actor)
 
 
 async def verify_api_key(
@@ -34,3 +45,4 @@ async def verify_api_key(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return token
+

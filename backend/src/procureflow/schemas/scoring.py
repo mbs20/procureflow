@@ -5,7 +5,9 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from procureflow.utils.actor import sanitize_actor_string
 
 
 class CriterionDirection(str, Enum):
@@ -84,6 +86,11 @@ class ScoringConfigurationResponse(BaseModel):
     created_by: str
     created_at: datetime
 
+    @field_validator("created_by", mode="before")
+    @classmethod
+    def sanitize_created_by(cls, v: Any) -> str:
+        return sanitize_actor_string(v)
+
 
 class CriterionScoreBreakdown(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -142,6 +149,11 @@ class ScoringRunResponse(BaseModel):
     results_payload: dict[str, Any]
     created_by: str
     created_at: datetime
+
+    @field_validator("created_by", mode="before")
+    @classmethod
+    def sanitize_created_by(cls, v: Any) -> str:
+        return sanitize_actor_string(v)
 
 
 class ScoringSimulationRequest(BaseModel):

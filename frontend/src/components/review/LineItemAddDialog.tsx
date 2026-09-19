@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { X, Plus } from "lucide-react";
 import { ExtractedLineItemCreate } from "../../api/quotation";
 import { RFQLineItem } from "../../api/rfq";
+import { parseReviewNumber } from "../../lib/reviewNumbers";
 import { formatCurrency } from "../../lib/formatters";
 import { translateBackendError } from "../../lib/errorMessageMap";
 
@@ -24,32 +25,41 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
   const { t } = useTranslation();
 
   const [description, setDescription] = useState("");
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState("1");
   const [unit, setUnit] = useState("units");
-  const [unitPrice, setUnitPrice] = useState(0);
-  const [totalPrice, setTotalPrice] = useState<number | undefined>(undefined);
-  const [leadTime, setLeadTime] = useState<number | undefined>(undefined);
+  const [unitPrice, setUnitPrice] = useState("0");
+  const [totalPrice, setTotalPrice] = useState<string>("");
+  const [leadTime, setLeadTime] = useState<string>("");
   const [rfqItemId, setRfqItemId] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const calculatedTotal = Number((quantity * unitPrice).toFixed(4));
+  const parsedQuantity = parseReviewNumber(quantity, { positive: true });
+  const parsedUnitPrice = parseReviewNumber(unitPrice);
+  const parsedTotal = parseReviewNumber(totalPrice);
+  const parsedLeadTime = leadTime.trim() === "" ? null : parseReviewNumber(leadTime, { integer: true });
+  const product = parsedQuantity !== null && parsedUnitPrice !== null ? parsedQuantity * parsedUnitPrice : NaN;
+  const calculatedTotal = Number.isFinite(product) ? Number(product.toFixed(4)) : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (parsedQuantity === null || parsedUnitPrice === null || calculatedTotal === null || (totalPrice.trim() !== "" && parsedTotal === null) || (leadTime.trim() !== "" && parsedLeadTime === null)) {
+      setError(t('review.invalidNumericValues'));
+      return;
+    }
     try {
       setAdding(true);
       setError(null);
       await onAdd({
         description_raw: description,
-        quantity,
+        quantity: parsedQuantity,
         unit,
-        unit_price: unitPrice,
-        total_price: totalPrice !== undefined ? totalPrice : calculatedTotal,
+        unit_price: parsedUnitPrice,
+        total_price: parsedTotal ?? calculatedTotal,
         currency,
-        lead_time_days: leadTime ? Number(leadTime) : null,
+        lead_time_days: parsedLeadTime,
         rfq_line_item_id: rfqItemId || null,
       });
       onClose();
@@ -133,7 +143,7 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
                 step="any"
                 min="0.0001"
                 value={quantity}
-                onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setQuantity(e.target.value)}
                 required
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-blue-500 transition"
               />
@@ -159,7 +169,7 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
                 step="any"
                 min="0"
                 value={unitPrice}
-                onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setUnitPrice(e.target.value)}
                 required
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-blue-500 transition"
               />
@@ -176,7 +186,7 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
                 step="any"
                 min="0"
                 value={totalPrice ?? ""}
-                onChange={(e) => setTotalPrice(e.target.value ? parseFloat(e.target.value) : undefined)}
+                onChange={(e) => setTotalPrice(e.target.value)}
                 placeholder={t('review.defaultCalculated', { amount: formatCurrency(calculatedTotal, currency) })}
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-blue-500 transition"
               />
@@ -190,7 +200,7 @@ export const LineItemAddDialog: React.FC<LineItemAddDialogProps> = ({
                 type="number"
                 min="0"
                 value={leadTime ?? ""}
-                onChange={(e) => setLeadTime(e.target.value ? parseInt(e.target.value) : undefined)}
+                onChange={(e) => setLeadTime(e.target.value)}
                 placeholder="e.g. 7"
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-blue-500 transition"
               />

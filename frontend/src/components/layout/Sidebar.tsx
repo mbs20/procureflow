@@ -35,13 +35,13 @@ export const Sidebar: React.FC = () => {
   const { t } = useTranslation();
 
   return (
-    <aside className="w-64 border-r border-border/40 bg-card/30 flex flex-col justify-between p-4 min-h-[calc(100vh-4rem)]">
+    <aside className="w-full md:w-64 md:shrink-0 border-r border-border/40 bg-card/30 flex flex-col justify-between p-4 md:min-h-[calc(100vh-4rem)]">
       <div className="space-y-6">
         <div>
           <div className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {t("nav.pipelineTitle", "Procurement Pipeline")}
           </div>
-          <nav className="space-y-1">
+          <nav className="flex overflow-x-auto gap-1 md:block md:space-y-1">
             {navItems.map((item) => {
               const isActive = location.pathname === item.href;
               const Icon = item.icon;
@@ -50,7 +50,7 @@ export const Sidebar: React.FC = () => {
                 <Link
                   key={item.key}
                   to={item.href}
-                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex shrink-0 whitespace-nowrap items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                     isActive
                       ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
                       : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
@@ -72,15 +72,6 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
 
-      <div className="rounded-xl border border-border/60 bg-secondary/30 p-3.5 text-xs text-muted-foreground">
-        <div className="font-semibold text-foreground mb-1 flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          {t("nav.engineReady", "Engine Core Ready")}
-        </div>
-        <p className="text-[11px] leading-relaxed">
-          {t("nav.engineDesc", "Deterministic scoring & schema-enforced document extraction active.")}
-        </p>
-      </div>
     </aside>
   );
 };

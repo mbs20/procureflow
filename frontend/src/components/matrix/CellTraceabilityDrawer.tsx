@@ -328,12 +328,12 @@ export const CellTraceabilityDrawer: React.FC<CellTraceabilityDrawerProps> = ({
 
                 <div className="pt-2">
                   <a
-                    href={`/api/v1/quotations/${supplier.quotation_id}/documents`}
+                    href={cell.source_document_id ? `/api/v1/quotations/${supplier.quotation_id}/documents/${cell.source_document_id}/download` : `/quotations/${supplier.quotation_id}/review`}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
                   >
-                    {t('matrix.viewOriginalDocument')} <ExternalLink className="h-3 w-3" />
+                    {t(cell.source_document_id ? 'matrix.downloadOriginalDocument' : 'matrix.viewOriginalDocument')} <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
               </div>

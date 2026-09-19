@@ -9,22 +9,13 @@ and architectural boundary (narrative cannot invoke award).
 
 from __future__ import annotations
 
-import hashlib
 import json
-from decimal import Decimal
+from copy import deepcopy
 from unittest.mock import patch
 
 import pytest
-import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from procureflow.models.decision import (
-    AwardStatus,
-    DecisionContext,
-    NarrativeGeneration,
-    NarrativeOrigin,
-    NarrativeRevision,
-)
 from procureflow.models.normalization import ComparisonSnapshot
 from procureflow.models.rfq import RFQ, RFQStatus
 from procureflow.models.scoring import ScoringConfiguration, ScoringRun
@@ -34,15 +25,13 @@ from procureflow.schemas.decision import (
     NarrativeType,
 )
 from procureflow.services.narrative_service import (
+    NarrativeDomainError,
     NarrativeProviderError,
     NarrativeService,
-    _canonical_json,
     _sha256,
-    build_decision_context_payload,
-    generate_mock_narrative,
     validate_claims_grounding,
 )
-
+from procureflow.services.scoring_service import compute_canonical_hash, compute_scoring_run_hash
 
 # ---------------------------------------------------------------------------
 # FIXTURES
@@ -191,7 +180,12 @@ async def _seed_scoring_data(db: AsyncSession) -> tuple[str, str, str, str]:
         rfq_id="rfq-1",
         snapshot_version=1,
         reference_currency="USD",
-        matrix_data={"suppliers": []},
+        matrix_data={
+            "suppliers": [
+                {"quotation_id": s["quotation_id"], "supplier_name": s["supplier_name"]}
+                for s in SCORING_RUN_RESULTS["suppliers"]
+            ]
+        },
     )
     db.add(snapshot)
 
@@ -205,6 +199,28 @@ async def _seed_scoring_data(db: AsyncSession) -> tuple[str, str, str, str]:
     )
     db.add(config)
 
+    results = deepcopy(SCORING_RUN_RESULTS)
+    results["comparison_snapshot_hash"] = compute_canonical_hash(snapshot.matrix_data)
+    results["scoring_configuration_hash"] = compute_canonical_hash(config.config_payload)
+    results["provenance_hash"] = compute_scoring_run_hash(
+        **{
+            key: results[key]
+            for key in (
+                "rfq_id",
+                "snapshot_id",
+                "snapshot_version",
+                "comparison_snapshot_hash",
+                "configuration_id",
+                "configuration_version",
+                "scoring_configuration_hash",
+                "engine_version",
+                "engine_policy",
+                "eligible_suppliers_count",
+                "knockout_suppliers_count",
+                "suppliers",
+            )
+        }
+    )
     run = ScoringRun(
         id="run-1",
         rfq_id="rfq-1",
@@ -212,8 +228,8 @@ async def _seed_scoring_data(db: AsyncSession) -> tuple[str, str, str, str]:
         snapshot_id="snap-1",
         run_number=1,
         name="Scoring Run #1",
-        results_payload=SCORING_RUN_RESULTS,
-        provenance_hash="provhash789",
+        results_payload=results,
+        provenance_hash=results["provenance_hash"],
     )
     db.add(run)
 
@@ -229,6 +245,31 @@ async def _seed_scoring_data(db: AsyncSession) -> tuple[str, str, str, str]:
 class TestDecisionContextDeterminism:
     """Test 1: DecisionContext hash is deterministic for identical inputs."""
 
+    @pytest.mark.parametrize(
+        "corruption", ["empty", "cohort", "snapshot", "configuration", "identity", "hash"]
+    )
+    async def test_context_rejects_untrusted_run(self, db_session, corruption):
+        rfq_id, snap_id, cfg_id, run_id = await _seed_scoring_data(db_session)
+        run = await db_session.get(ScoringRun, run_id)
+        snapshot = await db_session.get(ComparisonSnapshot, snap_id)
+        config = await db_session.get(ScoringConfiguration, cfg_id)
+        payload = deepcopy(run.results_payload)
+        if corruption == "empty":
+            payload["suppliers"] = []
+        elif corruption == "cohort":
+            payload["suppliers"][0]["quotation_id"] = "unknown-supplier"
+        elif corruption == "snapshot":
+            snapshot.matrix_data = {"suppliers": []}
+        elif corruption == "configuration":
+            config.config_payload = {"criteria": ["tampered"]}
+        elif corruption == "identity":
+            payload["rfq_id"] = "other-rfq"
+        else:
+            payload["provenance_hash"] = "wrong"
+        run.results_payload = payload
+        with pytest.raises(NarrativeDomainError, match="integrity"):
+            await NarrativeService().create_decision_context(db_session, rfq_id, run_id)
+
     async def test_identical_inputs_produce_identical_hash(self, db_session: AsyncSession):
         rfq_id, snap_id, cfg_id, run_id = await _seed_scoring_data(db_session)
 
@@ -242,13 +283,11 @@ class TestDecisionContextDeterminism:
         assert ctx1.context_hash == ctx2.context_hash
         assert ctx1.context_payload == ctx2.context_payload
 
-    async def test_context_hash_changes_with_different_data(self, db_session: AsyncSession):
+    async def test_context_rejects_tampered_results(self, db_session: AsyncSession):
         rfq_id, snap_id, cfg_id, run_id = await _seed_scoring_data(db_session)
 
         svc = NarrativeService()
-        ctx1 = await svc.create_decision_context(
-            session=db_session, rfq_id=rfq_id, scoring_run_id=run_id
-        )
+        await svc.create_decision_context(session=db_session, rfq_id=rfq_id, scoring_run_id=run_id)
 
         # Modify scoring results
         from sqlalchemy import select
@@ -261,10 +300,10 @@ class TestDecisionContextDeterminism:
         run.results_payload = modified_results
         await db_session.flush()
 
-        ctx2 = await svc.create_decision_context(
-            session=db_session, rfq_id=rfq_id, scoring_run_id=run_id
-        )
-        assert ctx1.context_hash != ctx2.context_hash
+        with pytest.raises(NarrativeDomainError, match="integrity"):
+            await svc.create_decision_context(
+                session=db_session, rfq_id=rfq_id, scoring_run_id=run_id
+            )
 
 
 class TestMockNarrativeGeneration:
@@ -278,9 +317,7 @@ class TestMockNarrativeGeneration:
             scoring_run_id=run_id,
             narrative_type=NarrativeType.COMPARISON_SUMMARY,
         )
-        response = await svc.generate_narrative(
-            session=db_session, rfq_id=rfq_id, request=request
-        )
+        response = await svc.generate_narrative(session=db_session, rfq_id=rfq_id, request=request)
 
         assert response.provider == "mock"
         assert response.raw_structured_output["executive_summary"]
@@ -289,9 +326,7 @@ class TestMockNarrativeGeneration:
         assert response.output_hash
         assert response.decision_context_id
 
-    async def test_mock_narrative_includes_server_rendered_scores(
-        self, db_session: AsyncSession
-    ):
+    async def test_mock_narrative_includes_server_rendered_scores(self, db_session: AsyncSession):
         rfq_id, snap_id, cfg_id, run_id = await _seed_scoring_data(db_session)
 
         svc = NarrativeService()
@@ -299,9 +334,7 @@ class TestMockNarrativeGeneration:
             scoring_run_id=run_id,
             narrative_type=NarrativeType.COMPARISON_SUMMARY,
         )
-        response = await svc.generate_narrative(
-            session=db_session, rfq_id=rfq_id, request=request
-        )
+        response = await svc.generate_narrative(session=db_session, rfq_id=rfq_id, request=request)
 
         # Supplier analysis should contain server-rendered authoritative scores
         per_supplier = response.raw_structured_output["per_supplier_analysis"]
@@ -453,9 +486,7 @@ class TestProviderFailure:
             mock_settings.anthropic_api_key = None
 
             with pytest.raises(NarrativeProviderError, match="no API key"):
-                await svc.generate_narrative(
-                    session=db_session, rfq_id=rfq_id, request=request
-                )
+                await svc.generate_narrative(session=db_session, rfq_id=rfq_id, request=request)
 
     async def test_provider_timeout_returns_explicit_error(self, db_session: AsyncSession):
         rfq_id, snap_id, cfg_id, run_id = await _seed_scoring_data(db_session)
@@ -467,11 +498,13 @@ class TestProviderFailure:
         with patch("procureflow.services.narrative_service.settings") as mock_settings:
             mock_settings.llm_provider = "openai"
             mock_settings.openai_api_key = "sk-test-key"
-            with patch.object(svc, "_live_generate", side_effect=TimeoutError("Provider request timed out after 30s")):
+            with patch.object(
+                svc,
+                "_live_generate",
+                side_effect=TimeoutError("Provider request timed out after 30s"),
+            ):
                 with pytest.raises(NarrativeProviderError) as exc_info:
-                    await svc.generate_narrative(
-                        session=db_session, rfq_id=rfq_id, request=request
-                    )
+                    await svc.generate_narrative(session=db_session, rfq_id=rfq_id, request=request)
                 assert "timed out" in str(exc_info.value)
                 assert "Narrative generation is unavailable" in str(exc_info.value)
 
@@ -485,11 +518,11 @@ class TestProviderFailure:
         with patch("procureflow.services.narrative_service.settings") as mock_settings:
             mock_settings.llm_provider = "openai"
             mock_settings.openai_api_key = "sk-test-key"
-            with patch.object(svc, "_live_generate", side_effect=ValueError("Failed to parse provider JSON")):
+            with patch.object(
+                svc, "_live_generate", side_effect=ValueError("Failed to parse provider JSON")
+            ):
                 with pytest.raises(NarrativeProviderError) as exc_info:
-                    await svc.generate_narrative(
-                        session=db_session, rfq_id=rfq_id, request=request
-                    )
+                    await svc.generate_narrative(session=db_session, rfq_id=rfq_id, request=request)
                 assert "Failed to parse provider JSON" in str(exc_info.value)
 
 
@@ -505,19 +538,13 @@ class TestRegenerationAppendOnly:
             narrative_type=NarrativeType.COMPARISON_SUMMARY,
         )
 
-        gen1 = await svc.generate_narrative(
-            session=db_session, rfq_id=rfq_id, request=request
-        )
-        gen2 = await svc.generate_narrative(
-            session=db_session, rfq_id=rfq_id, request=request
-        )
+        gen1 = await svc.generate_narrative(session=db_session, rfq_id=rfq_id, request=request)
+        gen2 = await svc.generate_narrative(session=db_session, rfq_id=rfq_id, request=request)
 
         assert gen1.id != gen2.id
         assert gen1.generation_number == 1
         # Both exist in history
-        all_narratives = await svc.list_narratives(
-            session=db_session, rfq_id=rfq_id
-        )
+        all_narratives = await svc.list_narratives(session=db_session, rfq_id=rfq_id)
         assert len(all_narratives) == 2
 
         # Gen 1 is preserved unchanged
@@ -538,9 +565,7 @@ class TestHumanRevisionHistory:
             scoring_run_id=run_id,
             narrative_type=NarrativeType.COMPARISON_SUMMARY,
         )
-        gen = await svc.generate_narrative(
-            session=db_session, rfq_id=rfq_id, request=request
-        )
+        gen = await svc.generate_narrative(session=db_session, rfq_id=rfq_id, request=request)
 
         revision = await svc.create_revision(
             session=db_session,
@@ -576,9 +601,7 @@ class TestPromptVersioning:
             scoring_run_id=run_id,
             narrative_type=NarrativeType.COMPARISON_SUMMARY,
         )
-        gen = await svc.generate_narrative(
-            session=db_session, rfq_id=rfq_id, request=request
-        )
+        gen = await svc.generate_narrative(session=db_session, rfq_id=rfq_id, request=request)
 
         assert gen.prompt_template_version == "narrative-prompt-v1"
         assert gen.prompt_template_hash  # Non-empty SHA-256
@@ -590,6 +613,7 @@ class TestPromptVersioning:
     def test_prompt_template_v1_and_v2_distinguishable(self):
         """Prompt template text changes produce distinct hashes for audit trail."""
         from procureflow.services.narrative_service import NARRATIVE_PROMPT_TEMPLATE
+
         hash_v1 = _sha256(NARRATIVE_PROMPT_TEMPLATE)
         template_v2 = NARRATIVE_PROMPT_TEMPLATE + "\n8. Adhere to strict public sector compliance."
         hash_v2 = _sha256(template_v2)
@@ -609,9 +633,7 @@ class TestProviderMetadata:
             scoring_run_id=run_id,
             narrative_type=NarrativeType.COMPARISON_SUMMARY,
         )
-        gen = await svc.generate_narrative(
-            session=db_session, rfq_id=rfq_id, request=request
-        )
+        gen = await svc.generate_narrative(session=db_session, rfq_id=rfq_id, request=request)
 
         assert gen.provider == "mock"
         assert gen.model_identifier == "mock-deterministic-v1"
@@ -631,9 +653,7 @@ class TestSupersededSemantics:
             scoring_run_id=run_id,
             narrative_type=NarrativeType.COMPARISON_SUMMARY,
         )
-        gen = await svc.generate_narrative(
-            session=db_session, rfq_id=rfq_id, request=request
-        )
+        gen = await svc.generate_narrative(session=db_session, rfq_id=rfq_id, request=request)
         assert gen.is_superseded is False
 
         # Create newer scoring run
@@ -669,9 +689,11 @@ class TestArchitecturalBoundary:
         """Verify NarrativeService module does not import award_service."""
         import ast
         import inspect
+
         import procureflow.services.narrative_service as ns_mod
+
         file_path = getattr(ns_mod, "__file__", None) or inspect.getfile(ns_mod.__class__)
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
         tree = ast.parse(source)
         imported_names = []
@@ -730,8 +752,13 @@ class TestPrivacyProjection:
 
     def test_privacy_projection_excludes_raw_blobs(self):
         from procureflow.services.narrative_service import build_provider_projection
+
         context_with_raw = dict(SCORING_RUN_RESULTS)
-        context_with_raw["rfq"] = {"title": "Bearings RFQ", "category": "MRO", "reference_currency": "USD"}
+        context_with_raw["rfq"] = {
+            "title": "Bearings RFQ",
+            "category": "MRO",
+            "reference_currency": "USD",
+        }
         # Add raw file / blob fields that must never be projected
         context_with_raw["raw_pdf_bytes"] = "%PDF-1.4..."
         context_with_raw["raw_spreadsheet_data"] = "column_a,column_b\nval1,val2"
@@ -753,7 +780,10 @@ class TestMockModeEnvironmentSemantics:
     def test_mock_provider_blocked_in_production(self):
         from procureflow.config import Settings
 
-        with pytest.raises(ValueError, match="PROCUREFLOW_LLM_PROVIDER='mock' is only permitted in development and test"):
+        with pytest.raises(
+            ValueError,
+            match="PROCUREFLOW_LLM_PROVIDER='mock' is only permitted in development and test",
+        ):
             Settings(environment="production", llm_provider="mock")
 
     def test_mock_provider_permitted_in_development(self):
@@ -767,4 +797,3 @@ class TestMockModeEnvironmentSemantics:
 
         s = Settings(environment="test", llm_provider="mock")
         assert s.llm_provider == "mock"
-

@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from procureflow.api.v1.audit import router as audit_router
 from procureflow.api.v1.decisions import router as decisions_router
 from procureflow.api.v1.health import router as health_router
 from procureflow.api.v1.matrix import router as matrix_router
@@ -14,3 +15,5 @@ api_v1_router.include_router(quotations_router)
 api_v1_router.include_router(matrix_router)
 api_v1_router.include_router(scoring_router)
 api_v1_router.include_router(decisions_router)
+
+api_v1_router.include_router(audit_router)

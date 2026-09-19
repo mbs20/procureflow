@@ -146,8 +146,8 @@ async def test_full_phase5_scoring_lifecycle_and_provenance(async_client: AsyncC
             f"/api/v1/quotations/{qid_a}/line-items/{extr_a['line_items'][2]['id']}",
             headers=headers,
         )
-    await async_client.post(
-        f"/api/v1/quotations/{qid_a}/review-decision",
+    await async_client.patch(
+        f"/api/v1/quotations/{qid_a}/status",
         json={"status": "approved", "decision_notes": "Approved A"},
         headers=headers,
     )
@@ -198,8 +198,8 @@ async def test_full_phase5_scoring_lifecycle_and_provenance(async_client: AsyncC
             f"/api/v1/quotations/{qid_b}/line-items/{extr_b['line_items'][2]['id']}",
             headers=headers,
         )
-    await async_client.post(
-        f"/api/v1/quotations/{qid_b}/review-decision",
+    await async_client.patch(
+        f"/api/v1/quotations/{qid_b}/status",
         json={"status": "approved", "decision_notes": "Approved B"},
         headers=headers,
     )
@@ -250,8 +250,8 @@ async def test_full_phase5_scoring_lifecycle_and_provenance(async_client: AsyncC
             f"/api/v1/quotations/{qid_c}/line-items/{extr_c['line_items'][2]['id']}",
             headers=headers,
         )
-    await async_client.post(
-        f"/api/v1/quotations/{qid_c}/review-decision",
+    await async_client.patch(
+        f"/api/v1/quotations/{qid_c}/status",
         json={"status": "approved", "decision_notes": "Approved C"},
         headers=headers,
     )

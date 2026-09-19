@@ -12,8 +12,9 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from procureflow.utils.actor import sanitize_actor_string as _sanitize_actor_string
 
 # ---------------------------------------------------------------------------
 # ENUMERATIONS
@@ -147,6 +148,12 @@ class NarrativeRevisionResponse(BaseModel):
     revised_by: str
     revised_at: datetime
 
+    @field_validator("revised_by", mode="before")
+    @classmethod
+    def sanitize_revised_by(cls, v: Any) -> str:
+        return _sanitize_actor_string(v)
+
+
 
 # ---------------------------------------------------------------------------
 # NARRATIVE GENERATION — Request / Response
@@ -192,6 +199,11 @@ class NarrativeGenerationResponse(BaseModel):
     generated_at: datetime
     created_by: str
 
+    @field_validator("created_by", mode="before")
+    @classmethod
+    def sanitize_created_by(cls, v: Any) -> str:
+        return _sanitize_actor_string(v)
+
     # Derived — populated by service layer
     claims: list[NarrativeClaimSchema] = Field(default_factory=list)
     revisions: list[NarrativeRevisionResponse] = Field(default_factory=list)
@@ -215,6 +227,11 @@ class DecisionContextResponse(BaseModel):
     includes_sensitivity: bool
     created_by: str
     created_at: datetime
+
+    @field_validator("created_by", mode="before")
+    @classmethod
+    def sanitize_created_by(cls, v: Any) -> str:
+        return _sanitize_actor_string(v)
 
 
 # ---------------------------------------------------------------------------
@@ -251,6 +268,12 @@ class AwardDecisionEventResponse(BaseModel):
     actor_display_name: str | None = None
     created_at: datetime
 
+    @field_validator("actor_principal", mode="before")
+    @classmethod
+    def sanitize_principal(cls, v: Any) -> str:
+        return _sanitize_actor_string(v)
+
+
 
 class AwardDecisionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -268,6 +291,11 @@ class AwardDecisionResponse(BaseModel):
     created_by: str
     created_at: datetime
     events: list[AwardDecisionEventResponse] = Field(default_factory=list)
+
+    @field_validator("created_by", mode="before")
+    @classmethod
+    def sanitize_created_by(cls, v: Any) -> str:
+        return _sanitize_actor_string(v)
 
     # Derived — service layer populates
     is_based_on_latest_run: bool = True

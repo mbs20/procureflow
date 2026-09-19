@@ -321,7 +321,7 @@ export const CreateRFQModal: React.FC<CreateRFQModalProps> = ({
                   <div className="flex items-center gap-1 bg-secondary/50 border border-border rounded-md px-2 py-1">
                     <input
                       type="number"
-                      step="0.05"
+                      step="0.01"
                       min="0.01"
                       max="1.0"
                       value={crit.weight}

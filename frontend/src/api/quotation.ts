@@ -1,3 +1,5 @@
+import { errorDetail } from "../lib/errorMessageMap";
+
 export type QuotationStatus =
   | "uploaded"
   | "queued"
@@ -426,3 +428,22 @@ export const updateQuotationStatus = (
     }).then(res => res.json());
   }
 };
+
+export async function uploadNewQuotation(
+  data: { rfq_id: string; supplier_name: string; supplier_reference?: string },
+  file: File
+): Promise<SupplierQuotation> {
+  const formData = new FormData();
+  formData.append("rfq_id", data.rfq_id);
+  formData.append("supplier_name", data.supplier_name);
+  if (data.supplier_reference) formData.append("supplier_reference", data.supplier_reference);
+  formData.append("file", file);
+  const res = await fetch(`${API_BASE}/api/v1/quotations/upload`, {
+    method: "POST", headers: { "X-API-Key": DEV_API_KEY }, body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(errorDetail(err) || "Upload failed");
+  }
+  return res.json();
+}

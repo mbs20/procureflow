@@ -4,7 +4,8 @@ import {
   AwardDecisionResponse,
   revokeAward,
 } from "../../api/decision";
-import { formatDateTime } from "../../lib/formatters";
+import { formatActor, formatDateTime } from "../../lib/formatters";
+
 import {
   History,
   CheckCircle2,
@@ -124,8 +125,9 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
                   {getEventBadge(evt.event_type)}
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <User className="w-3 h-3" />
-                    <strong>{evt.actor_principal}</strong>
+                    <strong>{formatActor(evt.actor_principal)}</strong>
                   </span>
+
                 </div>
                 <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                   <Clock className="w-3 h-3" />
@@ -141,9 +143,9 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
                     <strong className="text-white">{award.awarded_supplier_name}</strong>{" "}
                     ({t("scoring.rankCol")} #{award.awarded_supplier_rank ?? "—"})
                   </div>
-                  {evt.event_payload?.justification && (
+                  {(evt.event_payload?.award_justification || evt.event_payload?.justification) && (
                     <p className="bg-secondary/40 p-2 rounded text-muted-foreground italic">
-                      "{evt.event_payload.justification}"
+                      "{evt.event_payload.award_justification || evt.event_payload.justification}"
                     </p>
                   )}
                   {evt.event_payload?.non_rank1_rationale && (

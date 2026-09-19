@@ -1,4 +1,5 @@
 import os
+import tempfile
 from pathlib import Path
 
 import pytest_asyncio
@@ -8,13 +9,18 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.orm import Session, sessionmaker
 
 # Set test environment flags
-TEST_DB_FILE = Path("/tmp/test_procureflow.db").resolve()
+_TEST_DIRECTORY = tempfile.TemporaryDirectory(
+    prefix="procureflow-tests-",
+    dir=os.environ.get("PROCUREFLOW_TEST_TMPDIR"),
+    ignore_cleanup_errors=True,
+)
+TEST_DB_FILE = Path(_TEST_DIRECTORY.name) / "test_procureflow.db"
 os.environ["PROCUREFLOW_ENV"] = "test"
 os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{TEST_DB_FILE}"
 os.environ["DATABASE_URL_SYNC"] = f"sqlite:///{TEST_DB_FILE}"
 os.environ["CELERY_ALWAYS_EAGER"] = "true"
 os.environ["PROCUREFLOW_LLM_PROVIDER"] = "mock"
-os.environ["STORAGE_LOCAL_DIR"] = "/tmp/test_storage"
+os.environ["STORAGE_LOCAL_DIR"] = str(Path(_TEST_DIRECTORY.name) / "storage")
 
 import procureflow.database as db_mod  # noqa: E402
 import procureflow.tasks.extraction as extraction_mod  # noqa: E402
@@ -69,6 +75,8 @@ async def db_session() -> AsyncSession:
 
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+    await test_engine.dispose()
+    test_sync_engine.dispose()
 
 
 @pytest_asyncio.fixture(scope="function")

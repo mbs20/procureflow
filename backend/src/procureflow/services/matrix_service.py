@@ -346,15 +346,12 @@ class MatrixService:
             (o.quotation_id, o.line_item_id, o.field_name): o for o in active_overrides
         }
 
-        # 4. Load quotations (approved or available for leveling)
-        # Note: We prioritize approved quotations; if none approved, we include needs_review for preliminary preview
+        # 4. Only human-approved quotations cross the comparison trust boundary.
         q_stmt = (
             select(SupplierQuotation)
             .where(
                 SupplierQuotation.rfq_id == rfq_id,
-                SupplierQuotation.status.in_(
-                    [QuotationStatus.APPROVED, QuotationStatus.NEEDS_REVIEW]
-                ),
+                SupplierQuotation.status == QuotationStatus.APPROVED,
             )
             .options(
                 selectinload(SupplierQuotation.extractions).selectinload(
@@ -366,6 +363,9 @@ class MatrixService:
             .order_by(SupplierQuotation.created_at)
         )
         quotations = list((await session.execute(q_stmt)).scalars().all())
+        source_document_ids = {
+            q.id: q.documents[0].id if len(q.documents) == 1 else None for q in quotations
+        }
 
         suppliers_headers: list[MatrixSupplierHeader] = []
         quotation_extractions: dict[str, ExtractedQuotation] = {}
@@ -378,8 +378,6 @@ class MatrixService:
         for q in quotations:
             # Find latest/current extraction
             curr_extraction = next((e for e in q.extractions if e.is_current), None)
-            if not curr_extraction and q.extractions:
-                curr_extraction = q.extractions[0]
 
             if not curr_extraction:
                 continue
@@ -421,6 +419,22 @@ class MatrixService:
             lt_override = override_map.get((q.id, None, "lead_time"))
             lt_display = lt_res.display_text
             lt_days = lt_res.canonical_days
+            if not lead_time_field or not lead_time_field.raw_value:
+                effective_line_days = []
+                for item in curr_extraction.line_items:
+                    if item.is_removed:
+                        continue
+                    line_override = override_map.get((q.id, item.id, "lead_time"))
+                    days = (
+                        line_override.override_value.get("lead_time_days", item.lead_time_days)
+                        if line_override
+                        else item.lead_time_days
+                    )
+                    if days is not None:
+                        effective_line_days.append(int(days))
+                if effective_line_days:
+                    lt_days = max(effective_line_days)
+                    lt_display = f"{lt_days} d"
             if lt_override and "lead_time_days" in lt_override.override_value:
                 lt_days = int(lt_override.override_value["lead_time_days"])
                 lt_display = f"{lt_days} d (overridden)"
@@ -729,6 +743,7 @@ class MatrixService:
                     if norm_extended_price is not None
                     else None,
                     line_lead_time_days=line_lt_days,
+                    line_lead_time_original_days=matched_item.lead_time_days,
                     line_lead_time_display=line_lt_disp,
                     line_lead_time_type=lt_line_res.lead_time_type,
                     overall_cell_status=overall_status,
@@ -739,6 +754,7 @@ class MatrixService:
                     else None,
                     warnings=cell_warnings,
                     source_evidence=matched_item.source_evidence,
+                    source_document_id=source_document_ids.get(qid),
                     source_page=matched_item.source_page,
                 )
 

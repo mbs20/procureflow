@@ -260,7 +260,7 @@ export const DecisionWorkspacePage: React.FC = () => {
               {t("decision.humanDecisionPending")}
             </h2>
             <p className="text-xs text-muted-foreground">
-              {t("decision.humanDecisionPendingDesc")}
+              {t(selectedRun ? "decision.humanDecisionPendingDesc" : "decision.scoringRequiredBeforeDecision")}
             </p>
           </div>
 
@@ -436,13 +436,14 @@ export const DecisionWorkspacePage: React.FC = () => {
           )}
 
           {/* Decision Timeline if awards exist */}
-          {allAwards.length > 0 && (
+          {allAwards.map((award) => (
             <DecisionTimeline
-              award={currentAward || allAwards[0]}
+              key={award.id}
+              award={award}
               rfqId={selectedRfqId}
               onAwardRevoked={() => selectedRfqId && loadWorkspace(selectedRfqId)}
             />
-          )}
+          ))}
         </div>
       </div>
 

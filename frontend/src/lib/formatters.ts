@@ -121,3 +121,24 @@ export function formatPercent(
 
   return `${formattedNumber} %`;
 }
+
+/**
+ * Format actor / principal identity safely to guarantee credentials and secret keys are never exposed in UI.
+ */
+export function formatActor(actor?: string | null): string {
+  if (!actor) return "System User";
+  if (
+    actor.includes("dev_api_key") ||
+    actor.startsWith("procureflow_dev") ||
+    actor.startsWith("sk_") ||
+    actor.startsWith("pk_") ||
+    actor.startsWith("test_key_")
+  ) {
+    return "Development API Principal";
+  }
+  if (actor.includes("api_key") || actor.startsWith("procureflow_sec")) {
+    return "Authenticated API Principal";
+  }
+  return actor;
+}
+

@@ -1,9 +1,11 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from procureflow.models.rfq import CriterionDataType, CriterionDirection, RFQStatus
+from procureflow.utils.actor import sanitize_actor_string
 
 
 class LineItemBase(BaseModel):
@@ -76,6 +78,8 @@ class RFQUpdate(BaseModel):
 
 
 class RFQRead(RFQBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     status: RFQStatus
     created_by: str
@@ -85,5 +89,7 @@ class RFQRead(RFQBase):
     line_items: list[LineItemRead] = Field(default_factory=list)
     criteria: list[CriterionRead] = Field(default_factory=list)
 
-    class Config:
-        from_attributes = True
+    @field_validator("created_by", mode="before")
+    @classmethod
+    def sanitize_created_by(cls, v: Any) -> str:
+        return sanitize_actor_string(v)

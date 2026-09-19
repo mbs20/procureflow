@@ -51,6 +51,8 @@ export interface MatrixLineItemCell {
   normalized_unit_price?: number | null;
   normalized_extended_price?: number | null;
 
+  source_document_id?: string | null;
+  line_lead_time_original_days?: number | null;
   line_lead_time_days?: number | null;
   line_lead_time_display?: string | null;
   line_lead_time_type?: string | null;

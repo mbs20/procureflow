@@ -149,8 +149,12 @@ class StorageService:
         file_path = quotation_dir / f"{doc_uuid}{normalized_ext}"
 
         # Write immutable file
-        with open(file_path, "wb") as f:
-            f.write(content)
+        try:
+            with open(file_path, "wb") as f:
+                f.write(content)
+        except Exception:
+            file_path.unlink(missing_ok=True)
+            raise
 
         # Return relative storage path or absolute path as string
         storage_rel_path = str(file_path.relative_to(self.base_dir))

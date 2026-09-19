@@ -24,8 +24,7 @@ import {
   ExtractedQuotation,
   QuotationStatus,
   fetchQuotations,
-  createQuotation,
-  uploadQuotationDocument,
+  uploadNewQuotation,
   triggerExtraction,
   fetchLatestExtraction,
   correctLineItem,
@@ -162,15 +161,12 @@ export const QuotationsPage: React.FC = () => {
     setUploadError(null);
 
     try {
-      // 1. Create quotation container
-      const newQuote = await createQuotation({
+      // Create the quotation and document atomically.
+      const newQuote = await uploadNewQuotation({
         rfq_id: uploadRfqId,
         supplier_name: uploadSupplierName.trim(),
         supplier_reference: uploadSupplierRef.trim() || undefined,
-      });
-
-      // 2. Upload and attach document
-      await uploadQuotationDocument(newQuote.id, selectedFile);
+      }, selectedFile);
 
       // 3. Reset form and refresh
       setShowUploadModal(false);

@@ -52,6 +52,39 @@ class QuotationService:
         assert created is not None
         return created
 
+    async def create_with_document(
+        self, session: AsyncSession, data: SupplierQuotationCreate, filename: str, content: bytes
+    ) -> SupplierQuotation:
+        # Validate before adding the container; persist both records in one transaction.
+        storage_service.validate_file(filename, content)
+        quotation = SupplierQuotation(**data.model_dump(), status=QuotationStatus.UPLOADED)
+        storage_path = None
+        try:
+            session.add(quotation)
+            await session.flush()
+            storage_path, file_hash, mime_type, size_bytes = storage_service.save_document(
+                quotation.id, filename, content
+            )
+            document = QuotationDocument(
+                quotation_id=quotation.id,
+                filename=filename,
+                storage_path=storage_path,
+                file_hash=file_hash,
+                mime_type=mime_type,
+                size_bytes=size_bytes,
+            )
+            session.add(document)
+            await session.flush()
+            created = await self.get_quotation(session, quotation.id)
+            assert created is not None
+            await session.commit()
+            return created
+        except Exception:
+            await session.rollback()
+            if storage_path is not None:
+                storage_service.get_absolute_path(storage_path).unlink(missing_ok=True)
+            raise
+
     async def get_quotation(
         self, session: AsyncSession, quotation_id: str
     ) -> SupplierQuotation | None:

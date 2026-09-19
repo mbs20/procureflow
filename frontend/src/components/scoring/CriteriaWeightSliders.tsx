@@ -105,9 +105,11 @@ export const CriteriaWeightSliders: React.FC<CriteriaWeightSlidersProps> = ({
 
   const handleSave = async () => {
     if (!isBalanced) {
-      setErrorMsg(t('scoring.weightsMustSum100'));
+      setErrorMsg(t('scoring.weightsMustSum100', { sum: totalWeightPct.toFixed(1) }));
       return;
     }
+
+
     setErrorMsg(null);
     setIsSaving(true);
     try {
