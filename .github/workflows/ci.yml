@@ -111,3 +111,58 @@ jobs:
       - name: Run Playwright E2E & WCAG 2.2 AA Accessibility tests
         working-directory: ./frontend
         run: npx playwright test
+
+  docker-production-e2e:
+    name: Docker Production E2E
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package.json
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: ./frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Start Docker Compose production stack
+        run: |
+          docker compose up --build -d
+
+      - name: Wait for services to become healthy
+        run: |
+          echo "Waiting for Docker Compose services to become healthy..."
+          for i in $(seq 1 60); do
+            BACKEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/health || true)
+            FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5173/ || true)
+            if [ "$BACKEND_STATUS" = "200" ] && [ "$FRONTEND_STATUS" = "200" ]; then
+              echo "Backend (HTTP $BACKEND_STATUS) and Frontend (HTTP $FRONTEND_STATUS) are healthy!"
+              break
+            fi
+            echo "Attempt $i/60: backend HTTP $BACKEND_STATUS, frontend HTTP $FRONTEND_STATUS. Waiting 2s..."
+            sleep 2
+          done
+          echo "Inspecting Nginx headers on port 5173:"
+          curl -I http://localhost:5173/
+          docker compose ps
+          if [ "$BACKEND_STATUS" != "200" ] || [ "$FRONTEND_STATUS" != "200" ]; then
+            echo "::error::Docker services failed to become healthy in time."
+            docker compose logs
+            exit 1
+          fi
+
+      - name: Run Docker Live Playwright E2E tests
+        working-directory: ./frontend
+        run: npx playwright test e2e/docker_live_*.spec.ts --reporter=list
+
+      - name: Stop Docker Compose
+        if: always()
+        run: docker compose down -v

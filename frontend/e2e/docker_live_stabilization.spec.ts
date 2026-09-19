@@ -5,6 +5,21 @@ const api = 'http://localhost:8000/api/v1';
 const headers = {'X-API-Key': 'procureflow_dev_api_key_12345'};
 test('Docker production PDF canvas, CSV download and original document identity', async ({page, request}) => {
  test.setTimeout(60000);
+
+ // Verify live Docker production stack availability (FastAPI backend on :8000 and Nginx frontend on :5173)
+ let dockerLive = false;
+ try {
+  const [backendHealth, frontendRes] = await Promise.all([
+   request.get(`${api}/health`, { timeout: 4000 }),
+   request.get("http://localhost:5173/", { timeout: 4000 }),
+  ]);
+  const serverHeader = (frontendRes.headers()["server"] || "").toLowerCase();
+  dockerLive = backendHealth.status() === 200 && serverHeader.includes("nginx");
+ } catch {
+  dockerLive = false;
+ }
+ test.skip(!dockerLive, "Live Docker production stack (Nginx frontend on :5173 and backend on :8000) is not available.");
+
  const production = await request.get("http://localhost:5173/");
  expect(production.headers()["server"]).toContain("nginx");
  const description = '=SUM(1,2) "\u00e9quipement"\nSeconde ligne';
