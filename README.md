@@ -2,7 +2,7 @@
 
 A self-hosted, evidence-backed quotation comparison and deterministic scoring engine for procurement workflows.
 
-> ProcureFlow is a personal open-source project created and maintained by **Marouane Bensghair**, who has a background in logistics and innovation management. It was built as an exploratory project to investigate how supplier quotations can be compared more systematically and transparently, without relying on proprietary black-box software.
+> ProcureFlow is a personal open-source project created and maintained by **Marwane Benseghir**, who has a background in logistics and innovation management. It was built as an exploratory project to investigate how supplier quotations can be compared more systematically and transparently, without relying on proprietary black-box software.
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/badge/Release-v0.1.1-informational.svg)](RELEASE_NOTES_v0.1.0.md)
