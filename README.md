@@ -2,7 +2,7 @@
 
 A self-hosted, evidence-backed quotation comparison and deterministic scoring engine for procurement workflows.
 
-> ProcureFlow is a personal open-source project created and maintained by **Marwane Benseghair**, who has a background in logistics and innovation management. It was built as an exploratory project to investigate how supplier quotations can be compared more systematically and transparently, without relying on proprietary black-box software.
+> ProcureFlow is a personal open-source project created and maintained by **Marouane Bensghair**, who has a background in logistics and innovation management. It was built as an exploratory project to investigate how supplier quotations can be compared more systematically and transparently, without relying on proprietary black-box software.
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/badge/Release-v0.1.1-informational.svg)](RELEASE_NOTES_v0.1.0.md)
@@ -94,14 +94,7 @@ Supplier Quotations (PDF, XLSX, CSV)
 3. **Comparison Matrix**: Compare line items across vendors with currency conversion to the RFQ base currency and unit harmonization.
 4. **Scoring & Sensitivity**: Adjust weights for cost, delivery time, warranty, and technical criteria. Sensitivity sweep views show how score adjustments influence rankings.
 5. **Decision & Audit Log**: Review the structured decision memo, confirm the award, and maintain an append-only event log.
-
-### Role of Language Models (AI) in ProcureFlow
-
-Where language models are configured, their role is strictly scoped to two auxiliary tasks:
-1. **Assisted extraction**: Helping parse line items from unstructured text chunks into defined schemas (via Instructor and Pydantic), with an offline mock mode for testing and local development.
-2. **Drafting decision summaries**: Generating a draft narrative summary from the structured scoring data, citing verified line items and scores.
-
-Scoring calculations, knockout evaluations, and final award authorizations remain fully rule-based and deterministic; supplier rankings are never decided by a language model.
+6. **Narrative Assistance**: Language models can assist with structuring extracted text and proposing a draft decision memo, but scoring calculations, knockout rules, and final award authorizations remain strictly deterministic and belong to the buyer.
 
 ---
 
