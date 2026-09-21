@@ -1,40 +1,41 @@
-# Contributing to ProcureFlow OSS
+# Contributing to ProcureFlow
 
-Thank you for your interest in contributing to ProcureFlow OSS! As an open-source project, we value transparency, clean engineering, testability, and a constructive community.
-
----
-
-## 🧭 Code of Conduct
-
-All contributors are expected to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md). Please report any unacceptable behavior to the project maintainer.
+Thank you for your interest in contributing to ProcureFlow. Contributions that improve code clarity, test coverage, and documentation are welcome.
 
 ---
 
-## 🛠️ Development Workflow
+## Code of Conduct
+
+All contributors are expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md). Please report any unacceptable behavior to the project maintainer.
+
+---
+
+## Development Workflow
 
 ### Branching Strategy
-- Branch from `main`
-- Name branches descriptively:
+- Branch from `main`.
+- Use descriptive branch names:
   - `feat/add-new-parser`
   - `fix/scoring-rounding-issue`
   - `docs/update-adr-0002`
   - `test/add-csv-fixtures`
 
-### Conventional Commits
-We enforce [Conventional Commits](https://www.conventionalcommits.org/) for automated semantic releases:
+### Commit Conventions
+Commits follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
 - `feat: add PDF bounding box citation mapping`
-- `fix: correct negative currency conversion error`
-- `docs: add instructions for local Ollama usage`
+- `fix: correct currency conversion rounding`
+- `docs: update local development guide`
 - `test: add sample quotations fixture suite`
 - `refactor: extract scoring strategy interface`
 
 ---
 
-## 🧪 Testing Guidelines
+## Testing Guidelines
 
 Before opening a Pull Request:
-1. **Never mock away domain logic**: Normalisation, scoring calculations, and parsers must have unit tests covering edge cases.
-2. **Deterministic LLM tests**: Tests interacting with LLM abstractions must run offline against pre-recorded fixtures or mock providers.
+
+1. **Domain logic testing**: Normalization routines, scoring calculations, and document parsers must have unit tests covering typical inputs and edge cases.
+2. **Offline test execution**: Tests interacting with narrative summary components must run offline against pre-recorded fixtures or mock providers.
 3. **Format and lint**:
    ```bash
    # Python
@@ -53,22 +54,22 @@ Before opening a Pull Request:
 
 ---
 
-## 🧩 Adding New Extensible Components
+## Adding Extensible Components
 
-### 1. Adding a Document Parser
-Implement the `BaseParser` interface located in `backend/src/procureflow/ingestion/parsers/base.py`. Ensure your parser returns standard text chunks with page or line coordinates.
+### 1. Document Parsers
+Implement the `BaseParser` interface in `backend/src/procureflow/ingestion/parsers/base.py`. Parsers should extract tabular line items with page numbers and spatial coordinates where possible.
 
-### 2. Adding a Scoring Strategy
-Implement the `ScoringStrategy` protocol located in `backend/src/procureflow/scoring/strategies/base.py`. Ensure your strategy is deterministic and outputs granular breakdown items.
+### 2. Scoring Strategies
+Implement the `ScoringStrategy` protocol in `backend/src/procureflow/scoring/strategies/base.py`. Scoring logic must remain deterministic and provide a granular breakdown of each criterion score.
 
-### 3. Adding an LLM Provider
-Add your provider integration into `backend/src/procureflow/ai/client.py` using standard LiteLLM configuration parameters.
+### 3. Narrative Providers
+Add provider integrations into `backend/src/procureflow/ai/client.py` using standard configuration parameters.
 
 ---
 
-## 📬 Submitting Pull Requests
+## Submitting Pull Requests
 
-1. Ensure all tests pass.
+1. Ensure the backend and frontend test suites pass cleanly.
 2. Update relevant documentation or ADRs if proposing architectural changes.
-3. Use the PR template and link any relevant GitHub Issues.
-4. Maintainers will review your PR and provide actionable feedback.
+3. Use the pull request template and link any relevant issues.
+4. Pull requests are reviewed by the maintainer with constructive feedback.

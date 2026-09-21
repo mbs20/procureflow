@@ -1,12 +1,8 @@
-# ProcureFlow OSS
+# ProcureFlow
 
-<div align="center">
+A self-hosted, evidence-backed quotation comparison and deterministic scoring engine for procurement workflows.
 
-<h3>Evidence-Backed RFQ Comparison & Deterministic Procurement Decision Engine</h3>
-
-<p>
-  <strong>ProcureFlow turns messy supplier quotations into evidence-backed, human-verifiable, and deterministically scored procurement decisions.</strong>
-</p>
+> ProcureFlow is a personal open-source project created and maintained by **Marwane Benseghir**. Drawing from experience in industrial engineering and operations, I built ProcureFlow to provide a transparent, reproducible tool for evaluating supplier quotations without manual transcription errors or proprietary black-box software.
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/badge/Release-v0.1.0_preview-informational.svg)](RELEASE_NOTES_v0.1.0.md)
@@ -15,201 +11,158 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688?logo=fastapi)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18%2B-61DAFB?logo=react)](https://react.dev)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql)](https://www.postgresql.org)
-[![Docker](https://img.shields.io/badge/Docker-One--Command_Demo-2496ED?logo=docker)](docker-compose.yml)
-[![Accessibility](https://img.shields.io/badge/A11y-WCAG_2.2_AA_Automated-brightgreen)](tests/)
-
-<br/>
-
-<!-- Hero Demo Animation -->
-<img src="docs/assets/hero_demo.gif" alt="ProcureFlow Hero Demo: Document to Extracted Value to Source Highlight to Matrix and Deterministic Scoring" width="920" style="border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.25);" />
-
-</div>
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](docker-compose.yml)
+[![Accessibility](https://img.shields.io/badge/A11y-WCAG_2.2_AA-brightgreen)](tests/)
 
 ---
 
-> [!NOTE]
-> **Release Positioning (v0.1.0)**: This release is an **open-source technical preview and self-hosted MVP**. It showcases deterministic quotation parsing, document source citations, multi-currency normalization, formula-based scoring, and human-in-the-loop award authorization.
-> For details on production hardening performed versus deployment boundaries, see [LIMITATIONS.md](docs/LIMITATIONS.md).
+## Quickstart
 
----
-
-## ⚡ True One-Command Demo
-
-Spin up the entire stack with a pre-seeded, synthetic demonstration dataset in a single cross-platform Docker command:
+Start the entire stack with a pre-seeded demonstration dataset using Docker Compose:
 
 ```bash
 docker compose --profile demo up --build
 ```
 
-### What this brings up automatically:
-- **PostgreSQL 16**: Database initialized with all Alembic migrations applied.
-- **Demo Seed Service**: Idempotently seeds sample RFQ, supplier quotations, comparison matrix, scoring run, and grounded decision memo.
-- **FastAPI Backend**: REST API with strict configuration validation on port `8000`.
-- **Celery Task Worker**: Background ingestion and document processing pipeline.
-- **Redis**: Asynchronous message broker and task queue.
-- **Production-Hardened Frontend**: Single Page Application served via unprivileged Nginx on port `5173` with internal API reverse proxy.
-- **Mock LLM Mode**: Zero external API keys or cloud accounts required out-of-the-box.
+### Services Started
+- **PostgreSQL 16**: Database with schema migrations applied.
+- **FastAPI Backend**: Core API on port `8000`.
+- **Celery Worker**: Asynchronous document ingestion and parsing.
+- **Redis**: Message broker and task state storage.
+- **Nginx & React Frontend**: Web interface on port `5173`.
+- **Demo Seed**: Automatically loads a sample industrial RFQ with three supplier quotes (PDF, Excel, CSV).
 
-### Access Endpoints:
-- **Web UI**: [http://localhost:5173](http://localhost:5173)
-- **Interactive OpenAPI Docs (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Static OpenAPI Schema**: [docs/api/openapi.json](docs/api/openapi.json)
-- **Health Check Endpoint**: [http://localhost:8000/api/v1/health](http://localhost:8000/api/v1/health)
+### Endpoints
+- Web Interface: [http://localhost:5173](http://localhost:5173)
+- API Documentation (Swagger): [http://localhost:8000/docs](http://localhost:8000/docs)
+- Health Check: [http://localhost:8000/api/v1/health](http://localhost:8000/api/v1/health)
 
-To stop the demo:
+To stop all containers:
 ```bash
 docker compose --profile demo down
 ```
 
 ---
 
-## 📊 Pre-Seeded Demonstration Dataset
+## Why I Built This
 
-The demo seed generates an end-to-end industrial procurement scenario:
+Evaluating supplier proposals for industrial equipment usually requires comparing inconsistent documents: multi-page PDF quotes, spreadsheets with varying column layouts, and CSV exports. In most organizations, this process still relies on manual copy-pasting into a master spreadsheet.
 
-- **RFQ**: `[DEMO] High-Precision Valve & Flange Assemblies (RFQ-2026-001)` (100x Gate Valves, 50x Globe Valves, 200x Flanges; Target Delivery: 30 days).
-- **Supplier Quotations**:
-  1. **Apex Industrial Parts Ltd** (PDF): Total $66,250 USD, 28 days lead time, 12 months warranty. Highest technical compliance, ranked **#1**.
-  2. **Valvetech Global Solutions** (Excel `.xlsx`): Total €59,800 EUR, normalized to $64,584 USD, 35 days lead time, 24 months warranty. Ranked **#2**.
-  3. **Baltic Valve Supply Co** (CSV): Total $54,100 USD, 60 days lead time. **Knocked out** due to mandatory criteria violation (delivery exceeds 45-day hard limit).
-- **Currency Normalization**: Valvetech's EUR pricing is converted to USD using a *synthetic fixed demonstration rate* ($1.08 USD / EUR). *(Synthetic rate for demonstration purposes; live market FX feeds are roadmap items).*
-- **Safety & Non-Destructive Operation**: The demo seeder is strictly idempotent. Re-running `seed-demo` will not duplicate records. The reset capability is explicitly scoped to demo-owned entities:
-  ```bash
-  docker compose run --rm seed-demo python -m procureflow.scripts.seed_demo --reset
-  ```
+This manual workflow creates three recurrent problems:
+1. **Transcription errors**: Quantities, lead times, and unit prices are easily mistyped or transposed.
+2. **Lost provenance**: Once numbers are pasted into a comparison sheet, tracing a specific value back to page 7 of a vendor PDF requires manual searching.
+3. **Subjective scoring**: Vendor selection frequently happens through informal criteria or hidden spreadsheet formulas that cannot be readily audited.
+
+Commercial procurement suites tend to be either heavy enterprise tools requiring months of integration or generic CRMs that lack document parsing and audit trails. ProcureFlow was built as a practical, transparent alternative: lightweight, self-hosted, and designed so that every number links directly back to its source file.
 
 ---
 
-## 🎯 The Core Problem & Differentiators
+## Design Choices
 
-Procurement teams evaluate complex vendor quotes across incompatible formats: multi-page PDF proposals, supplier Excel price sheets, and CSV listings. Typical legacy workflows suffer from manual transcription errors, lack of document source citations, subjective spreadsheet scoring, and opaque vendor selection rationales.
+- **Deterministic scoring over opaque algorithms**: Supplier rankings are calculated using explicit linear weights and configurable knockout criteria. Every score, normalization step, and formula breakdown is directly visible in the interface.
+- **Document-to-value traceability**: Parsers extract text with spatial bounding boxes. Clicking an extracted price or lead time immediately highlights its exact location in the original document.
+- **Buyer review and sign-off**: Automated extraction assists data entry, but the buyer retains full authority. Award decisions require explicit confirmation, and selecting a supplier other than the top-ranked vendor requires a recorded justification.
+- **Self-contained deployment**: The application runs entirely within standard Docker containers without mandatory external cloud dependencies.
+- **Bilingual interface**: The user interface is fully localized in English and French, including numeric formatting, currency display, and procurement terminology.
+
+---
+
+## Core Workflow
 
 ```
-Messy Supplier Quotes (PDF, XLSX, CSV)
+Supplier Quotations (PDF, XLSX, CSV)
        │
        ▼
-[Deterministic Extraction & Source Citations] ──► Exact Page & Coordinate Highlight
+[Document Ingestion & Coordinate Extraction] ──► Page and Bounding Box Highlights
        │
        ▼
-[Multi-Currency & Unit Normalization]        ──► Apples-to-Apples Comparison Matrix
+[Currency & Unit Normalization]              ──► Apples-to-Apples Comparison Matrix
        │
        ▼
-[Transparent Linear Scoring Engine]          ──► Mathematical, Reproducible Rankings
+[Deterministic Scoring Engine]               ──► Mathematical, Verifiable Rankings
        │
        ▼
-[Grounded LLM Decision Memo]                 ──► Quantitative Claims Backed by Data
+[Grounded Decision Memo]                     ──► Structured Claims Linked to Source Data
        │
        ▼
-[Human-in-the-Loop Award Confirmation]       ──► Audit-Logged Sign-Off & Rationale
+[Buyer Review & Award Authorization]         ──► Audit-Logged Sign-Off and Rationale
 ```
 
-### Why ProcureFlow is Different:
-1. **Source Evidence for Every Number**: Extracted prices, quantities, and lead times link directly to their exact page, coordinate bounding box, or spreadsheet row. Clicking any value highlights its source evidence.
-2. **Transparent, Deterministic Scoring**: Linear weighted criteria with explicit knockout rules. No black-box algorithms. Every score is mathematically verifiable and reproducible.
-3. **Structured Claim Grounding**: Decision narratives reference deterministic structured facts (`supplier_score_ref`, `criterion_contribution_ref`, `normalized_value_ref`). Quantitative claims cannot be hallucinated.
-4. **Human Authority & Audit Trail**: AI never makes purchasing decisions. An explicit human buyer sign-off is required, with mandatory written justification if deviating from the top-ranked vendor.
+### Key Capabilities
+
+1. **Multi-Format Ingestion**: Upload PDF, Excel, and CSV quotations. The ingestion worker parses line items, pricing, delivery dates, and payment terms.
+2. **Split-Pane Review Workspace**: Inspect parsed values alongside original documents. Click any extracted number to view its bounding box in the embedded PDF or spreadsheet viewer.
+3. **Comparison Matrix**: Compare line items across vendors with automatic currency conversion to the RFQ base currency and unit harmonization.
+4. **Scoring & Sensitivity Sweep**: Adjust weights for cost, delivery time, warranty, and technical fit. Run sensitivity sweeps to check how score variations affect vendor rankings.
+5. **Decision & Audit Log**: Review the structured decision memo, confirm the award with checklist acknowledgements, and maintain an append-only event log.
 
 ---
 
-## 📸 Feature Tour
-
-### 1. Multi-Format Ingestion & RFQ Dashboard
-Upload PDF, Excel, or CSV quotations. The asynchronous ingestion worker extracts line items, pricing, delivery dates, and warranties.
-![RFQ & Ingestion](docs/assets/screenshots/01_rfq_and_ingestion.png)
-
-### 2. Split-Pane Review & Evidence Highlighting
-Inspect extracted values side-by-side with original supplier documents. Click any extracted number to instantly view its exact bounding box and line coordinates.
-![Human Review Split Pane](docs/assets/screenshots/02_human_review_split_pane.png)
-
-### 3. Multi-Supplier Comparison Matrix
-Compare commercial proposals on a normalized basis. Currencies are normalized into RFQ base currency and item units are standardized.
-![Comparison Matrix](docs/assets/screenshots/03_comparison_matrix_normalization.png)
-
-### 4. Deterministic Scoring & Sensitivity Sweep
-Configure criteria weights (Cost, Lead Time, Warranty, Technical) and knockout thresholds. Run sensitivity sweeps to evaluate ranking robustness.
-![Deterministic Scoring](docs/assets/screenshots/04_deterministic_scoring_sensitivity.png)
-
-### 5. Grounded Decision Narrative & Human Award Workflow
-Review the AI-drafted executive summary where all quantitative claims are grounded in verified data. Award with explicit human authorization and superseded warnings.
-![Decision Narrative and Award](docs/assets/screenshots/05_grounded_decision_award_workflow.png)
-
-### 6. Full Bilingual Localization (English & French)
-- **UI Localization**: The user interface fully supports both English and French. Switch languages instantaneously from the top navigation bar with automatic browser locale detection (e.g., `fr-MA` defaults to French), persistence (`localStorage`), localized numeric/currency/date formats (`Intl`), and professional procurement terminology (*Appels d'offres*, *Devis*, *Matrice de comparaison*, *Normalisation*, *Seuil d'équilibre*, *Attribution*).
-- **AI Narrative Content**: AI-generated narrative content and grounded claims currently remain in English to maintain exact deterministic citation token alignment with upstream LLM prompts.
-
----
-
-## 🏛️ System Architecture
+## System Architecture
 
 ```mermaid
 graph TD
     subgraph Client Layer
-        UI["React 18 + TypeScript SPA<br/>(Nginx Unprivileged Container, Port 5173)"]
+        UI["React 18 + TypeScript SPA<br/>(Nginx Container, Port 5173)"]
     end
 
     subgraph API & Task Layer
-        API["FastAPI Backend<br/>(Python 3.12, Non-root 'appuser', Port 8000)"]
-        Worker["Celery Worker<br/>(Document Extraction & Async Ingestion)"]
-        Redis[("Redis 7<br/>Broker & Result Backend")]
+        API["FastAPI Backend<br/>(Python 3.12, Port 8000)"]
+        Worker["Celery Worker<br/>(Document Processing & Ingestion)"]
+        Redis[("Redis 7<br/>Broker & Task Results")]
     end
 
-    subgraph Core Engine Modules
+    subgraph Core Modules
         Parsers["Document Parsers<br/>(PDF, XLSX, CSV)"]
-        Norm["Normalization Engine<br/>(Units & Synthetic FX)"]
-        Scorer["Deterministic Scoring Engine<br/>(Weighted Linear, Knocks, Sensitivity)"]
-        LLM["LLM Grounding Provider<br/>(OpenAI, Anthropic, Mock)"]
+        Norm["Normalization Engine<br/>(Units & Currency)"]
+        Scorer["Deterministic Scoring Engine<br/>(Weighted Criteria & Sensitivity)"]
+        Narrative["Narrative Provider<br/>(Structured Decision Memo)"]
     end
 
     subgraph Storage Layer
-        DB[("PostgreSQL 16<br/>Alembic Migrations, Audit Log,<br/>DecisionContexts, Snapshots")]
-        Filesystem[("Local Document Storage<br/>(Quotation Files & Artifacts)")]
+        DB[("PostgreSQL 16<br/>Alembic Migrations & Audit Trail")]
+        Filesystem[("Local Storage<br/>(Quotation Files & Artifacts)")]
     end
 
     UI -->|Reverse Proxy /api/| API
     API --> DB
     API --> Filesystem
-    API -->|Enqueue Ingestion| Redis
+    API -->|Enqueue Task| Redis
     Worker --> Redis
     Worker --> Parsers
     Worker --> Norm
     Worker --> DB
     Worker --> Filesystem
     API --> Scorer
-    API --> LLM
+    API --> Narrative
 ```
 
 ---
 
-## 🛡️ Production Hardening vs. Preview Scope
+## Current Limitations
 
-To maintain rigorous engineering honesty, we distinguish hardening measures implemented in v0.1.0 from enterprise scope reserved for future milestones:
+To maintain clear expectations about the scope of this project:
 
-| Area | Implemented in v0.1.0 | Future Roadmap (Post v0.1.0) |
-| :--- | :--- | :--- |
-| **Container Runtime** | Non-root users (`appuser` UID 10001, `nginx` UID 101), container healthchecks, internal network reverse proxy. | Kubernetes Helm charts, container image signing. |
-| **Configuration Guardrails** | Production boot crash on dev secrets, short keys (<32 chars), wildcard CORS, or mock LLM. | HashiCorp Vault / AWS Secrets Manager integration. |
-| **Database Migrations** | Chained Alembic migrations with CI tests for blank-DB fresh-install and upgrade-path schema integrity. | Zero-downtime blue/green migration strategies. |
-| **Audit & Governance** | Append-only event log with SHA-256 payload integrity verification. | Immutable cryptographic ledger export (RFC 6962). |
-| **Tenancy & Auth** | Single-tenant, header-based API key validation (`X-API-Key`). | Multi-tenant tenant isolation, SAML 2.0 / OIDC SSO, RBAC. |
-| **Document Storage** | Local filesystem abstraction with deterministic paths. | AWS S3, Google Cloud Storage, Azure Blob drivers. |
-| **Financial Data** | Synthetic demonstration exchange rate (1 EUR = 1.08 USD). | Live daily FX feeds (ECB / OANDA) and commodity indices. |
-| **Accessibility** | Automated WCAG 2.2 AA accessibility checks via Playwright + Axe. | Manual human accessibility audit & certification. |
-
-*Read the full [Limitations & Scope Document](docs/LIMITATIONS.md).*
+- **Authentication**: Access is currently controlled via a single API key header (`X-API-Key`). Multi-tenant organization boundaries and single sign-on (SAML/OIDC) are not implemented.
+- **Document Storage**: Uploaded files are stored on the local filesystem volume. Object storage backends (such as S3 or GCS) are not yet integrated.
+- **Exchange Rates**: The demo environment uses fixed synthetic exchange rates. Connecting live financial data feeds (e.g. European Central Bank) is planned for future iterations.
+- **Complex Document Layouts**: Structured tables in clean PDFs and spreadsheets extract reliably. Poorly scanned, skewed, or multi-column documents may require manual adjustments during the review step.
+- **Narrative Language**: While the user interface is fully localized in English and French, generated narrative decision memos are currently output in English.
 
 ---
 
-## 🛠️ Local Development (Without Docker)
+## Local Development (Without Docker)
 
-### 1. Prerequisites
+### Prerequisites
 - Python 3.12+
 - Node.js 20+
-- PostgreSQL 16 & Redis (or run them via Docker)
+- PostgreSQL 16 & Redis
 
-### 2. Backend Setup
+### Backend Setup
 ```bash
 cd backend
 python -m venv .venv
+
 # Windows:
 .venv\Scripts\activate
 # Linux/macOS:
@@ -217,24 +170,21 @@ source .venv/bin/activate
 
 pip install -e ".[dev]"
 
-# Run database migrations
+# Apply database migrations
 alembic upgrade head
-
-# Optional: Seed demo data
-python -m procureflow.scripts.seed_demo
 
 # Start API server
 uvicorn procureflow.main:app --reload --port 8000
 ```
 
-### 3. Celery Worker (Separate Terminal)
+### Celery Worker (Separate Terminal)
 ```bash
 cd backend
 source .venv/bin/activate
 celery -A procureflow.tasks.celery_app worker --loglevel=info
 ```
 
-### 4. Frontend Setup
+### Frontend Setup
 ```bash
 cd frontend
 npm install
@@ -243,47 +193,41 @@ npm run dev
 
 ---
 
-## 🧪 Testing & Verification Suite
-
-ProcureFlow enforces quality through automated testing gates:
+## Testing
 
 ```bash
-# 1. Backend test suite (Unit, Integration, Migration Safety, Grounding)
+# 1. Backend test suite (unit and integration tests)
 cd backend
 pytest -v
 
-# 2. Migration safety & schema drift verification
+# 2. Database migration checks
 pytest tests/integration/test_migration_safety.py
 alembic check
 
-# 3. OpenAPI specification consistency check
-pytest tests/unit/test_openapi_consistency.py
-
-# 4. Frontend unit tests & TypeScript typecheck
+# 3. Frontend typecheck and unit tests
 cd ../frontend
 npm run typecheck
-npm run test
+npm test
 
-# 5. End-to-End & Automated WCAG 2.2 AA Accessibility Checks
+# 4. End-to-end tests
 npx playwright test
 ```
 
 ---
 
-## 📚 Documentation & Reference
+## Documentation & Reference
 
 - [Architecture Decision Records (ADRs)](docs/adr/0001-architecture-and-tech-stack.md)
-- [Limitations & Scope](docs/LIMITATIONS.md)
+- [Limitations & Scope Document](docs/LIMITATIONS.md)
 - [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
 - [Product Roadmap](docs/ROADMAP.md)
 - [OpenAPI Specification](docs/api/openapi.json)
-- [Release Notes](RELEASE_NOTES_v0.1.0.md)
 - [Contributing Guidelines](CONTRIBUTING.md)
 - [Security Policy](SECURITY.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ---
 
-## 📄 License
+## License
 
-ProcureFlow OSS is open-source software licensed under the [Apache License 2.0](LICENSE).
+ProcureFlow is open-source software licensed under the [Apache License 2.0](LICENSE).
