@@ -71,5 +71,6 @@ Thumbs.db
 # Intermediate generated demo assets
 docs/assets/frames/
 
-# Agent scratch / temporary diagnostic scripts
+# Local temporary diagnostics
 scratch/
+procureflow-tests-*/
