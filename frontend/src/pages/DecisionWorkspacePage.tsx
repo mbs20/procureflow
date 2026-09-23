@@ -149,7 +149,7 @@ export const DecisionWorkspacePage: React.FC = () => {
   const selectedNarrative = narratives.find((n) => n.id === selectedNarrativeId);
 
   // Extract suppliers for award modal
-  const runSuppliers = selectedRun?.results_payload?.suppliers || [];
+  const runSuppliers = selectedRun?.scores || [];
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-16">
@@ -453,12 +453,12 @@ export const DecisionWorkspacePage: React.FC = () => {
           rfqId={selectedRfqId}
           scoringRunId={selectedRun.id}
           scoringRunProvenanceHash={selectedRun.provenance_hash}
-          suppliers={runSuppliers.map((s: any) => ({
+          suppliers={runSuppliers.map((s) => ({
             quotation_id: s.quotation_id,
             supplier_name: s.supplier_name,
             rank: s.rank,
-            total_score: s.exact_total_score || s.total_score,
-            eligibility_status: s.eligibility_status,
+            total_score: s.exact_total_score || s.composite_score,
+            eligibility_status: s.status,
           }))}
           onClose={() => setShowAwardModal(false)}
           onAwardConfirmed={(confirmed: AwardDecisionResponse) => {
