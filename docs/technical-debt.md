@@ -3,6 +3,8 @@
 **Date**: 2026-09-06  
 **Status**: Documented / Deferred Post-MVP  
 
+This is a historical dependency-review snapshot, not a current vulnerability assessment. Re-run `npm audit` against the installed lockfile before making deployment decisions. The version and advisory observations below describe that review only.
+
 ---
 
 ## 1. Installed Package Versions Audit

@@ -1,37 +1,21 @@
-# ADR 0005: Evidence-Backed Decision Narratives and Human-in-the-Loop Award Workflow
+# ADR 0005: Evidence-backed narratives and explicit award confirmation
 
 ## Status
 Accepted
 
 ## Context
-In Phase 6, ProcureFlow introduces AI narrative generation to assist procurement officers in summarizing, comparing, and drafting decision memos for complex evaluations. However, LLMs are prone to hallucinating facts, misquoting numbers, and inventing vendor advantages. Furthermore, public sector and enterprise procurement regulations strictly forbid automated awarding: a human buyer must retain sole authority and accountability for vendor selection.
-
-A strict architectural separation is required between deterministic procurement facts (Phases 1–5), advisory AI narrative synthesis, and the human award confirmation lifecycle.
+Buyers need memos linked to evaluation facts. Generated text can contain unsupported interpretations, so narrative generation remains separate from ranking and confirmation.
 
 ## Decision
+- `DecisionContext` retains RFQ, snapshot, configuration and scoring-run references, evaluation facts and a content hash. Normal operations preserve the context rather than overwrite it.
+- Narrative generation uses a provider projection. Structured validation checks references and selected numeric facts and marks unsupported/unverifiable claims. It does not verify every free-text assertion.
+- Narrative providers have no tool interface for awarding suppliers. `AwardService` does not invoke them. Buyers can confirm awards without generating narratives.
+- Draft, confirmation and revocation events are appended to `AwardDecisionEvent`; `AwardDecision` stores current state. Non-first-ranked selection requires justification, ineligible suppliers are rejected and concurrent confirmed awards are prevented.
+- Confirmation requires an authenticated API request intended for a buyer. The shared API-key principal does not verify individual human identity; software holding the key can also call the API. Stronger accountability requires future identity-provider integration.
+- Narrative revisions are appended and superseded narratives carry warnings.
 
-1. **Immutable DecisionContext Artifact**:
-   Prior to narrative generation, the system constructs and persists an immutable `DecisionContext` containing canonical structured data: RFQ metadata, `ComparisonSnapshot` ID/hash, `ScoringConfiguration` ID/hash, `ScoringRun` ID/provenance hash, deterministic supplier ranks and exact scores, criteria breakdowns, knockout states, warnings, and an integrity hash (`context_hash`). LLMs receive only this frozen context.
-
-2. **Server-Side Rendered Numeric Claims & Grounding Validation**:
-   Critical numeric values (total scores, ranks, normalized scores) are rendered server-side from `DecisionContext` rather than generated freely by LLMs. Generated claims are parsed into structured `NarrativeClaim` records referencing authoritative context fields. Post-generation grounding validation deterministically flags any claim referencing unknown suppliers, invalid criteria, or mismatched scores/ranks as `unsupported`.
-
-3. **Strict Architectural Separation (No Autonomous Awards)**:
-   `NarrativeService` and LLM providers have zero access, permissions, or code pathways to award an RFQ or mutate procurement decisions. The LLM is strictly advisory.
-
-4. **Event-Sourced Award Lifecycle with Operational Projection**:
-   All award actions are recorded as append-only `AwardDecisionEvent` entries (`DRAFT_CREATED`, `CONFIRMED`, `REVOKED`) with actor principals, timestamps, and payload snapshots. `AwardDecision` maintains the current projected operational state (`draft`, `confirmed`, `revoked`).
-
-5. **Human Authority & Justification Guardrails**:
-   - Only an authenticated human buyer can transition an award from `draft` to `confirmed`.
-   - Selecting any supplier other than Rank #1 strictly requires a non-empty `non_rank1_rationale`.
-   - Knockout-failed suppliers cannot be awarded under any circumstances (enforced at API and domain level).
-   - Only one confirmed award may exist per RFQ at any time (double-award conflict rejected with 409).
-   - Confirmation transitions RFQ status to `DECIDED`; revocation reverts RFQ status to `EVALUATING` and records an immutable revocation event.
-
-6. **Append-Only Human Narrative Revisions & Superseded Tracking**:
-   Narratives support append-only human revisions (`NarrativeRevision`). When a new `ScoringRun` is executed, previous narratives are marked as `is_superseded` with explicit audit reasons.
+## Integrity boundaries
+SHA-256 hashes bind specific contexts, narrative templates/inputs/outputs and confirmed awards to their recorded content. They are not signatures, a global event chain or protection against privileged database modification. General `AuditLog` records are not cryptographically chained. These mechanisms do not certify legal compliance.
 
 ## Consequences
-- **Positive**: 100% auditable, grounded, and legally defensible narratives; eliminates autonomous award risks; full event-sourced lineage with SHA-256 provenance binding.
-- **Negative**: Adds database artifacts (`DecisionContext`, `AwardDecisionEvent`, `NarrativeClaim`) and validation steps before presenting AI narratives.
+Facts, provider output and decisions remain separately inspectable. Buyers must review source documents and narratives. Operators must protect database access, backups, credentials and the deployment perimeter.

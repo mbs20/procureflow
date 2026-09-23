@@ -37,5 +37,5 @@ v0.1.0 (Current)             v0.2.0 (Q4 2026)             v0.3.0 (Q1 2027)
 - **Fine-Grained RBAC**: Distinct permissions for Category Managers, Compliance Reviewers, and Executives.
 
 ### 5. Advanced Model Support & Local Inference (v0.3.0)
-- **Local LLM Drivers**: Native support for self-hosted local models via vLLM and Ollama with zero external API calls.
+- **Local LLM Drivers**: Broader local-model compatibility testing and vLLM integration. Ollama routing exists; structured-output quality depends on the selected model.
 - **Vision-Language Document Parsing**: End-to-end multi-modal vision parsing for intricate engineering drawings and blueprints.

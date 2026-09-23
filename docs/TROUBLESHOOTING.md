@@ -22,9 +22,8 @@ Another local service (e.g. Vite dev server, local PostgreSQL, or Redis) is boun
   ```bash
   lsof -i :5173 -i :8000 -i :5432 -i :6379
   ```
-- Or override ports in your `.env`:
+- Or change the host-side port mappings in `docker-compose.yml` and use the matching URL. For example, change the frontend mapping to `8080:5173`. A `PORT` variable alone does not change Compose mappings. For a separately managed database:
   ```env
-  PORT=8080
   DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5433/procureflow
   ```
 
@@ -93,15 +92,15 @@ ValueError: Insecure production configuration: SECRET_KEY is set to default deve
 ```
 
 ### Solution
-In production (`ENVIRONMENT=production`), ProcureFlow enforces strict security invariants. You must supply:
+In production (`PROCUREFLOW_ENV=production`), ProcureFlow enforces strict security invariants. You must supply:
 1. A strong `SECRET_KEY` (at least 32 characters):
    ```bash
    openssl rand -hex 32
    ```
 2. A non-default `API_KEY`.
 3. Explicit `CORS_ORIGINS` (wildcard `*` is strictly disallowed in production).
-4. A real LLM provider (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`) if `PROCUREFLOW_LLM_PROVIDER` is not set to an authorized production provider.
-5. `DEBUG=False`.
+4. A configured non-mock provider: OpenAI/Anthropic with its own credentials, or a reachable Ollama server. See [provider configuration](adr/0002-llm-abstraction-and-instructor.md).
+5. `PROCUREFLOW_DEBUG=false`.
 
 ---
 
@@ -122,3 +121,7 @@ Error 111 connecting to redis:6379. Connection refused.
    ```bash
    docker compose restart worker
    ```
+
+## 7. PDF preview or backend connectivity after recreation
+
+The frontend serves PDF.js modules with a JavaScript MIME type. If preview fails, check the worker request in browser network tools rather than treating the PDF as corrupt. Nginx resolves the backend through Docker DNS; after backend recreation, check both the direct health endpoint and the proxied API. See the Docker live tests under frontend/e2e for executable checks.

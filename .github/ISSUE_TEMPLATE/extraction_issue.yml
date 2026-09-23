@@ -14,7 +14,7 @@ body:
       options:
         - "Native PDF (vector text)"
         - "Scanned PDF (raster image)"
-        - "Excel (.xlsx, .xls)"
+        - "Excel (.xlsx; legacy .xls is unsupported)"
         - "CSV"
         - "Other"
     validations:
