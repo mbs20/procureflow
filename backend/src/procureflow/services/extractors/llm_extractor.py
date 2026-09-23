@@ -1,12 +1,11 @@
 import re
 from typing import Any
 
-import structlog
 from pydantic import BaseModel, Field
 
 from procureflow.config import get_settings
+from procureflow.services.provider_config import completion_options
 
-logger = structlog.get_logger(__name__)
 settings = get_settings()
 
 
@@ -39,9 +38,6 @@ class LLMExtractor:
     The LLM interprets complex text/tables and references authoritative parser-provided evidence IDs.
     """
 
-    def __init__(self) -> None:
-        self.provider = settings.llm_provider
-
     def extract_from_tagged_chunks(
         self,
         tagged_chunks: list[dict[str, Any]],
@@ -51,16 +47,10 @@ class LLMExtractor:
         Takes parser-generated chunks containing [evidence_id] tags and text,
         and returns structured quotation data referencing those exact evidence IDs.
         """
-        if self.provider == "mock" or not settings.openai_api_key:
+        if settings.llm_provider == "mock":
             return self._mock_extract(tagged_chunks, reference_currency)
 
-        try:
-            return self._live_extract(tagged_chunks, reference_currency)
-        except Exception as e:
-            logger.warning(
-                "Live LLM extraction failed; falling back to heuristic parsing", error=str(e)
-            )
-            return self._mock_extract(tagged_chunks, reference_currency)
+        return self._live_extract(tagged_chunks, reference_currency)
 
     def _mock_extract(
         self,
@@ -234,7 +224,8 @@ class LLMExtractor:
         import instructor
         import litellm
 
-        client = instructor.from_litellm(litellm.completion)
+        options = completion_options(settings)
+        client = instructor.from_litellm(litellm.completion, mode=instructor.Mode.JSON)
 
         prompt_text = "Extract quotation line items from the following document blocks. Each block has an [evidence_id]. "
         prompt_text += "You MUST return the exact matching [evidence_id] for each line item where the data was found.\n\n"
@@ -246,7 +237,7 @@ class LLMExtractor:
             prompt_text += f"{chunk.get('text', '')}\n\n"
 
         response = client.chat.completions.create(
-            model=settings.openai_model if settings.llm_provider == "openai" else "gpt-4o-mini",
+            **options,
             response_model=LLMExtractedQuotation,
             messages=[
                 {

@@ -48,6 +48,7 @@ from procureflow.schemas.decision import (
     SupplierAnalysis,
 )
 from procureflow.services.audit_service import record_audit_event
+from procureflow.services.provider_config import completion_options
 from procureflow.services.scoring_service import verify_scoring_run_integrity
 
 logger = structlog.get_logger(__name__)
@@ -756,15 +757,7 @@ class NarrativeService:
         provider = settings.llm_provider
         model_id = "mock-deterministic"
 
-        if provider == "mock" or not self._has_api_key():
-            if provider != "mock" and not self._has_api_key():
-                # Do NOT silently fall back — raise explicit error in non-mock config
-                raise NarrativeProviderError(
-                    f"LLM provider '{provider}' is configured but no API key is available. "
-                    "Narrative generation requires either a valid API key or "
-                    "PROCUREFLOW_LLM_PROVIDER=mock. "
-                    "Deterministic scoring and human decision recording remain fully operational."
-                )
+        if provider == "mock":
             sections, claims_data = generate_mock_narrative(
                 dc.context_payload, request.narrative_type.value
             )
@@ -1056,21 +1049,8 @@ class NarrativeService:
     # PRIVATE HELPERS
     # -----------------------------------------------------------------------
 
-    def _has_api_key(self) -> bool:
-        if settings.llm_provider == "openai":
-            return bool(settings.openai_api_key)
-        if settings.llm_provider == "anthropic":
-            return bool(settings.anthropic_api_key)
-        if settings.llm_provider == "ollama":
-            return True  # No key needed for local
-        return False
-
     def _get_model_identifier(self) -> str:
-        if settings.llm_provider == "openai":
-            return settings.openai_model
-        if settings.llm_provider == "ollama":
-            return settings.ollama_model
-        return f"{settings.llm_provider}-default"
+        return completion_options(settings)["model"]
 
     def _live_generate(
         self,
@@ -1082,11 +1062,11 @@ class NarrativeService:
         import instructor
         import litellm
 
-        client = instructor.from_litellm(litellm.completion)
-        model = self._get_model_identifier()
+        options = completion_options(settings)
+        client = instructor.from_litellm(litellm.completion, mode=instructor.Mode.JSON)
 
         response = client.chat.completions.create(
-            model=model,
+            **options,
             response_model=NarrativeSections,
             messages=[
                 {

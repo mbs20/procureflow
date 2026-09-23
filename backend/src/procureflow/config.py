@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, model_validator
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,21 +10,33 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        populate_by_name=True,
     )
 
     # Core Application Settings
     app_name: str = "ProcureFlow OSS"
     app_version: str = "0.1.0"
-    environment: Literal["development", "test", "production"] = "development"
-    debug: bool = True
-    secret_key: str = "dev_secret_key_change_in_production_32chars_min"
-    api_key: str = "procureflow_dev_api_key_12345"
-    cors_origins: list[str] = [
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-    ]
+    environment: Literal["development", "test", "production"] = Field(
+        default="development", validation_alias=AliasChoices("PROCUREFLOW_ENV", "ENVIRONMENT")
+    )
+    debug: bool = Field(default=True, validation_alias=AliasChoices("PROCUREFLOW_DEBUG", "DEBUG"))
+    secret_key: str = Field(
+        default="dev_secret_key_change_in_production_32chars_min",
+        validation_alias=AliasChoices("PROCUREFLOW_SECRET_KEY", "SECRET_KEY"),
+    )
+    api_key: str = Field(
+        default="procureflow_dev_api_key_12345",
+        validation_alias=AliasChoices("PROCUREFLOW_API_KEY", "API_KEY"),
+    )
+    cors_origins: list[str] = Field(
+        default=[
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:3000",
+        ],
+        validation_alias=AliasChoices("PROCUREFLOW_CORS_ORIGINS", "CORS_ORIGINS"),
+    )
 
     # Database URLs
     # Defaults to SQLite async for zero-dependency local development, PostgreSQL in Docker/production
@@ -48,7 +60,7 @@ class Settings(BaseSettings):
     storage_local_dir: str = "./data/storage"
     max_upload_size_bytes: int = 50 * 1024 * 1024  # 50 MB
 
-    # AI / LLM Configuration
+    # Document interpretation and narrative provider configuration
     llm_provider: Literal["openai", "anthropic", "ollama", "mock"] = Field(
         default="openai",
         alias="PROCUREFLOW_LLM_PROVIDER",
@@ -56,6 +68,7 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     openai_model: str = "gpt-4o-mini"
     anthropic_api_key: str | None = None
+    anthropic_model: str = "claude-sonnet-4-5"
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1:8b"
 
@@ -77,12 +90,21 @@ class Settings(BaseSettings):
                 )
             if self.debug:
                 raise ValueError("PROCUREFLOW_DEBUG must be False in production.")
-            if self.secret_key == "dev_secret_key_change_in_production_32chars_min" or len(self.secret_key) < 32:
-                raise ValueError("A secure SECRET_KEY of at least 32 characters is required in production.")
+            if (
+                self.secret_key == "dev_secret_key_change_in_production_32chars_min"
+                or len(self.secret_key) < 32
+            ):
+                raise ValueError(
+                    "A secure SECRET_KEY of at least 32 characters is required in production."
+                )
             if self.api_key == "procureflow_dev_api_key_12345":
-                raise ValueError("PROCUREFLOW_API_KEY must be changed from the default development key in production.")
+                raise ValueError(
+                    "PROCUREFLOW_API_KEY must be changed from the default development key in production."
+                )
             if "*" in self.cors_origins:
-                raise ValueError("Wildcard CORS origins ('*') are strictly prohibited in production.")
+                raise ValueError(
+                    "Wildcard CORS origins ('*') are strictly prohibited in production."
+                )
         return self
 
 
