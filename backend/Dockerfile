@@ -18,9 +18,11 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 WORKDIR /app
 
 # Copy project specifications, README, and source code for package installation
-COPY pyproject.toml README.md ./
+COPY pyproject.toml uv.lock README.md ./
 COPY src/ ./src/
-RUN uv pip install --system --no-cache -e ".[dev]"
+RUN uv export --frozen --extra dev --no-hashes --output-file /tmp/requirements.txt \
+    && uv pip install --system --no-cache -r /tmp/requirements.txt \
+    && rm /tmp/requirements.txt
 
 # Copy application migrations, scripts, and remaining files
 COPY . /app
