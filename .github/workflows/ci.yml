@@ -163,6 +163,12 @@ jobs:
         working-directory: ./frontend
         run: npx playwright test e2e/docker_live_*.spec.ts --reporter=list
 
+      - name: Collect Docker diagnostics on failure
+        if: failure()
+        run: |
+          docker compose ps -a
+          docker compose logs --no-color --tail=200
+
       - name: Stop Docker Compose
         if: always()
         run: docker compose down -v
