@@ -16,7 +16,7 @@ import hashlib
 import json
 from datetime import datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, TypedDict
 
 import structlog
 from sqlalchemy import desc, func, select
@@ -47,6 +47,7 @@ from procureflow.schemas.decision import (
     NarrativeType,
     SupplierAnalysis,
 )
+from procureflow.schemas.decision import NarrativeOrigin as ResponseNarrativeOrigin
 from procureflow.services.audit_service import record_audit_event
 from procureflow.services.provider_config import completion_options
 from procureflow.services.scoring_service import verify_scoring_run_integrity
@@ -342,10 +343,18 @@ def build_provider_projection(
 # ---------------------------------------------------------------------------
 
 
+class GroundingValidationResult(TypedDict):
+    total_claims: int
+    verified: int
+    unsupported: int
+    unverifiable: int
+    details: list[dict[str, Any]]
+
+
 def validate_claims_grounding(
     claims: list[dict[str, Any]],
     context_payload: dict[str, Any],
-) -> dict[str, Any]:
+) -> GroundingValidationResult:
     """
     Deterministic post-generation grounding validation.
     Validates each claim against the authoritative DecisionContext.
@@ -373,7 +382,7 @@ def validate_claims_grounding(
             if src:
                 valid_evidence_ids.add(src)
 
-    validation_result = {
+    validation_result: GroundingValidationResult = {
         "total_claims": len(claims),
         "verified": 0,
         "unsupported": 0,
@@ -870,7 +879,7 @@ class NarrativeService:
             decision_context_id=gen.decision_context_id,
             narrative_type=NarrativeType(gen.narrative_type),
             generation_number=gen.generation_number,
-            origin=NarrativeOrigin(gen.origin),
+            origin=ResponseNarrativeOrigin(gen.origin),
             provider=gen.provider,
             model_identifier=gen.model_identifier,
             prompt_template_version=gen.prompt_template_version,
@@ -887,7 +896,7 @@ class NarrativeService:
             created_by=gen.created_by,
             claims=claims_response,
             revisions=[],
-            current_origin=NarrativeOrigin.AI_GENERATED,
+            current_origin=ResponseNarrativeOrigin.AI_GENERATED,
         )
 
     async def get_narrative(
@@ -1173,9 +1182,9 @@ class NarrativeService:
         ]
 
         # Determine current origin
-        current_origin = NarrativeOrigin(gen.origin)
+        current_origin = ResponseNarrativeOrigin(gen.origin)
         if revisions:
-            current_origin = NarrativeOrigin.AI_GENERATED_HUMAN_REVISED
+            current_origin = ResponseNarrativeOrigin.AI_GENERATED_HUMAN_REVISED
 
         # Determine superseded status dynamically if newer scoring run exists
         is_superseded = gen.is_superseded
@@ -1208,7 +1217,7 @@ class NarrativeService:
             decision_context_id=gen.decision_context_id,
             narrative_type=NarrativeType(gen.narrative_type),
             generation_number=gen.generation_number,
-            origin=NarrativeOrigin(gen.origin),
+            origin=ResponseNarrativeOrigin(gen.origin),
             provider=gen.provider,
             model_identifier=gen.model_identifier,
             prompt_template_version=gen.prompt_template_version,

@@ -9,16 +9,12 @@ concurrent confirmation, and based-on-latest-run detection.
 
 from __future__ import annotations
 
-import asyncio
-
 import pytest
-import pytest_asyncio
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from procureflow.models.decision import (
     AwardDecision,
-    AwardDecisionEvent,
     AwardStatus,
 )
 from procureflow.models.normalization import ComparisonSnapshot
@@ -32,11 +28,9 @@ from procureflow.schemas.decision import (
 from procureflow.services.award_service import (
     AwardConflictError,
     AwardInvalidStateError,
-    AwardNotFoundError,
     AwardService,
     AwardSupplierValidationError,
 )
-
 
 # ---------------------------------------------------------------------------
 # FIXTURES
@@ -251,9 +245,7 @@ class TestNonRank1Rationale:
 class TestConfirmationLifecycle:
     """Test 18: Final decision requires explicit human confirmation event."""
 
-    async def test_confirmation_creates_event_and_transitions_rfq(
-        self, db_session: AsyncSession
-    ):
+    async def test_confirmation_creates_event_and_transitions_rfq(self, db_session: AsyncSession):
         rfq_id, run_id = await _seed_data(db_session)
 
         draft = await svc.create_draft_award(
@@ -324,9 +316,7 @@ class TestConfirmationLifecycle:
 class TestDoubleAwardProtection:
     """Test 17: Database prevents concurrent double-award."""
 
-    async def test_second_draft_blocked_when_confirmed_exists(
-        self, db_session: AsyncSession
-    ):
+    async def test_second_draft_blocked_when_confirmed_exists(self, db_session: AsyncSession):
         rfq_id, run_id = await _seed_data(db_session)
 
         draft = await svc.create_draft_award(
@@ -471,9 +461,7 @@ class TestBasedOnLatestRun:
         await db_session.flush()
 
         # Award is still confirmed but NOT based on latest
-        award_now = await svc.get_award(
-            session=db_session, rfq_id=rfq_id, award_id=draft.id
-        )
+        award_now = await svc.get_award(session=db_session, rfq_id=rfq_id, award_id=draft.id)
         assert award_now.is_based_on_latest_run is False
         assert award_now.latest_scoring_run_id == "run-2"
         assert award_now.current_status.value == "confirmed"  # Not auto-revoked
@@ -484,7 +472,6 @@ class TestDatabaseLevelConcurrentAwardProtection:
 
     async def test_db_constraint_rejects_second_confirmed_award(self, db_session: AsyncSession):
         from sqlalchemy.exc import IntegrityError
-        from procureflow.models.decision import AwardDecision
 
         rfq_id, run_id = await _seed_data(db_session)
 
@@ -543,7 +530,6 @@ class TestDatabaseLevelConcurrentAwardProtection:
         )
 
         # Create another draft award by manual insertion (simulating race before first committed)
-        from procureflow.models.decision import AwardDecision
         draft2 = AwardDecision(
             id="draft-2",
             rfq_id=rfq_id,

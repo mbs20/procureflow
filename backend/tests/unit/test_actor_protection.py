@@ -5,17 +5,18 @@ Ensures that secret API keys and tokens such as procureflow_dev_api_key_12345
 are never exposed through serialized responses, audit logs, event streams, or revision histories.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 import pytest
 
 from procureflow.api.deps import get_safe_principal, sanitize_actor
+from procureflow.models.audit import ActorType
+from procureflow.schemas.audit import AuditLogRead
 from procureflow.schemas.decision import (
     AwardDecisionEventResponse,
     AwardEventType,
     NarrativeRevisionResponse,
 )
-from procureflow.schemas.audit import AuditLogRead
-from procureflow.models.audit import ActorType
 
 
 class TestActorProtection:
@@ -47,7 +48,7 @@ class TestActorProtection:
             event_number=1,
             event_payload={"test": "data"},
             actor_principal="procureflow_dev_api_key_12345",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         assert event.actor_principal == "Development API Principal"
         assert "procureflow_dev_api_key_12345" not in event.model_dump_json()
@@ -60,7 +61,7 @@ class TestActorProtection:
             revised_text="Updated text",
             revision_rationale="Clarification",
             revised_by="procureflow_dev_api_key_12345",
-            revised_at=datetime.now(timezone.utc),
+            revised_at=datetime.now(UTC),
         )
         assert revision.revised_by == "Development API Principal"
         assert "procureflow_dev_api_key_12345" not in revision.model_dump_json()
@@ -72,7 +73,7 @@ class TestActorProtection:
             event_type="LINE_ITEM_CORRECTED",
             actor_type=ActorType.USER,
             actor_id="procureflow_dev_api_key_12345",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         assert log.actor_id == "Development API Principal"
         assert "procureflow_dev_api_key_12345" not in log.model_dump_json()

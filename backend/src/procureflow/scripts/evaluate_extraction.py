@@ -29,7 +29,7 @@ def evaluate() -> list[dict]:
 
     fixtures = Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "quotations"
     # Ground truth is transcribed from the synthetic fixture source, not extractor output.
-    cases = {
+    cases: dict[str, list[tuple[str, str, str | None, str, int | None]]] = {
         "clean_bearings.csv": [
             ("Deep Groove Ball Bearings 6205-2RS", "100", "12.50", "USD", 14),
             ("Cylindrical Roller Bearings NU 210", "50", "34.00", "USD", 21),

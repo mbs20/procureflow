@@ -47,18 +47,18 @@ jobs:
       - name: Install backend dependencies
         working-directory: ./backend
         run: |
-          uv sync --frozen --dev
+          uv sync --frozen --extra dev
 
       - name: Lint with ruff
         working-directory: ./backend
         run: |
-          uv run --no-sync ruff check src tests 2>&1 | tee /tmp/ruff_check.log || { err=$(head -n 20 /tmp/ruff_check.log); echo "::error::$err"; exit 1; }
-          uv run --no-sync ruff format --check src tests 2>&1 | tee /tmp/ruff_format.log || { err=$(head -n 20 /tmp/ruff_format.log); echo "::error::$err"; exit 1; }
+          uv run --no-sync ruff check src tests
+          uv run --no-sync ruff format --check src tests
 
       - name: Typecheck with mypy
         working-directory: ./backend
         run: |
-          uv run --no-sync mypy src/ 2>&1 | tee /tmp/mypy.log || { err=$(head -n 20 /tmp/mypy.log); echo "::error::$err"; exit 1; }
+          uv run --no-sync mypy src/
 
       - name: Run Pytest suite
         working-directory: ./backend
@@ -72,7 +72,7 @@ jobs:
           STORAGE_BACKEND: local
           STORAGE_LOCAL_DIR: /tmp/procureflow_test_storage
         run: |
-          uv run --no-sync pytest --cov=procureflow tests/ 2>&1 | tee /tmp/pytest.log || { err=$(head -n 20 /tmp/pytest.log); echo "::error::$err"; exit 1; }
+          uv run --no-sync pytest --cov=procureflow tests/
 
   frontend-lint-and-build:
     name: Frontend Lint & Build

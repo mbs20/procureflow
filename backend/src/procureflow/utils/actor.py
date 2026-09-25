@@ -1,4 +1,4 @@
-﻿"""
+"""
 procureflow.utils.actor
 ~~~~~~~~~~~~~~~~~~~~~~~
 Shared principal/actor sanitization logic.
@@ -10,6 +10,7 @@ Used by:
 Rule: raw API key / credential-like tokens must NEVER appear in any
 serialized response, audit log, or rendered UI string.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -38,9 +39,7 @@ def sanitize_actor_string(v: Any) -> str:
         return "Development API Principal"
 
     # Generic credential-like API keys
-    if any(v.startswith(pfx) for pfx in _AUTH_PREFIXES) or any(
-        pat in v for pat in _AUTH_SUBSTR
-    ):
+    if any(v.startswith(pfx) for pfx in _AUTH_PREFIXES) or any(pat in v for pat in _AUTH_SUBSTR):
         return "Authenticated API Principal"
 
     # Regular user identifier — pass through unchanged

@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+
 import pytest
 
 from procureflow.main import app
@@ -15,9 +16,11 @@ def test_openapi_spec_is_up_to_date() -> None:
 
     if not spec_path.exists():
         # If in an isolated container without the docs volume mounted
-        pytest.skip(f"OpenAPI spec does not exist at {spec_path} (docs not mounted in container). Verified in CI/host.")
+        pytest.skip(
+            f"OpenAPI spec does not exist at {spec_path} (docs not mounted in container). Verified in CI/host."
+        )
 
-    with open(spec_path, "r", encoding="utf-8") as f:
+    with open(spec_path, encoding="utf-8") as f:
         committed_spec = json.load(f)
 
     current_spec = app.openapi()
