@@ -45,4 +45,3 @@ async def verify_api_key(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return token
-

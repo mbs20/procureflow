@@ -31,6 +31,8 @@ npm test
 
 When contributing new parsers or scoring adjustments, adding a unit test with sample inputs helps prevent regressions. Tests that interact with language model wrappers should use the offline mock provider (`PROCUREFLOW_LLM_PROVIDER=mock`) so they run quickly without API keys.
 
+Provider-routing tests can select other providers while replacing their transport with a test double; they must not require paid requests. For parser changes, also run the [synthetic extraction evaluation](docs/EXTRACTION_EVALUATION.md).
+
 ---
 
 ## Opening a Pull Request

@@ -20,7 +20,6 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    UniqueConstraint,
     text,
 )
 from sqlalchemy import (
@@ -31,7 +30,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
 
 from procureflow.database import Base
-
 
 # ---------------------------------------------------------------------------
 # ENUMERATIONS
@@ -94,9 +92,7 @@ class DecisionContext(Base):
 
     __tablename__ = "decision_contexts"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     rfq_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("rfqs.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -124,9 +120,7 @@ class DecisionContext(Base):
     )
 
     # Whether sensitivity/breakeven data is included
-    includes_sensitivity: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False
-    )
+    includes_sensitivity: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     created_by: Mapped[str] = mapped_column(String(100), default="system", nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -153,9 +147,7 @@ class NarrativeGeneration(Base):
 
     __tablename__ = "narrative_generations"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     rfq_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("rfqs.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -165,9 +157,7 @@ class NarrativeGeneration(Base):
         nullable=False,
         index=True,
     )
-    narrative_type: Mapped[NarrativeType] = mapped_column(
-        SQLEnum(NarrativeType), nullable=False
-    )
+    narrative_type: Mapped[NarrativeType] = mapped_column(SQLEnum(NarrativeType), nullable=False)
     generation_number: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     origin: Mapped[NarrativeOrigin] = mapped_column(
         SQLEnum(NarrativeOrigin), default=NarrativeOrigin.AI_GENERATED, nullable=False
@@ -175,9 +165,7 @@ class NarrativeGeneration(Base):
 
     # LLM generation metadata
     provider: Mapped[str] = mapped_column(String(100), nullable=False)  # e.g. "openai", "mock"
-    model_identifier: Mapped[str] = mapped_column(
-        String(200), nullable=False
-    )  # e.g. "gpt-4o-mini"
+    model_identifier: Mapped[str] = mapped_column(String(200), nullable=False)  # e.g. "gpt-4o-mini"
     prompt_template_version: Mapped[str] = mapped_column(
         String(50), default="narrative-prompt-v1", nullable=False
     )
@@ -240,9 +228,7 @@ class NarrativeClaim(Base):
 
     __tablename__ = "narrative_claims"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     narrative_generation_id: Mapped[str] = mapped_column(
         String(36),
         ForeignKey("narrative_generations.id", ondelete="CASCADE"),
@@ -257,15 +243,9 @@ class NarrativeClaim(Base):
     )
 
     # Machine-readable fact references
-    referenced_supplier_ids: Mapped[list[str]] = mapped_column(
-        JSON, default=list, nullable=False
-    )
-    referenced_criterion_ids: Mapped[list[str]] = mapped_column(
-        JSON, default=list, nullable=False
-    )
-    referenced_evidence_ids: Mapped[list[str]] = mapped_column(
-        JSON, default=list, nullable=False
-    )
+    referenced_supplier_ids: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    referenced_criterion_ids: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    referenced_evidence_ids: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
 
     # Structured fact/value references to authoritative DecisionContext values
     fact_references: Mapped[list[dict[str, Any]] | dict[str, Any] | None] = mapped_column(
@@ -294,9 +274,7 @@ class NarrativeRevision(Base):
 
     __tablename__ = "narrative_revisions"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     narrative_generation_id: Mapped[str] = mapped_column(
         String(36),
         ForeignKey("narrative_generations.id", ondelete="CASCADE"),
@@ -333,9 +311,7 @@ class AwardDecision(Base):
 
     __tablename__ = "award_decisions"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     rfq_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("rfqs.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -401,18 +377,14 @@ class AwardDecisionEvent(Base):
 
     __tablename__ = "award_decision_events"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     award_decision_id: Mapped[str] = mapped_column(
         String(36),
         ForeignKey("award_decisions.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    event_type: Mapped[AwardEventType] = mapped_column(
-        SQLEnum(AwardEventType), nullable=False
-    )
+    event_type: Mapped[AwardEventType] = mapped_column(SQLEnum(AwardEventType), nullable=False)
     event_number: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
     # Event payload (justification, rationale, reason, etc.)
@@ -430,6 +402,4 @@ class AwardDecisionEvent(Base):
     )
 
     # Relationship
-    award_decision: Mapped[AwardDecision] = relationship(
-        "AwardDecision", back_populates="events"
-    )
+    award_decision: Mapped[AwardDecision] = relationship("AwardDecision", back_populates="events")

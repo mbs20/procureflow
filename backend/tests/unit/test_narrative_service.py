@@ -485,7 +485,7 @@ class TestProviderFailure:
             mock_settings.openai_api_key = None
             mock_settings.anthropic_api_key = None
 
-            with pytest.raises(NarrativeProviderError, match="no API key"):
+            with pytest.raises(NarrativeProviderError, match="OPENAI_API_KEY"):
                 await svc.generate_narrative(session=db_session, rfq_id=rfq_id, request=request)
 
     async def test_provider_timeout_returns_explicit_error(self, db_session: AsyncSession):

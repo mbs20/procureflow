@@ -122,7 +122,7 @@ class ScoreResult(Base):
     currency_snapshot: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     # Relationships
-    supplier_scores: Mapped[list["SupplierScore"]] = relationship(
+    supplier_scores: Mapped[list[SupplierScore]] = relationship(
         "SupplierScore",
         back_populates="score_result",
         cascade="all, delete-orphan",
@@ -153,10 +153,10 @@ class SupplierScore(Base):
     is_eliminated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     elimination_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    score_result: Mapped["ScoreResult"] = relationship(
+    score_result: Mapped[ScoreResult] = relationship(
         "ScoreResult", back_populates="supplier_scores"
     )
-    criterion_scores: Mapped[list["CriterionScore"]] = relationship(
+    criterion_scores: Mapped[list[CriterionScore]] = relationship(
         "CriterionScore", back_populates="supplier_score", cascade="all, delete-orphan"
     )
 
@@ -180,7 +180,7 @@ class CriterionScore(Base):
     normalised_value: Mapped[float] = mapped_column(Numeric(7, 4), nullable=False)
     weighted_contribution: Mapped[float] = mapped_column(Numeric(7, 4), nullable=False)
 
-    supplier_score: Mapped["SupplierScore"] = relationship(
+    supplier_score: Mapped[SupplierScore] = relationship(
         "SupplierScore", back_populates="criterion_scores"
     )
 
@@ -204,7 +204,7 @@ class AINarrative(Base):
         DateTime(timezone=True), default=datetime.utcnow, nullable=False
     )
 
-    score_result: Mapped["ScoreResult"] = relationship("ScoreResult", back_populates="narrative")
+    score_result: Mapped[ScoreResult] = relationship("ScoreResult", back_populates="narrative")
 
 
 class ProcurementDecision(Base):
@@ -233,4 +233,3 @@ class ProcurementDecision(Base):
     justification: Mapped[str] = mapped_column(Text, nullable=False)
     followed_ai_recommendation: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_partial_award: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-

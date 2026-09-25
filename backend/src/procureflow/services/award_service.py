@@ -13,7 +13,6 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime
-from typing import Any
 
 import structlog
 from sqlalchemy import desc, func, select
@@ -32,10 +31,11 @@ from procureflow.models.scoring import ScoringRun
 from procureflow.schemas.decision import (
     AwardConfirm,
     AwardDecisionCreate,
-    AwardDecisionResponse,
     AwardDecisionEventResponse,
+    AwardDecisionResponse,
     AwardRevoke,
 )
+from procureflow.schemas.decision import AwardStatus as ResponseAwardStatus
 from procureflow.services.audit_service import record_audit_event
 
 logger = structlog.get_logger(__name__)
@@ -56,16 +56,19 @@ class AwardNotFoundError(AwardDomainError):
 
 class AwardConflictError(AwardDomainError):
     """Raised when a concurrent or duplicate award operation is attempted."""
+
     pass
 
 
 class AwardInvalidStateError(AwardDomainError):
     """Raised when an award operation is invalid for the current state."""
+
     pass
 
 
 class AwardSupplierValidationError(AwardDomainError):
     """Raised when the selected supplier fails validation."""
+
     pass
 
 
@@ -466,9 +469,7 @@ class AwardService:
         result = await session.execute(stmt)
         award = result.scalar_one_or_none()
         if not award:
-            raise AwardNotFoundError(
-                f"AwardDecision '{award_id}' not found for RFQ '{rfq_id}'"
-            )
+            raise AwardNotFoundError(f"AwardDecision '{award_id}' not found for RFQ '{rfq_id}'")
         return award
 
     async def _build_response(
@@ -484,9 +485,7 @@ class AwardService:
             .order_by(AwardDecisionEvent.event_number)
         )
         evt_result = await session.execute(evt_stmt)
-        events = [
-            AwardDecisionEventResponse.model_validate(e) for e in evt_result.scalars().all()
-        ]
+        events = [AwardDecisionEventResponse.model_validate(e) for e in evt_result.scalars().all()]
 
         # Check if based on latest scoring run
         latest_run_stmt = (
@@ -509,7 +508,7 @@ class AwardService:
             awarded_supplier_name=award.awarded_supplier_name,
             awarded_supplier_rank=award.awarded_supplier_rank,
             non_rank1_rationale=award.non_rank1_rationale,
-            current_status=AwardStatus(award.current_status),
+            current_status=ResponseAwardStatus(award.current_status),
             provenance_hash=award.provenance_hash,
             created_by=award.created_by,
             created_at=award.created_at,

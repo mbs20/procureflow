@@ -17,7 +17,7 @@ A self-hosted, evidence-backed quotation comparison and deterministic scoring en
 
 ## Quickstart
 
-Start the stack with a pre-seeded demonstration dataset using Docker Compose:
+Start the development/demo stack with a pre-seeded synthetic dataset using Docker Compose. Use a trusted machine; the supplied configuration is not suitable for public exposure:
 
 ```bash
 docker compose --profile demo up --build
@@ -59,7 +59,7 @@ Rather than attempting to replace full-scale enterprise tools, ProcureFlow is a 
 ## Design Choices
 
 - **Deterministic scoring over opaque algorithms**: Supplier rankings are calculated using explicit linear weights and configurable knockout criteria. Scoring formulas and weight breakdowns are directly visible in the interface.
-- **Document-to-value traceability**: Parsers extract text with spatial bounding boxes where available. Clicking an extracted price or lead time navigates to its location in the original document.
+- **Document-to-value traceability**: Parsers extract text with spatial bounding boxes where available. Where source evidence is available, clicking an extracted value navigates to its source. Table citations may lack bounding boxes and OCR citations may cover a whole page.
 - **Buyer review and sign-off**: Automated extraction assists data entry, but the buyer retains authority. Award decisions require confirmation, and choosing a supplier other than the top-ranked vendor asks for a recorded justification.
 - **Self-contained deployment**: The application runs within standard Docker containers without mandatory cloud dependencies.
 - **Bilingual interface**: The user interface supports English and French, including numeric formatting and localized terminology.
@@ -141,7 +141,7 @@ graph TD
 
 ## Current Limitations
 
-- **Authentication**: Access is currently controlled via a single API key header (`X-API-Key`). Multi-tenant organization boundaries and single sign-on (SAML/OIDC) are not implemented.
+- **Authentication**: Protected operations use a shared API-key principal (`X-API-Key`), not verified individual identities or human signatures. The demo browser embeds a development key and document preview routes lack individual access checks. Restrict the whole deployment behind an authenticated perimeter; see [deployment boundaries](docs/LIMITATIONS.md).
 - **Document Storage**: Uploaded files are stored on the local filesystem volume. Cloud object storage backends (such as S3 or GCS) are not yet integrated.
 - **Exchange Rates**: The demo environment uses fixed synthetic exchange rates. Connecting live financial data feeds is planned for future iterations.
 - **Complex Document Layouts**: Clean tabular documents extract reasonably well. Skewed scans, degraded photocopies, or irregular multi-column layouts may require manual adjustments during review.
@@ -217,6 +217,8 @@ npx playwright test
 
 - [Architecture Decision Records (ADRs)](docs/adr/0001-architecture-and-tech-stack.md)
 - [Limitations & Scope Document](docs/LIMITATIONS.md)
+- [Provider Configuration](docs/adr/0002-llm-abstraction-and-instructor.md)
+- [Reproducible Extraction Evaluation](docs/EXTRACTION_EVALUATION.md)
 - [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
 - [Product Roadmap](docs/ROADMAP.md)
 - [OpenAPI Specification](docs/api/openapi.json)

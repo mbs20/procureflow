@@ -23,4 +23,3 @@ class AuditLogRead(BaseModel):
     @classmethod
     def sanitize_actor_id(cls, v: Any) -> str:
         return _sanitize_actor_string(v)
-

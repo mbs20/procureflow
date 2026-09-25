@@ -22,9 +22,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import shutil
 import sys
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
@@ -45,7 +44,6 @@ from procureflow.models.decision import (
 from procureflow.models.extraction import (
     ExtractedLineItem,
     ExtractedQuotation,
-    ExtractedQuotationField,
 )
 from procureflow.models.normalization import ComparisonSnapshot, RFQFXRateSet
 from procureflow.models.quotation import (
@@ -54,10 +52,10 @@ from procureflow.models.quotation import (
     SupplierQuotation,
 )
 from procureflow.models.rfq import (
+    RFQ,
     CriterionDataType,
     CriterionDirection,
     EvaluationCriterion,
-    RFQ,
     RFQLineItem,
     RFQStatus,
 )
@@ -83,9 +81,7 @@ def get_fixtures_dir() -> Path:
 
 def clean_demo_data(session: Session) -> int:
     """Safely delete ONLY records prefixed with '[DEMO]'."""
-    demo_rfqs = session.execute(
-        select(RFQ).where(RFQ.title.startswith(DEMO_TAG))
-    ).scalars().all()
+    demo_rfqs = session.execute(select(RFQ).where(RFQ.title.startswith(DEMO_TAG))).scalars().all()
     count = len(demo_rfqs)
     for rfq in demo_rfqs:
         session.delete(rfq)
@@ -106,7 +102,9 @@ def seed_demo_dataset(force_reset: bool = False) -> str:
 
         if existing_rfq:
             if not force_reset:
-                print(f"✓ Demo dataset already present (RFQ ID: {existing_rfq.id}). Use --reset to re-seed.")
+                print(
+                    f"✓ Demo dataset already present (RFQ ID: {existing_rfq.id}). Use --reset to re-seed."
+                )
                 return existing_rfq.id
             print("Resetting existing demo records...")
             clean_demo_data(session)
@@ -189,8 +187,14 @@ def seed_demo_dataset(force_reset: bool = False) -> str:
         session.flush()
 
         pdf_path = fixtures_dir / "native_valves.pdf"
-        pdf_bytes = pdf_path.read_bytes() if pdf_path.exists() else b"%PDF-1.4\nsynthetic demo content\n%%EOF"
-        pdf_storage_path, pdf_hash, pdf_mime, pdf_size = storage.save_document(q_apex.id, "Apex_Quote_APX8891.pdf", pdf_bytes)
+        pdf_bytes = (
+            pdf_path.read_bytes()
+            if pdf_path.exists()
+            else b"%PDF-1.4\nsynthetic demo content\n%%EOF"
+        )
+        pdf_storage_path, pdf_hash, pdf_mime, pdf_size = storage.save_document(
+            q_apex.id, "Apex_Quote_APX8891.pdf", pdf_bytes
+        )
 
         doc_apex = QuotationDocument(
             quotation_id=q_apex.id,
@@ -229,7 +233,10 @@ def seed_demo_dataset(force_reset: bool = False) -> str:
             lead_time_days=14,
             confidence=Decimal("0.9900"),
             source_page=1,
-            source_evidence={"text": "Industrial Gate Valve 2-inch ANSI 150 ... $185.00", "bbox": [50, 150, 420, 180]},
+            source_evidence={
+                "text": "Industrial Gate Valve 2-inch ANSI 150 ... $185.00",
+                "bbox": [50, 150, 420, 180],
+            },
             human_corrected=False,
             is_removed=False,
         )
@@ -246,7 +253,10 @@ def seed_demo_dataset(force_reset: bool = False) -> str:
             lead_time_days=14,
             confidence=Decimal("0.9800"),
             source_page=1,
-            source_evidence={"text": "Stainless Steel Pipe Flange M10 ... $120.00", "bbox": [50, 185, 420, 215]},
+            source_evidence={
+                "text": "Stainless Steel Pipe Flange M10 ... $120.00",
+                "bbox": [50, 185, 420, 215],
+            },
             human_corrected=False,
             is_removed=False,
         )
@@ -263,8 +273,14 @@ def seed_demo_dataset(force_reset: bool = False) -> str:
         session.flush()
 
         xlsx_path = fixtures_dir / "clean_fasteners.xlsx"
-        xlsx_bytes = xlsx_path.read_bytes() if xlsx_path.exists() else b"PK\x03\x04\x14\x00\x00\x00\x08\x00synthetic xlsx"
-        xlsx_storage_path, xlsx_hash, xlsx_mime, xlsx_size = storage.save_document(q_valvetech.id, "Valvetech_Commercial_Quote.xlsx", xlsx_bytes)
+        xlsx_bytes = (
+            xlsx_path.read_bytes()
+            if xlsx_path.exists()
+            else b"PK\x03\x04\x14\x00\x00\x00\x08\x00synthetic xlsx"
+        )
+        xlsx_storage_path, xlsx_hash, xlsx_mime, xlsx_size = storage.save_document(
+            q_valvetech.id, "Valvetech_Commercial_Quote.xlsx", xlsx_bytes
+        )
 
         doc_valvetech = QuotationDocument(
             quotation_id=q_valvetech.id,
@@ -337,8 +353,14 @@ def seed_demo_dataset(force_reset: bool = False) -> str:
         session.flush()
 
         csv_path = fixtures_dir / "clean_bearings.csv"
-        csv_bytes = csv_path.read_bytes() if csv_path.exists() else b"Item,Qty,Price\nValve,100,160.00\nFlange,200,115.00"
-        csv_storage_path, csv_hash, csv_mime, csv_size = storage.save_document(q_baltic.id, "Baltic_Quotation.csv", csv_bytes)
+        csv_bytes = (
+            csv_path.read_bytes()
+            if csv_path.exists()
+            else b"Item,Qty,Price\nValve,100,160.00\nFlange,200,115.00"
+        )
+        csv_storage_path, csv_hash, csv_mime, csv_size = storage.save_document(
+            q_baltic.id, "Baltic_Quotation.csv", csv_bytes
+        )
 
         doc_baltic = QuotationDocument(
             quotation_id=q_baltic.id,
@@ -478,9 +500,24 @@ def seed_demo_dataset(force_reset: bool = False) -> str:
                 crit_warranty.id: "0.2000",
             },
             "criteria_metadata": [
-                {"id": crit_price.id, "name": crit_price.name, "weight": "0.5000", "direction": "lower_is_better"},
-                {"id": crit_lead.id, "name": crit_lead.name, "weight": "0.3000", "direction": "lower_is_better"},
-                {"id": crit_warranty.id, "name": crit_warranty.name, "weight": "0.2000", "direction": "higher_is_better"},
+                {
+                    "id": crit_price.id,
+                    "name": crit_price.name,
+                    "weight": "0.5000",
+                    "direction": "lower_is_better",
+                },
+                {
+                    "id": crit_lead.id,
+                    "name": crit_lead.name,
+                    "weight": "0.3000",
+                    "direction": "lower_is_better",
+                },
+                {
+                    "id": crit_warranty.id,
+                    "name": crit_warranty.name,
+                    "weight": "0.2000",
+                    "direction": "higher_is_better",
+                },
             ],
         }
         scoring_cfg = ScoringConfiguration(
@@ -567,7 +604,9 @@ def seed_demo_dataset(force_reset: bool = False) -> str:
             "rankings": run_results["rankings"],
             "criteria": scoring_cfg_payload["criteria_metadata"],
         }
-        context_hash = hashlib.sha256(json.dumps(context_payload, sort_keys=True).encode()).hexdigest()
+        context_hash = hashlib.sha256(
+            json.dumps(context_payload, sort_keys=True).encode()
+        ).hexdigest()
 
         decision_context = DecisionContext(
             rfq_id=rfq.id,
@@ -604,7 +643,11 @@ def seed_demo_dataset(force_reset: bool = False) -> str:
             generation_parameters={"temperature": 0.0},
             raw_structured_output={"executive_summary": narrative_summary},
             output_hash=output_hash,
-            grounding_validation_result={"verified_claims_count": 3, "unsupported_claims_count": 0, "status": "passed"},
+            grounding_validation_result={
+                "verified_claims_count": 3,
+                "unsupported_claims_count": 0,
+                "status": "passed",
+            },
             is_superseded=False,
             created_by="demo_seeder",
         )

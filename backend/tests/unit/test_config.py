@@ -19,7 +19,10 @@ class TestProductionConfigurationGuardrails:
     def test_production_rejects_default_dev_secret(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("PROCUREFLOW_LLM_PROVIDER", "openai")
         monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
-        with pytest.raises(ValidationError, match="A secure SECRET_KEY of at least 32 characters is required in production"):
+        with pytest.raises(
+            ValidationError,
+            match="A secure SECRET_KEY of at least 32 characters is required in production",
+        ):
             Settings(
                 environment="production",
                 debug=False,
@@ -30,7 +33,10 @@ class TestProductionConfigurationGuardrails:
     def test_production_rejects_short_secret(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("PROCUREFLOW_LLM_PROVIDER", "openai")
         monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
-        with pytest.raises(ValidationError, match="A secure SECRET_KEY of at least 32 characters is required in production"):
+        with pytest.raises(
+            ValidationError,
+            match="A secure SECRET_KEY of at least 32 characters is required in production",
+        ):
             Settings(
                 environment="production",
                 debug=False,
@@ -41,7 +47,10 @@ class TestProductionConfigurationGuardrails:
     def test_production_rejects_default_dev_api_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("PROCUREFLOW_LLM_PROVIDER", "openai")
         monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
-        with pytest.raises(ValidationError, match="PROCUREFLOW_API_KEY must be changed from the default development key in production"):
+        with pytest.raises(
+            ValidationError,
+            match="PROCUREFLOW_API_KEY must be changed from the default development key in production",
+        ):
             Settings(
                 environment="production",
                 debug=False,
@@ -63,7 +72,10 @@ class TestProductionConfigurationGuardrails:
 
     def test_production_rejects_mock_llm(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("PROCUREFLOW_LLM_PROVIDER", "mock")
-        with pytest.raises(ValidationError, match="PROCUREFLOW_LLM_PROVIDER='mock' is only permitted in development and test environments"):
+        with pytest.raises(
+            ValidationError,
+            match="PROCUREFLOW_LLM_PROVIDER='mock' is only permitted in development and test environments",
+        ):
             Settings(
                 environment="production",
                 debug=False,

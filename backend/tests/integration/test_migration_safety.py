@@ -1,11 +1,10 @@
-import os
 import tempfile
 from pathlib import Path
 
-import pytest
-from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, inspect, text
+
+from alembic import command
 
 
 def test_fresh_migration_and_schema_drift() -> None:
@@ -97,7 +96,9 @@ def test_migration_upgrade_preserves_existing_data() -> None:
 
             # Verify row persisted
             with engine.connect() as conn:
-                result = conn.execute(text("SELECT id, title FROM rfqs WHERE id = 'rfq-demo-test-1'")).fetchone()
+                result = conn.execute(
+                    text("SELECT id, title FROM rfqs WHERE id = 'rfq-demo-test-1'")
+                ).fetchone()
                 assert result is not None
                 assert result[0] == "rfq-demo-test-1"
                 assert result[1] == "Test RFQ"

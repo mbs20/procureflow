@@ -8,7 +8,6 @@ grounding validation, award lifecycle events, and DecisionContext.
 from __future__ import annotations
 
 from datetime import datetime
-from decimal import Decimal
 from enum import Enum
 from typing import Any
 
@@ -154,7 +153,6 @@ class NarrativeRevisionResponse(BaseModel):
         return _sanitize_actor_string(v)
 
 
-
 # ---------------------------------------------------------------------------
 # NARRATIVE GENERATION — Request / Response
 # ---------------------------------------------------------------------------
@@ -272,7 +270,6 @@ class AwardDecisionEventResponse(BaseModel):
     @classmethod
     def sanitize_principal(cls, v: Any) -> str:
         return _sanitize_actor_string(v)
-
 
 
 class AwardDecisionResponse(BaseModel):

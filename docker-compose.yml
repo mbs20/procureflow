@@ -52,6 +52,11 @@ services:
       - STORAGE_LOCAL_DIR=/app/data/storage
       - PROCUREFLOW_LLM_PROVIDER=${PROCUREFLOW_LLM_PROVIDER:-mock}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-sonnet-4-5}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1:8b}
     volumes:
       - ./backend:/app
       - backend_storage:/app/data/storage
@@ -85,6 +90,11 @@ services:
       - STORAGE_LOCAL_DIR=/app/data/storage
       - PROCUREFLOW_LLM_PROVIDER=${PROCUREFLOW_LLM_PROVIDER:-mock}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-sonnet-4-5}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1:8b}
     volumes:
       - ./backend:/app
       - backend_storage:/app/data/storage
