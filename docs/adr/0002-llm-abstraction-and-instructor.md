@@ -28,4 +28,4 @@ PDF interpretation sends extracted text and parser-generated evidence IDs. Narra
 Providers have no tools for awarding suppliers. Scoring and confirmation are separate service paths. Narrative prompts and hashes are retained as runtime provenance.
 
 ## Verification and consequences
-`tests/unit/test_provider_routing.py` verifies both service call paths, credentials and error handling with simulated transports and no paid calls. It does not certify live provider availability or quality. Local models may fail validation; generated content still requires buyer review.
+`backend/tests/unit/test_provider_routing.py` verifies both service call paths, credentials and error handling with simulated transports and no paid calls. It does not certify live provider availability or quality. Local models may fail validation; generated content still requires buyer review.

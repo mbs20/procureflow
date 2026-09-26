@@ -9,9 +9,12 @@
 - [ ] Refactor or testing improvement
 
 ## Checklist
-- [ ] My code follows the style guidelines of this project
+- [ ] My changes follow the contribution guidelines
 - [ ] I have performed a self-review of my own code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
+- [ ] I have added or updated regression tests for behavior changes, where applicable
+- [ ] I have listed checks executed and any failures or checks not run below
+- [ ] My changes contain no credentials, confidential documents, or temporary diagnostics
 - [ ] I have updated relevant documentation or ADRs if applicable
+
+## Validation
+<!-- List commands and results. For documentation-only changes, describe link and command checks. Do not mark skipped checks as passing. -->

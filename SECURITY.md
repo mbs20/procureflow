@@ -1,34 +1,34 @@
 # Security Policy
 
-ProcureFlow OSS takes security, data privacy, and the integrity of commercial procurement data seriously.
+ProcureFlow is a technical preview. Use synthetic data for evaluation and review the deployment boundaries below before handling sensitive documents.
 
-## Supported Versions
+## Maintenance scope
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.1.x   | :white_check_mark: |
+Reports should identify the affected tag or commit and whether the issue also occurs on `main`. Fixes are evaluated on the current development branch; older tags do not have a separate long-term support commitment.
 
 ---
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in ProcureFlow OSS:
-1. **Do not create a public GitHub issue.**
-2. Send an email to the maintainer or open a private GitHub Security Advisory at [https://github.com/mbs20/procureflow/security/advisories](https://github.com/mbs20/procureflow/security/advisories).
-3. Include:
-   - Description of the vulnerability
-   - Steps to reproduce
-   - Potential impact
-   - Suggested mitigation if available
+**Do not publish vulnerability details in issues, pull requests, discussions, or comments.** Do not attach live credentials, customer data, or real supplier quotations.
 
-We will acknowledge receipt of your report within 48 hours and work with you to coordinate a responsible disclosure and patch.
+Use GitHub's private **Report a vulnerability** form on the repository's [Security Advisories page](https://github.com/mbs20/procureflow/security/advisories). This requires the maintainer to enable private vulnerability reporting. If the button is unavailable, request that private reporting be enabled using a public issue containing only that request; do not include the affected component, reproduction, exploit, or impact until a private channel is available.
+
+In the private report, include:
+
+- Affected tag/commit, operating system, and deployment configuration, with secrets removed.
+- Expected behavior, observed behavior, and a minimal synthetic reproduction.
+- Potential impact and any suggested mitigation.
+- A way to follow up and your preference for public credit.
+
+Allow time for investigation and coordinate publication of details after a fix or mitigation is available. Response times depend on maintainer availability; there is no guaranteed response or remediation deadline. Only test systems you control or have permission to assess.
 
 ---
 
 ## Sensitive Data in ProcureFlow
 
 - Never commit real supplier quotations or commercially confidential supplier contracts to the repository.
-- Use the provided synthetic fixtures under `tests/fixtures/` for test scenarios.
+- Use the provided synthetic fixtures under [`backend/tests/fixtures/`](backend/tests/fixtures/) for test scenarios.
 
 ## MVP security boundaries
 

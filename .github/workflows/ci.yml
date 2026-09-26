@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
@@ -75,7 +78,7 @@ jobs:
           uv run --no-sync pytest --cov=procureflow tests/
 
   frontend-lint-and-build:
-    name: Frontend Lint & Build
+    name: Frontend Checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -85,13 +88,13 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: frontend/package.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: npm ci
 
-      - name: Lint and typecheck
+      - name: Typecheck frontend
         working-directory: ./frontend
         run: |
           npm run typecheck
@@ -108,12 +111,12 @@ jobs:
         working-directory: ./frontend
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright E2E & WCAG 2.2 AA Accessibility tests
+      - name: Run Playwright E2E and selected accessibility checks
         working-directory: ./frontend
         run: npx playwright test
 
   docker-production-e2e:
-    name: Docker Production E2E
+    name: Docker E2E
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -123,7 +126,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: frontend/package.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
         working-directory: ./frontend
@@ -133,7 +136,7 @@ jobs:
         working-directory: ./frontend
         run: npx playwright install --with-deps chromium
 
-      - name: Start Docker Compose production stack
+      - name: Start Docker demo stack with production frontend build
         run: |
           docker compose up --build -d
 
