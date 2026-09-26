@@ -1,0 +1,23 @@
+name: Documentation improvement
+description: Report unclear instructions, missing examples, or a broken link
+labels: ["documentation"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Page or file
+      description: Link to the page or name the file and section.
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is unclear or incorrect?
+      description: For a failing command, include your operating system, shell, and sanitized error output. Do not include secrets or confidential data.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested correction
+      description: A proposed wording or example is welcome, but not required.

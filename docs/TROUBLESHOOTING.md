@@ -24,7 +24,8 @@ Another local service (e.g. Vite dev server, local PostgreSQL, or Redis) is boun
   ```
 - Or change the host-side port mappings in `docker-compose.yml` and use the matching URL. For example, change the frontend mapping to `8080:5173`. A `PORT` variable alone does not change Compose mappings. For a separately managed database:
   ```env
-  DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5433/procureflow
+  DATABASE_URL=postgresql+asyncpg://postgres:postgrespassword@localhost:5433/procureflow
+  DATABASE_URL_SYNC=postgresql+psycopg2://postgres:postgrespassword@localhost:5433/procureflow
   ```
 
 ---
@@ -88,19 +89,21 @@ This safely deletes only records prefixed with `[DEMO]` (and their associated qu
 ### Symptom
 Backend exits immediately on startup with:
 ```
-ValueError: Insecure production configuration: SECRET_KEY is set to default development secret.
+ValueError: A secure SECRET_KEY of at least 32 characters is required in production.
 ```
 
 ### Solution
 In production (`PROCUREFLOW_ENV=production`), ProcureFlow enforces strict security invariants. You must supply:
-1. A strong `SECRET_KEY` (at least 32 characters):
+1. A strong `PROCUREFLOW_SECRET_KEY` (at least 32 characters):
    ```bash
    openssl rand -hex 32
    ```
-2. A non-default `API_KEY`.
-3. Explicit `CORS_ORIGINS` (wildcard `*` is strictly disallowed in production).
+2. A non-default `PROCUREFLOW_API_KEY`.
+3. Explicit `PROCUREFLOW_CORS_ORIGINS` (wildcard `*` is strictly disallowed in production).
 4. A configured non-mock provider: OpenAI/Anthropic with its own credentials, or a reachable Ollama server. See [provider configuration](adr/0002-llm-abstraction-and-instructor.md).
 5. `PROCUREFLOW_DEBUG=false`.
+
+These startup checks alone do not secure a deployment. Compose hardcodes development settings; changing the root `.env` does not turn that stack into a production configuration. See [deployment boundaries](LIMITATIONS.md).
 
 ---
 

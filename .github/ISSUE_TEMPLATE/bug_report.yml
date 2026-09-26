@@ -4,7 +4,9 @@ labels: ["bug"]
 body:
   - type: markdown
     attributes:
-      value: Thanks for taking the time to report an issue!
+      value: |
+        Please check existing issues first. Use synthetic examples and remove credentials or confidential data from logs and screenshots.
+        For security vulnerabilities, follow SECURITY.md instead of opening a public issue.
   - type: textarea
     id: description
     attributes:
@@ -28,5 +30,12 @@ body:
     attributes:
       label: Environment & Version
       placeholder: "e.g. Docker Compose, Python 3.12, Windows 11, commit abc1234"
+    validations:
+      required: true
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: Expected and actual behavior
+      description: Describe what should happen and what happened instead, including sanitized errors if available.
     validations:
       required: true

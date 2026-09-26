@@ -2,6 +2,11 @@ name: Feature request
 description: Suggest an idea or enhancement for ProcureFlow OSS
 labels: ["enhancement"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Check existing issues and the roadmap before proposing work. Explain the problem using non-confidential examples.
+        A proposal is a discussion, not a delivery commitment.
   - type: textarea
     id: problem
     attributes:

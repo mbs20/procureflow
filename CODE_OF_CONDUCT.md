@@ -48,6 +48,14 @@ or harmful.
 This Code of Conduct applies within all community spaces, and also applies when
 an individual is officially representing the community in public spaces.
 
+## Reporting and response
+
+For incidents on GitHub, use **Report content** on the relevant issue, pull request, or comment. Choose **Report to repository admins** when available. You can also use **Report abuse** on a user's profile to contact GitHub Support; this is a platform reporting channel, not a private maintainer inbox. See [GitHub's reporting instructions](https://docs.github.com/en/communities/maintaining-your-safety-on-github/reporting-abuse-or-spam).
+
+Do not publish personal information or sensitive evidence in a public issue. Provide relevant links and factual context through the private reporting form. A dedicated private project contact for incidents outside GitHub has not yet been published.
+
+Maintainers may remove inappropriate content, ask for a change in behavior, or restrict participation depending on the severity and repetition of the conduct. Reports should be handled with discretion, sharing information only as needed to investigate and respond. If a maintainer is involved in the incident, GitHub Support remains a separate reporting option for violations of GitHub's policies.
+
 ## Attribution
 
 This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org),
