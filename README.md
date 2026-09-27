@@ -10,7 +10,7 @@ A self-hosted, evidence-backed quotation comparison and deterministic scoring en
 
 ProcureFlow is under active development. Bug reports, feature proposals, documentation contributions, and pull requests are welcome. Start with the [contributing guide](CONTRIBUTING.md) or [open an issue](https://github.com/mbs20/procureflow/issues/new/choose). Report security vulnerabilities privately using the [security policy](SECURITY.md).
 
-> I'm **Marwane Benseghir**, with a background in logistics and innovation management. I started ProcureFlow as an exploratory project to investigate how supplier quotations can be compared more systematically and transparently, without relying on proprietary black-box software.
+> ProcureFlow was started as an open-source exploration of how supplier quotations can be compared more systematically, transparently, and reproducibly without relying on proprietary black-box procurement software.
 
 ## Project Status
 
